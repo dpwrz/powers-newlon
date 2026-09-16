@@ -102,3 +102,14 @@ dist/
 logs/*.log
 tmp/
 temp/
+/web/
+.Renviron
+node_modules/
+dist/
+*.zip
+*.tar
+*.tar.gz
+*.tar.zst
+logs/*.log
+tmp/
+temp/
