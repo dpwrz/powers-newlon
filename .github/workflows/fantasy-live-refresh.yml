@@ -3,6 +3,12 @@ name: Fantasy Model 3.0 live refresh
 on:
   workflow_dispatch:
     inputs:
+      skip_model_refresh:
+        description: "Skip model refresh and reuse existing snapshot"
+        required: false
+        default: false
+        type: boolean
+      
       force:
         description: Force refresh even if the public-state fingerprint is unchanged
         required: false
@@ -66,9 +72,11 @@ jobs:
           cache-version: 5
 
       - name: Check production runtime
+        if: ${{ !inputs.skip_model_refresh }}
         run: Rscript tests/TEST_3_0_PRODUCTION.R
 
       - name: Refresh only unplayed player-weeks, ROS, performance and snapshot
+        if: ${{ !inputs.skip_model_refresh }}
         env:
           FM_RELEASE_VERSION: '3.0.1'
           FM_FORCE_REFRESH: ${{ github.event_name == 'workflow_dispatch' && inputs.force && 'true' || 'false' }}
