@@ -97,6 +97,24 @@ jobs:
             echo "No persistent engine-state changes to commit."
           else
             git commit -m "Auto-refresh Fantasy Model 3.0 production state"
+
+            echo "=== Non-persistent runtime changes left after commit ==="
+            git status --short
+
+            # The model refresh can modify temporary/runtime files that are
+            # intentionally NOT part of the persistent production state.
+            # Stash them so Git can safely rebase.
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Stashing non-persistent runtime changes..."
+            git stash push --include-untracked -m "ci-runtime-leftovers"
+          fi
+
+          echo "=== Synchronizing production commit with GitHub ==="
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+
+          echo "=== Pushing refreshed Fantasy Model 3.0 state ==="
+          git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
 
           echo "=== Remaining non-persistent working-tree changes ==="
