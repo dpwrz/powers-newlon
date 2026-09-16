@@ -81,31 +81,44 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "fantasy-model-bot"
+
+          git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          for f in \
+          echo "=== Working tree before persistent-state commit ==="
+          git status --short
+
+          # Stage the persistent production artifacts.
+          git add -f \
             output/model_snapshot.json \
-            data/state/live_refresh_state_2026.json \
-            output/weekly_2026_projections.csv \
-            output/rest_of_season_2026.csv \
-            output/pregame_projection_archive_2026.csv \
-            output/live_accuracy_player_weeks_2026.csv \
-            output/live_accuracy_weekly_summary_2026.csv \
-            output/live_accuracy_weekly_position_2026.csv \
-            output/live_accuracy_cumulative_position_2026.csv \
-            output/live_accuracy_biggest_misses_2026.csv \
-            output/live_refresh_log_2026.csv; do
-            [ -e "$f" ] && git add -f "$f"
-          done
+            output/ 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No persistent engine-state changes to commit."
           else
             git commit -m "Auto-refresh Fantasy Model 3.0 production state"
-            git pull --rebase origin "${GITHUB_REF_NAME}"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
+
+          echo "=== Remaining non-persistent working-tree changes ==="
+          git status --short
+
+          # Model execution can alter temporary/runtime files that are not meant
+          # to become part of the persistent production commit.
+          #
+          # Return the checkout to the commit we just created before syncing.
+          git reset --hard HEAD
+          git clean -fd
+
+          echo "=== Synchronizing with remote main ==="
+          git fetch origin main
+
+          # Only rebase when the remote actually contains commits we do not have.
+          if ! git merge-base --is-ancestor origin/main HEAD; then
+            git rebase origin/main
+          fi
+
+          echo "=== Push persistent engine state ==="
+          git push origin HEAD:main
 
       - name: Checkout Cloudflare web repository
         if: ${{ env.WEB_REPO != '' && env.WEB_REPO_TOKEN != '' }}
