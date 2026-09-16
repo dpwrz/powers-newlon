@@ -1,0 +1,23 @@
+FANTASY MODEL 2.4 SIGNAL-FIRST QUALITY REPORT - 2026
+
+WHAT 2.4 MEASURES
+1) Raw Pearson/Spearman relationship to actual weekly fantasy output.
+2) Partial/residual relationship after controlling the locked forecast.
+3) Year-to-year direction stability.
+4) Standardized ridge coefficient = conditional model weight after redundancy pruning.
+5) OOF permutation delta = how much MAE/RMSE/correlation degrades when a signal is destroyed.
+6) Player/archetype response slopes = whether the same defense style affects different player types differently.
+7) College/combine/draft features are experience-gated so their weekly influence fades as NFL evidence accumulates.
+
+HONEST POSITION RESULTS
+QB | n=2624 | locked MAE 6.082 -> 2.4 6.042 | RMSE 7.596 -> 7.592 | corr 0.550 -> 0.551 | rank 0.533 -> 0.530 | starter MAE 6.593 -> 6.643 | promote=NO
+RB | n=6166 | locked MAE 4.181 -> 2.4 4.162 | RMSE 5.799 -> 5.793 | corr 0.631 -> 0.632 | rank 0.695 -> 0.695 | starter MAE 6.039 -> 6.065 | promote=NO
+WR | n=9815 | locked MAE 3.919 -> 2.4 3.914 | RMSE 5.409 -> 5.413 | corr 0.575 -> 0.574 | rank 0.634 -> 0.634 | starter MAE 5.831 -> 5.841 | promote=NO
+TE | n=4905 | locked MAE 3.033 -> 2.4 3.016 | RMSE 4.310 -> 4.282 | corr 0.523 -> 0.532 | rank 0.562 -> 0.568 | starter MAE 4.882 -> 4.818 | promote=YES
+
+KEY FILES
+weekly_2_4_signal_attribution.csv = global + conditional + OOF unique predictive value by variable
+weekly_2_4_player_response_summary.csv = position/archetype/player response to blitz/pressure/coverage style
+rookie_talent_signal_audit_2_4.csv = college/combine/draft relationships and standardized rookie talent weights
+weekly_2_4_validation_metrics.csv = strict apples-to-apples locked benchmark vs 2.4
+weekly_2_4_promotion.csv = strict production gate

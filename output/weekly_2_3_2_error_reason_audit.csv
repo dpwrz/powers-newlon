@@ -1,0 +1,49 @@
+position,feature,median_feature,mean_residual_high,mean_residual_low,interpretation_high,interpretation_low
+QB,projected_opportunities_232,34.30333191398755,0.15047114302522469,-0.2706247020201931,historical undershoot,historical overshoot
+QB,roll3_pass_attempt_share,0.9871794871794872,0.33907693770132585,-0.45983942685220397,historical undershoot,historical overshoot
+QB,ngs_available,1,0.31718195937861604,-0.9019398765953828,historical undershoot,historical overshoot
+QB,roll3_offense_snaps,60.333333333333336,0.4250572027913052,-0.5504152642782606,historical undershoot,historical overshoot
+QB,roll3_offense_pct,0.97,0.4060015835323558,-0.5340365598883208,historical undershoot,historical overshoot
+QB,roll5_offense_pct,0.96,0.3367988512787925,-0.4723710439480529,historical undershoot,historical overshoot
+QB,roll3_pass_attempts,29.333333333333332,0.3854644120798727,-0.507660176689405,historical undershoot,historical overshoot
+QB,roll5_pass_attempts,29.4,0.40794094453938184,-0.5302397337438394,historical undershoot,historical overshoot
+QB,roll3_ngs_time_to_throw,2.729258010063874,0.33515495317664584,-0.4553085121716143,historical undershoot,historical overshoot
+QB,projected_td_points_232,4.564271963051024,-0.06385317870831742,-0.056300380286651026,historical overshoot,historical overshoot
+QB,roll3_ngs_air_yards,7.191594793322736,0.2966424051359052,-0.4167959641308736,historical undershoot,historical overshoot
+QB,prior_game_fppg,13.72,0.09624016785047881,-0.21663219663545177,historical undershoot,historical overshoot
+RB,projected_opportunities_232,8.0413978082571,0.390066626756793,-0.37745192006433564,historical undershoot,historical overshoot
+RB,projected_touch_opportunities_232,8.0413978082571,0.390066626756793,-0.37745192006433564,historical undershoot,historical overshoot
+RB,season_to_date_fppg,5.4,0.279304831817483,-0.2688236124201446,historical undershoot,historical overshoot
+RB,roll3_offense_pct,0.29000000000000004,0.4616993249305943,-0.4517511945193727,historical undershoot,historical overshoot
+RB,roll3_carry_share,0.19186307519640852,0.41393074163494814,-0.4013160349424908,historical undershoot,historical overshoot
+RB,roll5_offense_pct,0.29000000000000004,0.4345566976256218,-0.42249797839733766,historical undershoot,historical overshoot
+RB,roll3_offense_snaps,19.333333333333332,0.4261748401812357,-0.4157448098430418,historical undershoot,historical overshoot
+RB,roll5_carries,5,0.35330420513892924,-0.36251466008482175,historical undershoot,historical overshoot
+RB,roll3_carries,5,0.3207308127549969,-0.3294150795033749,historical undershoot,historical overshoot
+RB,ngs_available,0,0.006307353346228682,NA,historical undershoot,NA
+RB,roll3_ngs_time_to_los,0,0.006307353346228682,NA,historical undershoot,NA
+RB,expected_fppg_232,6.094217000204813,0.32700319588932525,-0.3143884891968679,historical undershoot,historical overshoot
+WR,projected_opportunities_232,3.974125903602656,0.14983696576678043,-0.2487319834588468,historical undershoot,historical overshoot
+WR,projected_touch_opportunities_232,3.974125903602656,0.14983696576678043,-0.2487319834588468,historical undershoot,historical overshoot
+WR,roll5_targets,3.2,0.1822063711466039,-0.2890796047350545,historical undershoot,historical overshoot
+WR,roll5_offense_pct,0.548,0.18778638165017283,-0.28727000495371396,historical undershoot,historical overshoot
+WR,roll3_offense_pct,0.5466666666666666,0.19850801860547726,-0.29873027674841773,historical undershoot,historical overshoot
+WR,roll3_offense_snaps,35,0.20699071289386675,-0.3091581513191162,historical undershoot,historical overshoot
+WR,roll3_ngs_air_yard_share,4.930316199610372,0.15478142373516723,-0.2536774490608118,historical undershoot,historical overshoot
+WR,roll3_target_share,0.10337610337610338,0.20361131733168758,-0.30251729372592734,historical undershoot,historical overshoot
+WR,roll3_ngs_cushion,3.285,0.15473957647002076,-0.2536355932675901,historical undershoot,historical overshoot
+WR,roll3_targets,3,0.18540272222470555,-0.32531204256250645,historical undershoot,historical overshoot
+WR,preseason_prior_fppg,5.042190215677939,0.04687064539883506,-0.146059217724,historical undershoot,historical overshoot
+WR,ngs_available,0.3333333333333333,0.1454634639213908,-0.24885768908575281,historical undershoot,historical overshoot
+TE,roll5_targets,2,0.32736811814358163,-0.25120845866498787,historical undershoot,historical overshoot
+TE,roll3_offense_pct,0.47,0.3269039712964035,-0.19669948706417198,historical undershoot,historical overshoot
+TE,roll3_offense_snaps,30.333333333333332,0.32597140904298155,-0.19338118305062527,historical undershoot,historical overshoot
+TE,roll5_offense_pct,0.472,0.3497985176346666,-0.21438067214928977,historical undershoot,historical overshoot
+TE,season_targets_prior,11,0.38450690373688473,-0.25295206493985456,historical undershoot,historical overshoot
+TE,projected_opportunities_232,2.4435575797500677,0.2568475581432819,-0.12008863072060846,historical undershoot,historical overshoot
+TE,projected_touch_opportunities_232,2.4435575797500677,0.2568475581432819,-0.12008863072060846,historical undershoot,historical overshoot
+TE,roll3_ngs_cushion,0,0.06857158205428468,NA,historical undershoot,NA
+TE,roll3_target_share,0.06962095875139354,0.3275236187118118,-0.19048606310106359,historical undershoot,historical overshoot
+TE,roll3_targets,2,0.3007926789943208,-0.22532486395758547,historical undershoot,historical overshoot
+TE,projected_td_points_232,0.7589494335095952,-0.10226271069326814,0.23947554620997272,historical overshoot,historical undershoot
+TE,season_to_date_fppg,3.4,0.17557802147335894,-0.03874071488864972,historical undershoot,historical overshoot

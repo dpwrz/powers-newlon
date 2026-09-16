@@ -1,0 +1,5 @@
+position,promoted_for_2026,player_gain_2026,position_gain_2026,starter_MAE_gain_pct,starter_RMSE_gain_pct,relevant_MAE_gain_pct,all_MAE_gain_pct,failed_checks
+QB,FALSE,0,0,0,0,0,0,all_MAE;starter_MAE;year_MAE_stability
+RB,FALSE,0.05,0,-0.05861720248494178,0.06387991629243352,-0.10754163399344965,-0.21266296238772317,all_MAE;relevant_MAE;starter_MAE;year_MAE_stability
+WR,FALSE,0,0,-0.0043021184399500804,0.002579723054708717,-0.017204422859994326,-0.03939050143828199,all_MAE;all_RMSE;relevant_MAE;starter_MAE;year_MAE_stability
+TE,FALSE,0,0.15,-0.038770920250166985,-0.0068948657112778665,-0.013935482639079625,0.03488004096556726,relevant_MAE;relevant_RMSE;starter_MAE;starter_RMSE;year_MAE_stability;year_RMSE_stability

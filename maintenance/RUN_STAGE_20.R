@@ -1,0 +1,25 @@
+args <- commandArgs(trailingOnly = TRUE)
+if (length(args) < 2) stop("RUN_STAGE_20.R requires <script> <logfile>.")
+script <- args[[1]]
+logfile <- args[[2]]
+dir.create(dirname(logfile), recursive = TRUE, showWarnings = FALSE)
+con <- file(logfile, open = "wt")
+sink(con, split = TRUE)
+sink(con, type = "message")
+on.exit({
+  try(sink(type = "message"), silent = TRUE)
+  try(sink(), silent = TRUE)
+  try(close(con), silent = TRUE)
+}, add = TRUE)
+options(warn = 1)
+options(error = function() {
+  cat("\n[STAGE ERROR TRACE]\n")
+  traceback(25)
+  try(sink(type = "message"), silent = TRUE)
+  try(sink(), silent = TRUE)
+  try(close(con), silent = TRUE)
+  q(status = 1, save = "no")
+})
+cat("[STAGE] Running ", script, "\n", sep = "")
+source(script, echo = FALSE, chdir = FALSE)
+cat("[STAGE] Completed ", script, "\n", sep = "")

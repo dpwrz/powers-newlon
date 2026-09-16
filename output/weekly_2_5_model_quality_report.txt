@@ -1,0 +1,15 @@
+FANTASY MODEL 2.5 - ACCURACY TOURNAMENT
+Generated: 2026-09-15 19:19:25 -0400
+
+WHAT CHANGED
+- Current production champion remains the benchmark per position.
+- Challenger is a direct XGBoost model trained only on explicit pre-kickoff features.
+- Every target season is predicted by a model trained only on earlier seasons.
+- Blend strength for a target year is selected only from earlier OOF seasons.
+- Promotion weights starter/relevant-player accuracy and requires year stability + paired confidence.
+
+PROMOTION SUMMARY
+QB: PROMOTE | alpha 0.15 | starter MAE 6.5929 -> 6.5741 | starter RMSE 8.2726 -> 8.2409 | all gates passed
+RB: PROMOTE | alpha 0.30 | starter MAE 6.0392 -> 5.9773 | starter RMSE 7.7419 -> 7.7104 | all gates passed
+WR: PROMOTE | alpha 0.40 | starter MAE 5.8311 -> 5.7601 | starter RMSE 7.3936 -> 7.3653 | all gates passed
+TE: KEEP INCUMBENT | alpha 0.25 | starter MAE 4.8183 -> 4.7615 | starter RMSE 6.3528 -> 6.3470 | failed: year_RMSE_stability

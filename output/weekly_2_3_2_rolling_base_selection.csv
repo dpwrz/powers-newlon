@@ -1,0 +1,17 @@
+target_year,position,prior_oof_n,base_column
+2022,QB,0,honest_final_fppg
+2022,RB,0,honest_final_fppg
+2022,WR,0,honest_final_fppg
+2022,TE,0,honest_final_fppg
+2023,QB,633,legacy21_honest_fppg
+2023,RB,1581,legacy21_honest_fppg
+2023,WR,2387,legacy21_honest_fppg
+2023,TE,1207,legacy21_honest_fppg
+2024,QB,1296,honest22_fppg
+2024,RB,3055,honest22_fppg
+2024,WR,4863,honest22_fppg
+2024,TE,2395,honest22_fppg
+2025,QB,1960,meta_precal_fppg
+2025,RB,4591,honest22_fppg
+2025,WR,7304,meta_precal_fppg
+2025,TE,3618,honest22_fppg

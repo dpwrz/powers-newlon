@@ -1,0 +1,22 @@
+FANTASY MODEL 2.3.2 SIGNAL + FEEDBACK QUALITY REPORT - 2026
+
+DESIGN
+Feed-forward: qualified pre-kickoff signals predict remaining OOF residual error.
+Feedback: bounded decayed PID-like controller uses only each player's PRIOR observed forecast errors.
+Safety: integral windup caps, correction caps, inner-season enable gates, and per-position 2.3 promotion guardrail.
+Expected fantasy production: structured_neutral_fppg is exposed as expected_fppg_232 and compared with the selected base.
+
+POSITION SUMMARY
+QB | n=2624 | 2.3 MAE 6.082 -> 2.3.2 6.062 (+0.33%) | RMSE 7.596 -> 7.613 (-0.21%) | corr 0.550 -> 0.548 | starter MAE 6.593 -> 6.584 | promote=YES
+RB | n=6166 | 2.3 MAE 4.181 -> 2.3.2 4.146 (+0.82%) | RMSE 5.799 -> 5.821 (-0.37%) | corr 0.631 -> 0.627 | starter MAE 6.039 -> 6.098 | promote=NO
+WR | n=9815 | 2.3 MAE 3.919 -> 2.3.2 3.903 (+0.41%) | RMSE 5.409 -> 5.434 (-0.46%) | corr 0.575 -> 0.570 | starter MAE 5.831 -> 5.873 | promote=NO
+TE | n=4905 | 2.3 MAE 3.033 -> 2.3.2 3.023 (+0.34%) | RMSE 4.310 -> 4.291 (+0.44%) | corr 0.523 -> 0.529 | starter MAE 4.882 -> 4.855 | promote=YES
+
+FILES
+weekly_2_3_2_signal_lab.csv = strongest stable pre-kickoff signals and residual relationships
+weekly_2_3_2_error_reason_audit.csv = where high/low signal states historically led to under/overshoots
+weekly_2_3_2_rolling_controller_parameters.csv = honest year-by-year controller decisions
+weekly_2_3_2_validation_metrics.csv = 2.3 vs 2.3.2 apples-to-apples metrics
+weekly_2_3_2_cohort_metrics.csv = All/Relevant/Starter results
+weekly_2_3_2_confidence_calibration.csv = expected error by 2.3.2 risk/confidence bucket
+weekly_2_3_2_promotion.csv = hard production safety gate

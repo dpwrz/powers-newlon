@@ -1,0 +1,373 @@
+feature,importance,importance_pct,position,model_type
+career_fppg_before,41.075991912577855,9.294831589368611,QB,Fantasy tier classifier
+recent_weighted_fppg,40.30166070845917,9.119612981087787,QB,Fantasy tier classifier
+prior_fppg,31.879164874637922,7.2137386079468335,QB,Fantasy tier classifier
+prior_fantasy_points,29.506928280064663,6.67693989390424,QB,Fantasy tier classifier
+peak_fppg_before,23.674359817300985,5.357124131201977,QB,Fantasy tier classifier
+two_year_fppg,21.457402736167875,4.855462655714135,QB,Fantasy tier classifier
+prior_pass_yd_pg,16.51397235079475,3.736844436984256,QB,Fantasy tier classifier
+prior_carries_pg,10.534709681749506,2.3838341516658335,QB,Fantasy tier classifier
+two_year_carries_pg,10.416124548275732,2.357000256893738,QB,Fantasy tier classifier
+prior_rush_yd_pg,9.48129788459728,2.1454641259431946,QB,Fantasy tier classifier
+age_squared,9.327710144061776,2.110709708192128,QB,Fantasy tier classifier
+draft_capital_score,9.098320125228149,2.058802462765688,QB,Fantasy tier classifier
+prior_games,8.890158142942553,2.011698778142036,QB,Fantasy tier classifier
+age,8.799148923149552,1.9911048659400825,QB,Fantasy tier classifier
+career_games_before,8.591165262744212,1.9440415326693379,QB,Fantasy tier classifier
+player_qb_prior_redzone_throw_rate,8.251295073017817,1.867134414212479,QB,Fantasy tier classifier
+prior_pass_td_rate,8.044861873644662,1.8204219251577596,QB,Fantasy tier classifier
+player_qb_prior_wr_target_rate,7.957320857969487,1.8006128113670379,QB,Fantasy tier classifier
+player_qb_prior_middle_throw_rate,7.440293058677902,1.683617795600526,QB,Fantasy tier classifier
+prior_pass_attempts_pg,7.313141686525689,1.6548454997780102,QB,Fantasy tier classifier
+draft_pick,7.178446838839608,1.6243662376371875,QB,Fantasy tier classifier
+player_qb_prior_te_target_rate,6.961098708959858,1.5751838766172486,QB,Fantasy tier classifier
+experience,6.795334152656081,1.5376740427072313,QB,Fantasy tier classifier
+two_year_pass_attempts_pg,6.666152633753309,1.5084423575609394,QB,Fantasy tier classifier
+fppg_trend,6.488344137134668,1.4682071750546586,QB,Fantasy tier classifier
+player_qb_prior_avg_air_yards,6.205248407936402,1.4041471973390225,QB,Fantasy tier classifier
+two_year_games,6.065340625507222,1.3724883325089547,QB,Fantasy tier classifier
+weight,5.327907471865735,1.2056191553481774,QB,Fantasy tier classifier
+player_qb_prior_rb_target_rate,5.035624144675615,1.1394801730347497,QB,Fantasy tier classifier
+player_qb_prior_ngs_time_to_throw,5.010432892349857,1.1337798007006732,QB,Fantasy tier classifier
+prior_yards_per_carry,5.006298882164734,1.1328443411616502,QB,Fantasy tier classifier
+player_qb_prior_deep_throw_rate,4.97446332713478,1.1256404707551295,QB,Fantasy tier classifier
+height,4.818298667380522,1.0903029379277749,QB,Fantasy tier classifier
+player_qb_prior_ngs_cpoe,3.9669167366220006,0.8976489983351738,QB,Fantasy tier classifier
+draft_round,3.8989044272001494,0.8822589144286046,QB,Fantasy tier classifier
+prior_yards_per_target,3.8499728234936925,0.871186485141511,QB,Fantasy tier classifier
+player_qb_prior_ngs_aggressiveness,3.567220878862195,0.8072043003044483,QB,Fantasy tier classifier
+player_qb_context_available,3.410713785421216,0.7717892802807923,QB,Fantasy tier classifier
+prior_yards_per_attempt,3.2809368198746487,0.7424228552045116,QB,Fantasy tier classifier
+prior_rec_td_rate,3.0799220287756452,0.6969364641706962,QB,Fantasy tier classifier
+prior_rush_td_rate,2.969274845627866,0.6718987989723615,QB,Fantasy tier classifier
+years_since_last_season,2.8767361111111107,0.6509587823646761,QB,Fantasy tier classifier
+is_rookie,2.477000997130072,0.560505201286988,QB,Fantasy tier classifier
+prior_target_share,2.28178666499653,0.5163313601567698,QB,Fantasy tier classifier
+prior_catch_rate,2.2200984314980747,0.5023723121894287,QB,Fantasy tier classifier
+prior_rec_yd_pg,2.119676299971051,0.47964841053963564,QB,Fantasy tier classifier
+prior_wopr,1.903575984096726,0.4307484096160754,QB,Fantasy tier classifier
+prior_targets_pg,1.822937388916595,0.41250120177267635,QB,Fantasy tier classifier
+prior_air_yards_share,1.6658044462384485,0.3769445622046357,QB,Fantasy tier classifier
+two_year_targets_pg,1.4434304990594506,0.3266249401419236,QB,Fantasy tier classifier
+recent_weighted_fppg,15.582087950117256,5.4778985894159655,QB,Breakout/upside classifier
+prior_pass_yd_pg,15.064962085857646,5.296102475092473,QB,Breakout/upside classifier
+prior_fppg,14.243151652523423,5.007194196051795,QB,Breakout/upside classifier
+fppg_trend,13.916884343765373,4.892494597632136,QB,Breakout/upside classifier
+prior_pass_attempts_pg,10.258001550018232,3.6062106953162725,QB,Breakout/upside classifier
+prior_fantasy_points,10.094878805851888,3.548864731602613,QB,Breakout/upside classifier
+player_qb_prior_redzone_throw_rate,9.084908154050918,3.19380853973903,QB,Breakout/upside classifier
+prior_pass_td_rate,8.453936159700007,2.9719897046200927,QB,Breakout/upside classifier
+player_qb_prior_deep_throw_rate,8.419956501255255,2.9600441217393376,QB,Breakout/upside classifier
+peak_fppg_before,8.169356473708831,2.8719454316408886,QB,Breakout/upside classifier
+player_qb_prior_avg_air_yards,8.019400552924377,2.8192282778442084,QB,Breakout/upside classifier
+player_qb_prior_wr_target_rate,7.255720858015965,2.550755917984827,QB,Breakout/upside classifier
+prior_yards_per_attempt,6.9849122836735225,2.4555528930666517,QB,Breakout/upside classifier
+two_year_pass_attempts_pg,6.829330615910662,2.40085800229813,QB,Breakout/upside classifier
+prior_carries_pg,6.717309863226768,2.3614769947542857,QB,Breakout/upside classifier
+prior_games,6.565726676064175,2.308187773836309,QB,Breakout/upside classifier
+prior_yards_per_carry,6.557711799079053,2.305370135823246,QB,Breakout/upside classifier
+prior_rush_yd_pg,6.554758421094855,2.3043318728417095,QB,Breakout/upside classifier
+draft_capital_score,6.485182272564293,2.2798723083011505,QB,Breakout/upside classifier
+career_fppg_before,6.454239647702158,2.268994397611149,QB,Breakout/upside classifier
+age,6.319872625038817,2.2217575365263036,QB,Breakout/upside classifier
+draft_pick,6.211899773387058,2.1837995726352104,QB,Breakout/upside classifier
+two_year_carries_pg,5.9645498318824295,2.0968434535324345,QB,Breakout/upside classifier
+two_year_fppg,5.907567169642185,2.0768111416813992,QB,Breakout/upside classifier
+player_qb_prior_middle_throw_rate,5.267486874612227,1.851790274357186,QB,Breakout/upside classifier
+age_squared,5.212932353321101,1.8326115778831567,QB,Breakout/upside classifier
+prior_rush_td_rate,5.204031855078766,1.8294825988321546,QB,Breakout/upside classifier
+player_qb_prior_rb_target_rate,4.866777380556099,1.7109204513089127,QB,Breakout/upside classifier
+weight,4.775117913314596,1.678697474008552,QB,Breakout/upside classifier
+player_qb_prior_te_target_rate,4.522064844870969,1.5897364149314666,QB,Breakout/upside classifier
+height,4.289637859124532,1.5080264758373907,QB,Breakout/upside classifier
+career_games_before,4.288741315292337,1.5077112949573024,QB,Breakout/upside classifier
+experience,3.9785067235513227,1.3986480142258293,QB,Breakout/upside classifier
+player_qb_context_available,3.899417781274588,1.3708442175380522,QB,Breakout/upside classifier
+draft_round,3.742463928401169,1.3156669337227447,QB,Breakout/upside classifier
+player_qb_prior_ngs_time_to_throw,3.655109650411874,1.2849574500060001,QB,Breakout/upside classifier
+two_year_games,3.47215056857962,1.220638001964237,QB,Breakout/upside classifier
+player_qb_prior_ngs_aggressiveness,3.1781364836496326,1.1172770566106793,QB,Breakout/upside classifier
+prior_catch_rate,2.8193469670524074,0.9911442435270266,QB,Breakout/upside classifier
+prior_target_share,2.753832062883112,0.9681124134999085,QB,Breakout/upside classifier
+prior_yards_per_target,2.7377936503557403,0.9624740935493719,QB,Breakout/upside classifier
+player_qb_prior_ngs_cpoe,2.412975724866098,0.8482840272660315,QB,Breakout/upside classifier
+prior_targets_pg,2.297366972091047,0.8076416547047968,QB,Breakout/upside classifier
+prior_wopr,1.7684341597962274,0.6216947960013193,QB,Breakout/upside classifier
+prior_rec_yd_pg,1.6995317236906664,0.5974720757369829,QB,Breakout/upside classifier
+prior_air_yards_share,1.2734880437302223,0.4476959943186168,QB,Breakout/upside classifier
+two_year_targets_pg,0.2220989381031149,0.07807910362466423,QB,Breakout/upside classifier
+recent_weighted_fppg,122.09244291609886,11.15425653092994,RB,Fantasy tier classifier
+prior_fppg,105.08976112516353,9.600906709432866,RB,Fantasy tier classifier
+prior_fantasy_points,100.86336193910941,9.214786654846383,RB,Fantasy tier classifier
+career_fppg_before,88.31162321641833,8.068071016448402,RB,Fantasy tier classifier
+rb_prior_touch_opportunity,83.14844205142104,7.596367397006355,RB,Fantasy tier classifier
+prior_rush_yd_pg,73.8808183770282,6.749685576024734,RB,Fantasy tier classifier
+peak_fppg_before,44.26794755556277,4.044280148213758,RB,Fantasy tier classifier
+prior_carries_pg,43.86074144425002,4.007078161603775,RB,Fantasy tier classifier
+draft_capital_score,31.569306064094413,2.88414360407494,RB,Fantasy tier classifier
+draft_pick,31.373310329686422,2.866237608844285,RB,Fantasy tier classifier
+two_year_fppg,24.603834528124946,2.2477843461601377,RB,Fantasy tier classifier
+age_squared,24.54026061904042,2.2419762906108676,RB,Fantasy tier classifier
+age,24.199165835690614,2.2108141758724456,RB,Fantasy tier classifier
+draft_round,22.829963750240957,2.0857250963273275,RB,Fantasy tier classifier
+two_year_carries_pg,19.766743180553355,1.8058720011722336,RB,Fantasy tier classifier
+career_games_before,19.44651063314098,1.7766158416747497,RB,Fantasy tier classifier
+prior_wopr,18.888477606452128,1.7256344427957369,RB,Fantasy tier classifier
+prior_target_share,17.558931597965792,1.6041683070208823,RB,Fantasy tier classifier
+prior_targets_pg,16.84226527376643,1.5386943117737593,RB,Fantasy tier classifier
+experience,14.395196226382202,1.3151322693451453,RB,Fantasy tier classifier
+two_year_targets_pg,13.604983380251523,1.2429391295466818,RB,Fantasy tier classifier
+two_year_games,13.321315755200517,1.2170235086960701,RB,Fantasy tier classifier
+prior_rec_yd_pg,12.790250786396166,1.168505887497314,RB,Fantasy tier classifier
+prior_yards_per_target,11.74740774551177,1.0732326787573339,RB,Fantasy tier classifier
+prior_yards_per_carry,10.20073663073458,0.9319301872095185,RB,Fantasy tier classifier
+prior_catch_rate,10.06258825171293,0.9193090746972679,RB,Fantasy tier classifier
+fppg_trend,9.59188130428572,0.8763057084192903,RB,Fantasy tier classifier
+weight,9.028260344627705,0.8248138009753986,RB,Fantasy tier classifier
+rb_receiving_fit,8.466487451214482,0.7734907312129242,RB,Fantasy tier classifier
+prior_rush_td_rate,8.372677325451226,0.7649203219151004,RB,Fantasy tier classifier
+rec_prior_short_target_rate,7.537070433868627,0.6885800226704509,RB,Fantasy tier classifier
+prior_air_yards_share,7.391784870317949,0.675306863354615,RB,Fantasy tier classifier
+prior_games,7.300460064582787,0.6669635106746514,RB,Fantasy tier classifier
+rec_prior_redzone_target_rate,7.244401063027121,0.661842010364846,RB,Fantasy tier classifier
+rec_prior_route_screen,7.202388912265667,0.6580038177968474,RB,Fantasy tier classifier
+height,5.102318456844366,0.466143256788224,RB,Fantasy tier classifier
+receiver_context_available,4.755561557481491,0.4344638561882925,RB,Fantasy tier classifier
+prior_rec_td_rate,4.625899918173747,0.42261808463588474,RB,Fantasy tier classifier
+is_rookie,3.087504659600627,0.28207166791881666,RB,Fantasy tier classifier
+prior_pass_td_rate,1.5065205085865778,0.13763436802906312,RB,Fantasy tier classifier
+prior_pass_attempts_pg,1.4422026328634248,0.1317583443522044,RB,Fantasy tier classifier
+two_year_pass_attempts_pg,1.050135901437037,0.09593947796603187,RB,Fantasy tier classifier
+years_since_last_season,1.038316970546984,0.09485971099667426,RB,Fantasy tier classifier
+prior_pass_yd_pg,0.5813704952086164,0.05311348915777666,RB,Fantasy tier classifier
+draft_pick,24.21759710601606,4.689461189969167,RB,Breakout/upside classifier
+draft_capital_score,23.7020288975301,4.589627292580716,RB,Breakout/upside classifier
+career_fppg_before,22.798363797116494,4.414642862929499,RB,Breakout/upside classifier
+age_squared,22.259512748276496,4.310300509324087,RB,Breakout/upside classifier
+prior_fantasy_points,22.020754467525755,4.2640676941334235,RB,Breakout/upside classifier
+age,21.787383075416464,4.21887798842667,RB,Breakout/upside classifier
+peak_fppg_before,20.069215155743652,3.886174386913944,RB,Breakout/upside classifier
+career_games_before,19.822501422261848,3.8384010891284297,RB,Breakout/upside classifier
+recent_weighted_fppg,19.24647333942246,3.726859827335095,RB,Breakout/upside classifier
+prior_fppg,17.98102430972356,3.481820070224635,RB,Breakout/upside classifier
+draft_round,17.51576285611458,3.391727501571491,RB,Breakout/upside classifier
+two_year_carries_pg,17.397933204548654,3.368911134793767,RB,Breakout/upside classifier
+rb_prior_touch_opportunity,15.731591585545148,3.046243104710545,RB,Breakout/upside classifier
+prior_target_share,15.426516569083672,2.98716881078029,RB,Breakout/upside classifier
+prior_carries_pg,14.52807785117116,2.8131964104313822,RB,Breakout/upside classifier
+experience,14.463959672133859,2.8007806570909226,RB,Breakout/upside classifier
+prior_targets_pg,14.036506769819207,2.718009282739902,RB,Breakout/upside classifier
+prior_rush_yd_pg,13.75671981535034,2.6638317333035264,RB,Breakout/upside classifier
+prior_wopr,12.961439056771644,2.509834694036671,RB,Breakout/upside classifier
+two_year_fppg,12.740215865553,2.4669973487377335,RB,Breakout/upside classifier
+prior_catch_rate,11.767746365839978,2.278689732694353,RB,Breakout/upside classifier
+prior_yards_per_target,11.595769256714137,2.2453883289556487,RB,Breakout/upside classifier
+two_year_games,11.349603445944549,2.1977211301477824,RB,Breakout/upside classifier
+two_year_targets_pg,10.925411264590661,2.115581157183526,RB,Breakout/upside classifier
+prior_rec_yd_pg,10.027813841395783,1.9417716639517195,RB,Breakout/upside classifier
+height,9.28705254566144,1.7983316962220337,RB,Breakout/upside classifier
+prior_games,8.361553996947002,1.6191194685774095,RB,Breakout/upside classifier
+rec_prior_route_screen,7.610015867873709,1.4735926901095429,RB,Breakout/upside classifier
+is_rookie,6.450292751690519,1.2490255490904132,RB,Breakout/upside classifier
+rec_prior_redzone_target_rate,6.406814636729087,1.2406065085129314,RB,Breakout/upside classifier
+prior_air_yards_share,6.211096369925384,1.202707900640064,RB,Breakout/upside classifier
+prior_rush_td_rate,6.058675363834347,1.1731933129841972,RB,Breakout/upside classifier
+prior_yards_per_carry,6.0234422231927205,1.1663708175517917,RB,Breakout/upside classifier
+fppg_trend,5.933267818621807,1.1489095736177752,RB,Breakout/upside classifier
+rec_prior_short_target_rate,5.611379514561358,1.0865795784994121,RB,Breakout/upside classifier
+rb_receiving_fit,5.066832108101948,0.9811341902756809,RB,Breakout/upside classifier
+weight,4.632575665527795,0.8970453880286702,RB,Breakout/upside classifier
+prior_yards_per_attempt,4.1553716695146345,0.8046402823856335,RB,Breakout/upside classifier
+prior_pass_yd_pg,3.660046741140101,0.7087262650754848,RB,Breakout/upside classifier
+receiver_context_available,3.451153076349011,0.668276391804412,RB,Breakout/upside classifier
+prior_rec_td_rate,3.136542031434837,0.6073555548360672,RB,Breakout/upside classifier
+prior_pass_td_rate,2.5490692150162673,0.49359815104837296,RB,Breakout/upside classifier
+two_year_pass_attempts_pg,2.1499497099744236,0.41631321559998863,RB,Breakout/upside classifier
+prior_pass_attempts_pg,1.5409525222237657,0.2983878630451875,RB,Breakout/upside classifier
+recent_weighted_fppg,161.96921850632788,11.58151112115724,WR,Fantasy tier classifier
+prior_fppg,137.2890845097885,9.816773049389582,WR,Fantasy tier classifier
+prior_rec_yd_pg,130.78923725526263,9.352005398114079,WR,Fantasy tier classifier
+prior_fantasy_points,126.92258179003952,9.075522534980331,WR,Fantasy tier classifier
+career_fppg_before,103.25417252411883,7.383127228876831,WR,Fantasy tier classifier
+prior_targets_pg,88.66119253018212,6.339665010257804,WR,Fantasy tier classifier
+peak_fppg_before,70.76445418687875,5.059969546719393,WR,Fantasy tier classifier
+two_year_fppg,51.02254079157338,3.648335955786684,WR,Fantasy tier classifier
+prior_wopr,48.087690466946896,3.4384812563132434,WR,Fantasy tier classifier
+prior_target_share,47.45906249170054,3.393531592707243,WR,Fantasy tier classifier
+age,29.519725865187432,2.1107901646622103,WR,Fantasy tier classifier
+age_squared,27.100514966097656,1.9378059508059309,WR,Fantasy tier classifier
+prior_air_yards_share,25.547971639884093,1.8267922781807315,WR,Fantasy tier classifier
+two_year_targets_pg,22.97623660726535,1.6429019182986777,WR,Fantasy tier classifier
+experience,20.35917925399211,1.4557708132581466,WR,Fantasy tier classifier
+draft_pick,20.222637929586455,1.4460075083432695,WR,Fantasy tier classifier
+career_games_before,19.964908806629857,1.4275787431044515,WR,Fantasy tier classifier
+draft_capital_score,17.443045471841597,1.2472544288474938,WR,Fantasy tier classifier
+prior_catch_rate,14.344965367970557,1.0257280826188329,WR,Fantasy tier classifier
+fppg_trend,14.328645315797113,1.0245611271473694,WR,Fantasy tier classifier
+prior_yards_per_target,12.614793376833836,0.9020131796165575,WR,Fantasy tier classifier
+rec_prior_route_in_break,12.426270657593626,0.8885329764668091,WR,Fantasy tier classifier
+draft_round,11.910079278042616,0.8516230237112986,WR,Fantasy tier classifier
+weight,11.883891068691943,0.8497504516223855,WR,Fantasy tier classifier
+prior_rush_yd_pg,11.464109633280799,0.8197342336798412,WR,Fantasy tier classifier
+prior_yards_per_carry,11.361541028412905,0.8124001275520606,WR,Fantasy tier classifier
+prior_carries_pg,11.220467515157937,0.8023127512114794,WR,Fantasy tier classifier
+height,10.764865405926896,0.7697351976272727,WR,Fantasy tier classifier
+rec_prior_route_screen,9.889171194646273,0.7071192120702187,WR,Fantasy tier classifier
+rec_prior_ngs_avg_separation,9.251919003994221,0.6615528791516573,WR,Fantasy tier classifier
+rec_prior_ngs_avg_cushion,9.13360848190711,0.6530931567430549,WR,Fantasy tier classifier
+two_year_games,8.727381108694953,0.6240461138298282,WR,Fantasy tier classifier
+prior_games,8.51431756276091,0.6088111336928345,WR,Fantasy tier classifier
+rec_prior_deep_target_rate,8.201046434122572,0.5864108708915378,WR,Fantasy tier classifier
+rec_prior_route_vertical,8.079618614139024,0.5777282479800591,WR,Fantasy tier classifier
+prior_rec_td_rate,7.906712879566738,0.5653647278845259,WR,Fantasy tier classifier
+rec_prior_redzone_target_rate,7.214583939539613,0.5158744661538023,WR,Fantasy tier classifier
+rec_prior_route_out_break,7.202731752173645,0.5150269826562904,WR,Fantasy tier classifier
+rec_prior_avg_depth_target,6.460435701540643,0.46194955198842963,WR,Fantasy tier classifier
+two_year_carries_pg,6.2087306714952595,0.4439515358739793,WR,Fantasy tier classifier
+rec_prior_route_hitch,3.8394585716205616,0.27453816568676465,WR,Fantasy tier classifier
+prior_pass_yd_pg,3.56093626549682,0.2546225964470671,WR,Fantasy tier classifier
+is_rookie,3.489195576809779,0.2494928218421721,WR,Fantasy tier classifier
+prior_pass_attempts_pg,3.144947245101584,0.22487755284917807,WR,Fantasy tier classifier
+prior_yards_per_attempt,3.088696571792086,0.2208553824360938,WR,Fantasy tier classifier
+receiver_context_available,3.0795455874601196,0.2202010468296893,WR,Fantasy tier classifier
+two_year_pass_attempts_pg,2.898353092934027,0.20724498696982044,WR,Fantasy tier classifier
+prior_pass_td_rate,2.693440374563472,0.19259282683371146,WR,Fantasy tier classifier
+years_since_last_season,2.408879341210168,0.17224546205155358,WR,Fantasy tier classifier
+prior_rush_td_rate,1.8486224021002808,0.13218462808047918,WR,Fantasy tier classifier
+prior_fantasy_points,20.777690146783158,4.9072610792613425,WR,Breakout/upside classifier
+prior_targets_pg,19.173449335994157,4.528372548489488,WR,Breakout/upside classifier
+prior_air_yards_share,18.952347122357786,4.476152774306153,WR,Breakout/upside classifier
+recent_weighted_fppg,18.23908395940267,4.307694753510113,WR,Breakout/upside classifier
+prior_wopr,17.594701024857425,4.155504819379073,WR,Breakout/upside classifier
+prior_fppg,16.5277412187568,3.903510959973847,WR,Breakout/upside classifier
+peak_fppg_before,16.179669809939014,3.8213036854775706,WR,Breakout/upside classifier
+draft_capital_score,15.484870658368628,3.6572064826451838,WR,Breakout/upside classifier
+draft_pick,15.086918759643694,3.5632184671229985,WR,Breakout/upside classifier
+age,14.694600400064612,3.4705609771401598,WR,Breakout/upside classifier
+prior_rec_yd_pg,14.674575348664193,3.46583147378087,WR,Breakout/upside classifier
+prior_target_share,14.268973734776008,3.3700367536046607,WR,Breakout/upside classifier
+age_squared,13.816656020276005,3.2632086557677145,WR,Breakout/upside classifier
+career_fppg_before,13.696088009971282,3.234732983053731,WR,Breakout/upside classifier
+prior_rec_td_rate,12.428718252975278,2.935406434356388,WR,Breakout/upside classifier
+career_games_before,9.660197546187746,2.281539049889162,WR,Breakout/upside classifier
+draft_round,8.80893751105803,2.080489019341399,WR,Breakout/upside classifier
+experience,8.58245934809266,2.0269995570108317,WR,Breakout/upside classifier
+two_year_fppg,8.576567333723016,2.025607984964548,WR,Breakout/upside classifier
+weight,7.793061371598139,1.8405600664450832,WR,Breakout/upside classifier
+prior_yards_per_target,7.789472637786128,1.8397124816733834,WR,Breakout/upside classifier
+two_year_targets_pg,7.596423282383845,1.7941182129433348,WR,Breakout/upside classifier
+rec_prior_redzone_target_rate,7.505082937208664,1.7725455107960821,WR,Breakout/upside classifier
+rec_prior_route_vertical,7.498059496693172,1.7708867192730255,WR,Breakout/upside classifier
+prior_yards_per_carry,7.428012246516063,1.754343006180999,WR,Breakout/upside classifier
+prior_carries_pg,7.1050642887475295,1.6780693716918533,WR,Breakout/upside classifier
+height,6.529854289175316,1.54221665546778,WR,Breakout/upside classifier
+rec_prior_route_in_break,6.447846866264767,1.5228481967114647,WR,Breakout/upside classifier
+prior_rush_yd_pg,5.983680912254669,1.4132217895246864,WR,Breakout/upside classifier
+two_year_games,5.908830527771573,1.395543675357674,WR,Breakout/upside classifier
+rec_prior_avg_depth_target,5.850512862837559,1.3817702479293898,WR,Breakout/upside classifier
+rec_prior_ngs_avg_separation,5.7256174061479195,1.3522725217981466,WR,Breakout/upside classifier
+fppg_trend,5.340190422129183,1.2612426323248427,WR,Breakout/upside classifier
+is_rookie,5.210234001964646,1.2305496111964909,WR,Breakout/upside classifier
+rec_prior_deep_target_rate,5.131208566137086,1.211885436171805,WR,Breakout/upside classifier
+rec_prior_route_screen,4.902346955341775,1.1578330527134462,WR,Breakout/upside classifier
+receiver_context_available,4.85992051330098,1.1478128037691446,WR,Breakout/upside classifier
+two_year_carries_pg,4.523786180319189,1.0684248199272355,WR,Breakout/upside classifier
+rec_prior_route_hitch,4.392358789964753,1.0373843860349694,WR,Breakout/upside classifier
+prior_catch_rate,4.068518362700612,0.9608999686922302,WR,Breakout/upside classifier
+rec_prior_ngs_avg_cushion,3.9034743327505446,0.9219199791545672,WR,Breakout/upside classifier
+rec_prior_route_out_break,3.752117410409749,0.8861726016148767,WR,Breakout/upside classifier
+prior_games,3.341936310779183,0.7892963015331116,WR,Breakout/upside classifier
+prior_yards_per_attempt,2.9334696560356353,0.6928249179077559,WR,Breakout/upside classifier
+prior_pass_yd_pg,1.5111295010319798,0.3568975633841537,WR,Breakout/upside classifier
+two_year_pass_attempts_pg,1.4722132384988584,0.34770634630805003,WR,Breakout/upside classifier
+prior_rush_td_rate,1.1776463601288845,0.2781357363291405,WR,Breakout/upside classifier
+years_since_last_season,0.3796308217277165,0.08966095570738163,WR,Breakout/upside classifier
+prior_pass_attempts_pg,0.12111970822392283,0.028605972362657807,WR,Breakout/upside classifier
+prior_fantasy_points,60.839043444656404,9.7593358229206,TE,Fantasy tier classifier
+prior_fppg,59.91038619703007,9.610367702601302,TE,Fantasy tier classifier
+prior_rec_yd_pg,51.82373143938189,8.313168157777772,TE,Fantasy tier classifier
+recent_weighted_fppg,47.60589709800547,7.636575307984125,TE,Fantasy tier classifier
+prior_wopr,42.747964150639575,6.857302716663685,TE,Fantasy tier classifier
+prior_target_share,39.35832610973487,6.313562807448507,TE,Fantasy tier classifier
+prior_air_yards_share,36.14679636003413,5.798393673319354,TE,Fantasy tier classifier
+prior_targets_pg,33.002799724654565,5.294057686861687,TE,Fantasy tier classifier
+career_fppg_before,27.864354116396758,4.469787391678339,TE,Fantasy tier classifier
+two_year_fppg,13.72442160529137,2.2015671489514483,TE,Fantasy tier classifier
+peak_fppg_before,12.399246086997943,1.9889925886840263,TE,Fantasy tier classifier
+prior_yards_per_target,10.563087733015458,1.6944500550415103,TE,Fantasy tier classifier
+career_games_before,10.351416470979478,1.66049536388747,TE,Fantasy tier classifier
+age_squared,9.748759784384413,1.563821769803761,TE,Fantasy tier classifier
+draft_capital_score,9.686815575049648,1.5538851516888954,TE,Fantasy tier classifier
+draft_pick,9.584421590295756,1.5374598887840099,TE,Fantasy tier classifier
+age,9.54456999541158,1.5310671995579301,TE,Fantasy tier classifier
+fppg_trend,9.321257619012158,1.49524512953017,TE,Fantasy tier classifier
+two_year_targets_pg,8.898386292116237,1.4274113330830664,TE,Fantasy tier classifier
+draft_round,7.248423931235077,1.162736942045571,TE,Fantasy tier classifier
+rec_prior_redzone_target_rate,7.176746763186218,1.151239036848211,TE,Fantasy tier classifier
+prior_rec_td_rate,7.071838955293558,1.1344105255879666,TE,Fantasy tier classifier
+rec_prior_ngs_avg_separation,7.045977987411902,1.1302621061524698,TE,Fantasy tier classifier
+experience,6.970456643806793,1.1181475476007579,TE,Fantasy tier classifier
+rec_prior_short_target_rate,6.391934046726011,1.025345360281762,TE,Fantasy tier classifier
+rec_prior_route_in_break,6.391305347204901,1.025244509094583,TE,Fantasy tier classifier
+prior_catch_rate,6.367478096307048,1.0214223230429453,TE,Fantasy tier classifier
+rec_prior_middle_target_rate,5.928912338678847,0.9510709455920374,TE,Fantasy tier classifier
+rec_prior_route_screen,5.859859218735992,0.9399939701994875,TE,Fantasy tier classifier
+weight,5.347160729530872,0.8577507847587362,TE,Fantasy tier classifier
+prior_games,5.325535577243265,0.8542818425885896,TE,Fantasy tier classifier
+two_year_games,5.324859027724906,0.8541733156694162,TE,Fantasy tier classifier
+receiver_context_available,4.939903891895435,0.7924217457135971,TE,Fantasy tier classifier
+prior_rush_yd_pg,4.278969132110751,0.6863996271435091,TE,Fantasy tier classifier
+prior_yards_per_carry,3.903846240475991,0.6262252708905391,TE,Fantasy tier classifier
+height,3.382683195639379,0.5426242659259707,TE,Fantasy tier classifier
+prior_carries_pg,3.312599628233734,0.531381994002314,TE,Fantasy tier classifier
+prior_pass_yd_pg,2.922573314865943,0.4688169443825824,TE,Fantasy tier classifier
+rec_prior_route_hitch,2.7337530376723747,0.4385278341176373,TE,Fantasy tier classifier
+two_year_pass_attempts_pg,2.39769505585059,0.38461997306529844,TE,Fantasy tier classifier
+two_year_carries_pg,2.354673401013142,0.3777187669738784,TE,Fantasy tier classifier
+prior_pass_attempts_pg,2.15298717349535,0.3453657989822854,TE,Fantasy tier classifier
+years_since_last_season,1.6414336917562733,0.2633062869155417,TE,Fantasy tier classifier
+prior_rush_td_rate,1.423240118576633,0.22830533630065916,TE,Fantasy tier classifier
+prior_pass_td_rate,1.4076344555299574,0.22580199473266765,TE,Fantasy tier classifier
+prior_yards_per_attempt,0.9691150649060677,0.15545805512332578,TE,Fantasy tier classifier
+prior_rec_td_rate,9.003194941880757,5.3335254651862725,TE,Breakout/upside classifier
+two_year_targets_pg,8.653412923009835,5.126313323612604,TE,Breakout/upside classifier
+prior_fppg,7.442146073833378,4.408754431805579,TE,Breakout/upside classifier
+prior_fantasy_points,6.743508531092406,3.9948790076702285,TE,Breakout/upside classifier
+career_games_before,6.621481229477244,3.9225895898786733,TE,Breakout/upside classifier
+two_year_fppg,6.364911610830926,3.770596813594591,TE,Breakout/upside classifier
+recent_weighted_fppg,6.153942786076539,3.645618113649559,TE,Breakout/upside classifier
+rec_prior_middle_target_rate,6.0504201680672285,3.5842909378036847,TE,Breakout/upside classifier
+prior_rec_yd_pg,5.737853999933893,3.39912560171394,TE,Breakout/upside classifier
+rec_prior_short_target_rate,5.694513099357391,3.373450294403468,TE,Breakout/upside classifier
+rec_prior_route_in_break,5.504117064910554,3.260658990344405,TE,Breakout/upside classifier
+age_squared,5.28082130979543,3.128377771969973,TE,Breakout/upside classifier
+prior_air_yards_share,5.212729333357719,3.0880398371979494,TE,Breakout/upside classifier
+two_year_games,5.207010448039577,3.0846519487123967,TE,Breakout/upside classifier
+career_fppg_before,5.173679589281204,3.064906626622639,TE,Breakout/upside classifier
+experience,4.608632159044038,2.730170471550734,TE,Breakout/upside classifier
+draft_capital_score,4.591908728628995,2.7202634504810255,TE,Breakout/upside classifier
+prior_wopr,4.578267377335466,2.7121822643050892,TE,Breakout/upside classifier
+draft_pick,4.492155752220817,2.6611694240453385,TE,Breakout/upside classifier
+prior_target_share,4.321296817840318,2.5599519692022903,TE,Breakout/upside classifier
+peak_fppg_before,3.8949551661136574,2.3073856223628972,TE,Breakout/upside classifier
+prior_targets_pg,3.6249487486885776,2.147432837557424,TE,Breakout/upside classifier
+age,3.5663985986957427,2.1127475155141777,TE,Breakout/upside classifier
+rec_prior_route_screen,3.2309945408718477,1.914052930416495,TE,Breakout/upside classifier
+prior_catch_rate,3.0879306483555955,1.8293013595786092,TE,Breakout/upside classifier
+draft_round,3.0738304093567255,1.8209483266551685,TE,Breakout/upside classifier
+prior_rush_yd_pg,2.8889908643187443,1.7114487071536966,TE,Breakout/upside classifier
+rec_prior_redzone_target_rate,2.7609168197058214,1.6355771767934164,TE,Breakout/upside classifier
+rec_prior_route_hitch,2.66507379807168,1.578799421802441,TE,Breakout/upside classifier
+prior_yards_per_target,2.46938092799844,1.4628702530319404,TE,Breakout/upside classifier
+prior_carries_pg,2.4511800033038726,1.452087958971324,TE,Breakout/upside classifier
+prior_games,2.3041009954529237,1.3649578191896903,TE,Breakout/upside classifier
+prior_pass_yd_pg,2.1540471355836632,1.2760653662406478,TE,Breakout/upside classifier
+two_year_pass_attempts_pg,2.072699354268977,1.227874644393671,TE,Breakout/upside classifier
+prior_pass_attempts_pg,2.061072996743823,1.2209871478629322,TE,Breakout/upside classifier
+two_year_carries_pg,2.0235903845040193,1.1987823118937875,TE,Breakout/upside classifier
+prior_yards_per_attempt,1.7518719626540196,1.0378153294333965,TE,Breakout/upside classifier
+prior_pass_td_rate,1.3809866943809854,0.8181015460746813,TE,Breakout/upside classifier
+fppg_trend,1.2727377198240932,0.7539744594008391,TE,Breakout/upside classifier
+rec_prior_ngs_avg_separation,1.250704177841359,0.7409217089037344,TE,Breakout/upside classifier
+weight,1.1492704826038147,0.6808320185138502,TE,Breakout/upside classifier
+prior_rush_td_rate,0.23213767600625784,0.13751920450473953,TE,Breakout/upside classifier

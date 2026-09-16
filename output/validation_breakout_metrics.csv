@@ -1,0 +1,5 @@
+position,actual_breakouts,predicted_breakouts,true_positives,breakout_recall_pct,breakout_precision_pct
+QB,46,13,6,13.043478260869565,46.15384615384615
+RB,57,16,6,10.526315789473685,37.5
+TE,13,2,1,7.6923076923076925,50
+WR,58,6,1,1.7241379310344827,16.666666666666668

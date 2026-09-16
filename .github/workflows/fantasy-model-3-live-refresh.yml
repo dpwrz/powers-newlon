@@ -1,0 +1,149 @@
+name: Fantasy Model 3.0 live refresh
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Force a full refresh even if the state fingerprint has not changed"
+        required: false
+        default: false
+        type: boolean
+
+  schedule:
+    # GitHub cron is UTC.
+    # These runs are intentionally spread around common NFL windows plus a daily catch-up.
+    - cron: "20 10 * * *"      # daily morning catch-up
+    - cron: "15 5 * * 2"       # late Monday / early Tuesday catch-up
+    - cron: "15 5 * * 5"       # late Thursday / early Friday catch-up
+    - cron: "45 21 * * 0"      # Sunday afternoon window
+    - cron: "45 1 * * 1"       # Sunday night / early Monday window
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fantasy-model-3-live-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    env:
+      RENV_CONFIG_REPOS_OVERRIDE: https://cloud.r-project.org
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout model repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install Linux system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libxml2-dev \
+            libfontconfig1-dev \
+            libharfbuzz-dev \
+            libfribidi-dev \
+            libfreetype6-dev \
+            libpng-dev \
+            libtiff5-dev \
+            libjpeg-dev \
+            libgit2-dev
+
+      - name: Restore/install R packages
+        shell: Rscript {0}
+        run: |
+          if (file.exists("renv.lock")) {
+            if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
+            renv::restore(prompt = FALSE)
+          } else if (file.exists("INSTALL_MODEL_3_0.R")) {
+            source("INSTALL_MODEL_3_0.R")
+          } else if (file.exists("INSTALL_MODEL_2_5.R")) {
+            source("INSTALL_MODEL_2_5.R")
+          } else {
+            pkgs <- c(
+              "dplyr","tidyr","purrr","tibble","readr","stringr","lubridate",
+              "jsonlite","httr2","curl","nflreadr","xgboost","ranger",
+              "glmnet","mgcv","rsample","yardstick","Matrix"
+            )
+            missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
+            if (length(missing)) install.packages(missing, repos = "https://cloud.r-project.org")
+          }
+
+      - name: Run Fantasy Model 3.0 refresh
+        shell: Rscript {0}
+        env:
+          FM_FORCE_REFRESH: ${{ github.event_name == 'workflow_dispatch' && inputs.force && 'true' || 'false' }}
+        run: |
+          options(timeout = 180)
+          if (!file.exists("RUN_AUTO_REFRESH.R")) {
+            stop("RUN_AUTO_REFRESH.R was not found in the repository root.")
+          }
+          source("RUN_AUTO_REFRESH.R")
+
+      - name: Commit updated model state
+        shell: bash
+        run: |
+          git config user.name "fantasy-model-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No model-state changes to commit."
+          else
+            git commit -m "Auto-refresh Fantasy Model 3.0 state"
+            git push
+          fi
+
+      - name: Publish snapshot to separate web repository
+        if: ${{ secrets.WEB_REPO != '' && secrets.WEB_REPO_TOKEN != '' }}
+        shell: bash
+        env:
+          WEB_REPO: ${{ secrets.WEB_REPO }}
+          WEB_REPO_TOKEN: ${{ secrets.WEB_REPO_TOKEN }}
+          WEB_BRANCH: ${{ secrets.WEB_BRANCH }}
+        run: |
+          set -euo pipefail
+
+          SNAPSHOT="web/public/data/model_snapshot.json"
+
+          if [ ! -f "$SNAPSHOT" ]; then
+            echo "No $SNAPSHOT found; skipping web publish."
+            exit 0
+          fi
+
+          BRANCH="${WEB_BRANCH:-main}"
+          rm -rf /tmp/fantasy-model-web
+
+          git clone \
+            --branch "$BRANCH" \
+            "https://x-access-token:${WEB_REPO_TOKEN}@github.com/${WEB_REPO}.git" \
+            /tmp/fantasy-model-web
+
+          mkdir -p /tmp/fantasy-model-web/public/data
+          cp "$SNAPSHOT" /tmp/fantasy-model-web/public/data/model_snapshot.json
+
+          cd /tmp/fantasy-model-web
+          git config user.name "fantasy-model-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add public/data/model_snapshot.json
+
+          if git diff --cached --quiet; then
+            echo "Web snapshot is already current."
+          else
+            git commit -m "Update Fantasy Model 3.0 snapshot"
+            git push origin "$BRANCH"
+          fi

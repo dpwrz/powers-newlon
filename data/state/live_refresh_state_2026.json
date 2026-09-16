@@ -1,0 +1,11 @@
+{
+  "generated_at": "2026-09-15 23:31:54 UTC",
+  "model_version": "3.0.1",
+  "fingerprint": "3eee8deb1c1208886db4118f9df92ed1",
+  "completed_games": 0,
+  "latest_actual_week": 1,
+  "projection_week": 1,
+  "current_stat_rows": 1118,
+  "schedule_rows": 272,
+  "source": "nflverse current player-week stats + schedule; current PBP defense refresh after completed games"
+}

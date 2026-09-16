@@ -1,0 +1,31 @@
+FANTASY MODEL 2.3 WEEKLY QUALITY REPORT - 2026
+Historical weekly seasons: 2020-2025
+Walk-forward holdouts: 2022, 2023, 2024, 2025
+Architecture: 2.0 prior + reconstructed 2.1 challenger + 2.2 decomposed models -> OOF matchup calibration -> phase-aware meta stack -> guarded ridge residual -> cross-version guardrail
+Critical rule: every holdout's tuning uses only prior out-of-sample predictions. First holdout safely defaults to the prior.
+Development note: 2.3 was designed after inspecting 2.2's 2022-2025 errors; the strongest future evidence will be prospective 2026 weekly performance.
+
+POSITION SUMMARY
+QB | n=2624 | 2.3 MAE 6.08 | prior 6.32 | 2.1 challenger 6.12 | 2.2 challenger 6.09 | vs prior +3.7% | vs 2.1 +0.5% | vs 2.2 +0.1% | corr 0.550 | rank 0.533 | bias +0.04
+RB | n=6166 | 2.3 MAE 4.18 | prior 4.26 | 2.1 challenger 4.20 | 2.2 challenger 4.17 | vs prior +1.8% | vs 2.1 +0.5% | vs 2.2 -0.3% | corr 0.631 | rank 0.695 | bias +0.03
+TE | n=4905 | 2.3 MAE 3.03 | prior 3.10 | 2.1 challenger 3.06 | 2.2 challenger 3.03 | vs prior +2.2% | vs 2.1 +0.8% | vs 2.2 +0.0% | corr 0.523 | rank 0.562 | bias -0.09
+WR | n=9815 | 2.3 MAE 3.92 | prior 3.96 | 2.1 challenger 3.92 | 2.2 challenger 3.92 | vs prior +1.1% | vs 2.1 +0.1% | vs 2.2 +0.1% | corr 0.575 | rank 0.634 | bias +0.06
+
+FINAL 2026 MATCHUP SHRINKAGE
+QB | favorable slope 0.11 | difficult slope 0.56 | OOF n=2624
+RB | favorable slope 0.00 | difficult slope 0.63 | OOF n=6166
+WR | favorable slope 0.00 | difficult slope 0.67 | OOF n=9815
+TE | favorable slope 0.29 | difficult slope 0.49 | OOF n=4905
+
+STARTER COHORT
+QB | n=864 | 2.3 MAE 6.59 | prior 6.69 | 2.1 6.60 | 2.2 6.58
+RB | n=1728 | 2.3 MAE 6.04 | prior 6.17 | 2.1 6.05 | 2.2 6.05
+WR | n=2592 | 2.3 MAE 5.83 | prior 5.96 | 2.1 5.85 | 2.2 5.86
+TE | n=864 | 2.3 MAE 4.88 | prior 5.11 | 2.1 4.95 | 2.2 4.87
+
+FILES
+weekly_2_3_version_comparison.csv = 2.0/2.1/2.2/2.3 apples-to-apples OOF comparison
+weekly_2_3_selected_meta_weights.csv = phase-aware future meta weights
+weekly_2_3_selected_version_weights.csv = cross-version guardrail
+weekly_2_3_matchup_calibration.csv = raw vs calibrated matchup delta
+weekly_2_3_confidence_calibration.csv = disagreement-to-error mapping

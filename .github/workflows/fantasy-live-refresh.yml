@@ -1,0 +1,141 @@
+name: Fantasy Model 3.0 live refresh
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Force refresh even if the public-state fingerprint is unchanged
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: '17 11 * * *'
+    - cron: '30 5 * * 5'
+    - cron: '45 21 * * 0'
+    - cron: '45 1 * * 1'
+    - cron: '45 5 * * 1'
+    - cron: '45 5 * * 2'
+    - cron: '45 5 * * 0'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fantasy-model-3-live-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      WEB_REPO: ${{ secrets.WEB_REPO }}
+      WEB_REPO_TOKEN: ${{ secrets.WEB_REPO_TOKEN }}
+      WEB_BRANCH: ${{ secrets.WEB_BRANCH || 'main' }}
+
+    steps:
+      - name: Checkout Fantasy Model engine
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Install R dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::dplyr
+            any::readr
+            any::tidyr
+            any::tibble
+            any::purrr
+            any::janitor
+            any::jsonlite
+            any::nflreadr
+            any::rpart
+            any::xgboost
+            any::ranger
+            any::slider
+            any::httr2
+          cache-version: 5
+
+      - name: Check production runtime
+        run: Rscript tests/TEST_3_0_PRODUCTION.R
+
+      - name: Refresh only unplayed player-weeks, ROS, performance and snapshot
+        env:
+          FM_RELEASE_VERSION: '3.0.1'
+          FM_FORCE_REFRESH: ${{ github.event_name == 'workflow_dispatch' && inputs.force && 'true' || 'false' }}
+        run: Rscript RUN_AUTO_REFRESH.R
+
+      - name: Verify snapshot
+        run: test -f output/model_snapshot.json
+
+      - name: Commit persistent engine state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "fantasy-model-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          for f in \
+            output/model_snapshot.json \
+            data/state/live_refresh_state_2026.json \
+            output/weekly_2026_projections.csv \
+            output/rest_of_season_2026.csv \
+            output/pregame_projection_archive_2026.csv \
+            output/live_accuracy_player_weeks_2026.csv \
+            output/live_accuracy_weekly_summary_2026.csv \
+            output/live_accuracy_weekly_position_2026.csv \
+            output/live_accuracy_cumulative_position_2026.csv \
+            output/live_accuracy_biggest_misses_2026.csv \
+            output/live_refresh_log_2026.csv; do
+            [ -e "$f" ] && git add -f "$f"
+          done
+
+          if git diff --cached --quiet; then
+            echo "No persistent engine-state changes to commit."
+          else
+            git commit -m "Auto-refresh Fantasy Model 3.0 production state"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      - name: Checkout Cloudflare web repository
+        if: ${{ env.WEB_REPO != '' && env.WEB_REPO_TOKEN != '' }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.WEB_REPO }}
+          token: ${{ env.WEB_REPO_TOKEN }}
+          ref: ${{ env.WEB_BRANCH }}
+          path: web-publish
+          fetch-depth: 1
+
+      - name: Publish refreshed snapshot to Cloudflare web repository
+        if: ${{ env.WEB_REPO != '' && env.WEB_REPO_TOKEN != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f output/model_snapshot.json
+          mkdir -p web-publish/public/data
+          cp output/model_snapshot.json web-publish/public/data/model_snapshot.json
+
+          cd web-publish
+          git config user.name "fantasy-model-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add public/data/model_snapshot.json
+
+          if git diff --cached --quiet; then
+            echo "Web snapshot is already current."
+          else
+            git commit -m "Refresh Fantasy Model 3.0 snapshot"
+            git pull --rebase origin "$WEB_BRANCH"
+            git push origin "HEAD:$WEB_BRANCH"
+          fi
