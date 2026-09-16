@@ -1,0 +1,19 @@
+.gm-banner { padding: 10px 18px; background: #10151c; color: #eef2f7; border-bottom: 1px solid #2d3744; }
+.gm-card { background: #fff; border: 1px solid #dde3ea; border-radius: 12px; padding: 15px; margin: 8px 0 18px; min-height: 116px; box-shadow: 0 2px 7px rgba(0,0,0,.05); }
+.gm-card-accent { border: 2px solid #34495e; }
+.gm-card-title { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #64748b; font-weight: 700; }
+.gm-card-value { font-size: 25px; font-weight: 800; color: #172033; margin-top: 5px; }
+.gm-card-sub { font-size: 12px; color: #64748b; margin-top: 6px; line-height: 1.35; }
+.gm-muted { color: #667085; }
+.gm-status { background: #eef4f8; border-left: 4px solid #34495e; padding: 10px 12px; margin-bottom: 14px; border-radius: 5px; }
+.gm-warning { background: #fff4e5; border-left: 4px solid #b86b00; padding: 12px; margin: 10px 0 18px; border-radius: 5px; }
+table { font-size: 13px; }
+@media (max-width: 768px) { .gm-card { min-height: auto; } .gm-card-value { font-size: 22px; } table { font-size: 11px; } }
+
+/* 3.0.6: align dynasty-specific cards/status with the dark app theme. */
+.gm-card { background: var(--fm-card); border-color: var(--fm-line); box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+.gm-card-accent { border-color: var(--fm-accent); }
+.gm-card-title, .gm-card-sub, .gm-muted { color: var(--fm-muted); }
+.gm-card-value { color: var(--fm-text); }
+.gm-status { background: var(--fm-card2); border-left-color: var(--fm-accent); color: var(--fm-text); }
+.gm-warning { background: #2b2112; border-left-color: #d99a32; color: var(--fm-text); }

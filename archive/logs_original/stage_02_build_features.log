@@ -1,0 +1,10 @@
+[STAGE] Running 02_build_features.R
+[2.0 HOTFIX 1] Direct feature builder loaded: current nflverse passing_interceptions alias supported.
+Warning: One or more parsing issues, call `problems()` on your data frame for details,
+e.g.:
+  dat <- vroom(...)
+  problems(dat)
+[FEATURES] Training rows: 4760
+[FEATURES] Current projection candidates: 589
+[FEATURES] Current rookies included: 103
+[STAGE] Completed 02_build_features.R

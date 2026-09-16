@@ -1,0 +1,17 @@
+[STAGE] Running 01_download_data.R
+
+[DATA] Checking required packages...
+[DATA] Packages ready.
+[MODEL] Engine selected: rpart_ensemble
+[DATA] Projection season: 2026
+[DATA] Model target seasons: 2016-2025
+[DATA] Downloading compact box-score history: 2014-2025
+[DATA] Player stats saved: 23227 rows.
+[DATA] Team stats saved: 384 rows.
+[DATA] Player metadata saved: 24828 rows.
+[DATA] Draft data saved: 12927 rows.
+[DATA] Current roster saved: 2954 rows.
+[CONTEXT] Cached team/QB/receiver context already covers 2018-2025. Reusing it.
+[DATA] Download complete. Latest completed training season: 2025
+
+[STAGE] Completed 01_download_data.R

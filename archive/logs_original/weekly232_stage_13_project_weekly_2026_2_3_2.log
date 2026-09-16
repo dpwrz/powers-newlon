@@ -1,0 +1,24 @@
+[STAGE] Running 13_project_weekly_2026_2_3_2.R
+[2.2] Weekly accuracy engine loaded: neutral role + opportunity/stat line + matchup delta + direct model + honest stack.
+[2.3] Historical meta-calibration engine loaded: OOF matchup shrinkage + phase-aware meta stack + guarded residual calibration + cross-version guardrail.
+Warning in dplyr::inner_join(players, team_schedule, by = "team") :
+  Detected an unexpected many-to-many relationship between `x` and `y`.
+ℹ Row 1 of `x` matches multiple rows in `y`.
+ℹ Row 13 of `y` matches multiple rows in `x`.
+ℹ If a many-to-many relationship is expected, set `relationship =
+  "many-to-many"` to silence this warning.
+[2.2.6 WEEKLY PROJECT] Team-volume state ready: 10013 scheduled player-weeks | current-season rolling team state rows: 0 | preseason/fallback rows: 10013
+[2.3 WEEKLY PROJECT] Projected 10013 player-weeks for 2026.
+[2.3 WEEKLY PROJECT] Upcoming week: 22 | ranked players: 0
+[2.3 WEEKLY PROJECT] Outputs: weekly_2026_projections.csv, week_22_rankings.csv, rest_of_season_2026.csv
+[2.3.2 LIVE] Applied signal/error-feedback controller only to positions that passed the honest promotion gate.
+[2.3.2 LIVE] Upcoming week: 22 | ranked players: 0
+# A tibble: 4 × 8
+  position promoted_for_2026 model23_MAE model232_MAE model23_RMSE model232_RMSE
+  <chr>    <lgl>                   <dbl>        <dbl>        <dbl>         <dbl>
+1 QB       TRUE                     6.08         6.06         7.60          7.61
+2 RB       FALSE                    4.18         4.15         5.80          5.82
+3 WR       FALSE                    3.92         3.90         5.41          5.43
+4 TE       TRUE                     3.03         3.02         4.31          4.29
+# ℹ 2 more variables: model23_correlation <dbl>, model232_correlation <dbl>
+[STAGE] Completed 13_project_weekly_2026_2_3_2.R

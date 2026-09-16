@@ -1,0 +1,10 @@
+[STAGE] Running 02b_build_opportunity_data.R
+[2.0 HOTFIX 3] Opportunity builder loaded: raw-stat RB carry-share reconstruction + deduplicated competition joins.
+[2.0 DATA] Building opportunity-first feature store...
+[2.0 HOTFIX 5] Opportunity engine loaded: position-specific residual schemas enabled.
+[2.0 DATA] Training rows: 4760
+[2.0 DATA] Projection candidates: 589
+[2.0 DATA] RB carry-share SD: 0.1925 | unique: 1159
+[2.0 DATA] QB INT-rate SD: 0.0140 | unique: 417
+[2.0 DATA] Opportunity/shrinkage feature store complete.
+[STAGE] Completed 02b_build_opportunity_data.R

@@ -1,0 +1,10 @@
+[STAGE] Running 10_train_validate_weekly.R
+[2.2] Weekly accuracy engine loaded: neutral role + opportunity/stat line + matchup delta + direct model + honest stack.
+[2.2 VALIDATE] Holdout seasons: 2022, 2023, 2024, 2025
+[2.2 VALIDATE] 2022 QB | train 1277 | test 633
+Error in `$<-.data.frame`(`*tmp*`, "projected_pass_attempts", value = c(37.4794163117822,  : 
+  replacement has 633 rows, data has 0
+Calls: source ... predict_structured22 -> structured_statline22 -> $<- -> $<-.data.frame
+
+[STAGE ERROR TRACE]
+No traceback available 

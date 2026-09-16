@@ -1,0 +1,47 @@
+[STAGE] Running 15_train_validate_signal_model_2_4.R
+[2.2] Weekly accuracy engine loaded: neutral role + opportunity/stat line + matchup delta + direct model + honest stack.
+[2.3] Historical meta-calibration engine loaded: OOF matchup shrinkage + phase-aware meta stack + guarded residual calibration + cross-version guardrail.
+[2.4] Signal-attribution + player-talent engine loaded.
+
+[2.4 VALIDATE] Loading locked OOF predictions + pre-kickoff feature stores...
+[2.4 VALIDATE] Honest weekly seasons: 2022, 2023, 2024, 2025
+[2.4 VALIDATE] Signal rule: target year can use only earlier OOF outcomes.
+[2.4 VALIDATE] 2022 QB | prior OOF 0 | locked 2.3
+[2.4 VALIDATE] 2022 RB | prior OOF 0 | locked 2.3
+[2.4 VALIDATE] 2022 WR | prior OOF 0 | locked 2.3
+[2.4 VALIDATE] 2022 TE | prior OOF 0 | locked 2.3
+[2.4 VALIDATE] 2023 QB | prior OOF 633 | locked 2.3
+[2.4 VALIDATE] 2023 RB | prior OOF 1581 | locked 2.3
+[2.4 VALIDATE] 2023 WR | prior OOF 2387 | locked 2.3
+[2.4 VALIDATE] 2023 TE | prior OOF 1207 | locked 2.3
+[2.4 VALIDATE] 2024 QB | prior OOF 1296 | locked 2.3
+[2.4 VALIDATE] 2024 RB | prior OOF 3055 | locked 2.3
+[2.4 VALIDATE] 2024 WR | prior OOF 4863 | locked 2.3
+[2.4 VALIDATE] 2024 TE | prior OOF 2395 | locked 2.3
+[2.4 VALIDATE] 2025 QB | prior OOF 1960 | locked 2.3
+[2.4 VALIDATE] 2025 RB | prior OOF 4591 | locked 2.3
+[2.4 VALIDATE] 2025 WR | prior OOF 7304 | locked 2.3
+[2.4 VALIDATE] 2025 TE | prior OOF 3618 | locked 2.3
+
+[2.4 VALIDATE] COMPLETE. Honest rows: 23510
+  position seasons_tested    n locked_MAE model24_MAE locked_RMSE model24_RMSE
+1       QB              4 2624   6.081913    6.041766    7.596404     7.592396
+2       RB              4 6166   4.180560    4.161900    5.799372     5.792747
+3       WR              4 9815   3.918635    3.913515    5.409058     5.412528
+4       TE              4 4905   3.033282    3.016468    4.310310     4.282400
+  locked_correlation model24_correlation locked_rank_correlation
+1          0.5496684           0.5513840               0.5327555
+2          0.6307983           0.6318357               0.6953909
+3          0.5747029           0.5744974               0.6336527
+4          0.5229281           0.5320009               0.5623981
+  model24_rank_correlation locked_starter_MAE model24_starter_MAE
+1                0.5304552           6.592885            6.643134
+2                0.6953326           6.039171            6.064773
+3                0.6335788           5.831149            5.840541
+4                0.5679640           4.882015            4.818262
+  MAE_improvement_pct RMSE_improvement_pct promoted_for_2026
+1           0.6601049           0.05276222             FALSE
+2           0.4463572           0.11423179             FALSE
+3           0.1306599          -0.06415688             FALSE
+4           0.5543363           0.64752277              TRUE
+[STAGE] Completed 15_train_validate_signal_model_2_4.R

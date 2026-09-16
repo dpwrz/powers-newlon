@@ -1,0 +1,32 @@
+[STAGE] Running 09_build_weekly_data.R
+[2.2] Weekly accuracy engine loaded: neutral role + opportunity/stat line + matchup delta + direct model + honest stack.
+[2.3 WEEKLY DATA] Loading player-week stats: 2020-2025
+[2.2.3 WEEKLY DATA] Compacted normalized player-week table: 34919 rows x 20 columns.
+[2.3 WEEKLY DATA] Loading schedules through 2026...
+[2.3 WEEKLY DATA] Loading historical injury reports where available...
+[2.3 WEEKLY DATA] Loading historical snap counts...
+[2.2.2 WEEKLY DATA] Loading historical weekly Next Gen Stats safely...
+[2.2.2 NGS] Reusing 2020 passing checkpoint.
+[2.2.2 NGS] Reusing 2021 passing checkpoint.
+[2.2.2 NGS] Reusing 2022 passing checkpoint.
+[2.2.2 NGS] Reusing 2023 passing checkpoint.
+[2.2.2 NGS] Reusing 2024 passing checkpoint.
+[2.2.2 NGS] Reusing 2025 passing checkpoint.
+[2.2.2 NGS] Reusing 2020 receiving checkpoint.
+[2.2.2 NGS] Reusing 2021 receiving checkpoint.
+[2.2.2 NGS] Reusing 2022 receiving checkpoint.
+[2.2.2 NGS] Reusing 2023 receiving checkpoint.
+[2.2.2 NGS] Reusing 2024 receiving checkpoint.
+[2.2.2 NGS] Reusing 2025 receiving checkpoint.
+[2.2.2 NGS] Reusing 2020 rushing checkpoint.
+[2.2.2 NGS] Reusing 2021 rushing checkpoint.
+[2.2.2 NGS] Reusing 2022 rushing checkpoint.
+[2.2.2 NGS] Reusing 2023 rushing checkpoint.
+[2.2.2 NGS] Reusing 2024 rushing checkpoint.
+[2.2.2 NGS] Reusing 2025 rushing checkpoint.
+[2.2.2 NGS] Joined 14263 normalized player-week NGS rows.
+[2.2.3 WEEKLY DATA] Building memory-safe lagged player role/efficiency features...
+[2.2.3 WEEKLY DATA] Player rolling features complete: 34919 rows x 117 columns.
+[2.3 WEEKLY DATA] 2.3-compatible feature table complete: 34919 player-weeks.
+[2.3 WEEKLY DATA] Seasons: 2020-2025.
+[STAGE] Completed 09_build_weekly_data.R

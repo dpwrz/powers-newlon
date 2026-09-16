@@ -1,0 +1,22 @@
+[STAGE] Running 10_train_validate_weekly.R
+[2.2] Weekly accuracy engine loaded: neutral role + opportunity/stat line + matchup delta + direct model + honest stack.
+[2.2 VALIDATE] Holdout seasons: 2022, 2023, 2024, 2025
+[2.2 VALIDATE] 2022 QB | train 1277 | test 633
+[2.2 VALIDATE] 2022 RB | train 2993 | test 1581
+[2.2 VALIDATE] 2022 WR | train 4788 | test 2387
+[2.2 VALIDATE] 2022 TE | train 2351 | test 1207
+[2.2 VALIDATE] 2023 QB | train 1910 | test 663
+[2.2 VALIDATE] 2023 RB | train 4574 | test 1474
+[2.2 VALIDATE] 2023 WR | train 7175 | test 2476
+[2.2 VALIDATE] 2023 TE | train 3558 | test 1188
+[2.2 VALIDATE] 2024 QB | train 2573 | test 664
+[2.2 VALIDATE] 2024 RB | train 6048 | test 1536
+[2.2 VALIDATE] 2024 WR | train 9651 | test 2441
+[2.2 VALIDATE] 2024 TE | train 4746 | test 1223
+[2.2 VALIDATE] 2025 QB | train 3237 | test 664
+[2.2 VALIDATE] 2025 RB | train 7584 | test 1575
+[2.2 VALIDATE] 2025 WR | train 12092 | test 2511
+[2.2 VALIDATE] 2025 TE | train 5969 | test 1287
+[2.2 VALIDATE] Complete. Honest OOF player-weeks: 23510
+[2.2 VALIDATE] Final 2026 stack weights saved to output/weekly_2_2_selected_stack.csv
+[STAGE] Completed 10_train_validate_weekly.R

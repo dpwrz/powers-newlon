@@ -1,0 +1,33 @@
+[STAGE] Running 11_project_weekly_2026.R
+[2.2] Weekly accuracy engine loaded: neutral role + opportunity/stat line + matchup delta + direct model + honest stack.
+Warning in dplyr::inner_join(players, team_schedule, by = "team") :
+  Detected an unexpected many-to-many relationship between `x` and `y`.
+ℹ Row 1 of `x` matches multiple rows in `y`.
+ℹ Row 13 of `y` matches multiple rows in `x`.
+ℹ If a many-to-many relationship is expected, set `relationship =
+  "many-to-many"` to silence this warning.
+Error in `$<-`:
+! Assigned data `... + ...` must be compatible with existing data.
+✖ Existing data has 10013 rows.
+✖ Assigned data has 0 rows.
+ℹ Only vectors of size 1 are recycled.
+Caused by error in `vectbl_recycle_rhs_rows()`:
+! Can't recycle input of size 0 to size 10013.
+Backtrace:
+     ▆
+  1. ├─base::source(script, echo = FALSE, chdir = FALSE)
+  2. │ ├─base::withVisible(eval(ei, envir))
+  3. │ └─base::eval(ei, envir)
+  4. │   └─base::eval(ei, envir)
+  5. ├─base::`$<-`(`*tmp*`, expected_team_plays, value = `<dbl>`)
+  6. ├─tibble:::`$<-.tbl_df`(`*tmp*`, expected_team_plays, value = `<dbl>`)
+  7. │ └─tibble:::tbl_subassign(...)
+  8. │   └─tibble:::vectbl_recycle_rhs_rows(value, fast_nrow(xo), i_arg = NULL, value_arg, call)
+  9. │     ├─base::withCallingHandlers(...)
+ 10. │     └─vctrs::vec_recycle(value[[j]], nrow)
+ 11. └─vctrs:::stop_recycle_incompatible_size(...) at vctrs/R/recycle.R:40:3
+ 12.   └─vctrs:::stop_vctrs(...) at vctrs/R/conditions.R:800:3
+ 13.     └─rlang::abort(message, class = c(class, "vctrs_error"), ..., call = call) at vctrs/R/conditions.R:65:3
+
+[STAGE ERROR TRACE]
+No traceback available 

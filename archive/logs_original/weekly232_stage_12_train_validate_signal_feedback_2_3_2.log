@@ -1,0 +1,48 @@
+[STAGE] Running 12_train_validate_signal_feedback_2_3_2.R
+[2.2] Weekly accuracy engine loaded: neutral role + opportunity/stat line + matchup delta + direct model + honest stack.
+[2.3] Historical meta-calibration engine loaded: OOF matchup shrinkage + phase-aware meta stack + guarded residual calibration + cross-version guardrail.
+[2.3.2] Historical OOF seasons: 2022, 2023, 2024, 2025
+[2.3.2] Learning rule: current holdout can use prior-week observed errors, but never current/future outcomes.
+[2.3.2] 2022 QB | prior OOF 0 | base honest_final_fppg
+[2.3.2] 2022 RB | prior OOF 0 | base honest_final_fppg
+[2.3.2] 2022 WR | prior OOF 0 | base honest_final_fppg
+[2.3.2] 2022 TE | prior OOF 0 | base honest_final_fppg
+[2.3.2] 2023 QB | prior OOF 633 | base legacy21_honest_fppg
+[2.3.2] 2023 RB | prior OOF 1581 | base legacy21_honest_fppg
+[2.3.2] 2023 WR | prior OOF 2387 | base legacy21_honest_fppg
+[2.3.2] 2023 TE | prior OOF 1207 | base legacy21_honest_fppg
+[2.3.2] 2024 QB | prior OOF 1296 | base honest22_fppg
+[2.3.2] 2024 RB | prior OOF 3055 | base honest22_fppg
+[2.3.2] 2024 WR | prior OOF 4863 | base honest22_fppg
+[2.3.2] 2024 TE | prior OOF 2395 | base honest22_fppg
+[2.3.2] 2025 QB | prior OOF 1960 | base meta_precal_fppg
+[2.3.2] 2025 RB | prior OOF 4591 | base honest22_fppg
+[2.3.2] 2025 WR | prior OOF 7304 | base meta_precal_fppg
+[2.3.2] 2025 TE | prior OOF 3618 | base honest22_fppg
+[2.3.2] Validation complete. Honest rows: 23510
+  position seasons_tested    n model23_MAE selected_base_MAE model232_MAE
+1       QB              4 2624    6.081913          6.106510     6.061697
+2       RB              4 6166    4.180560          4.183025     4.146267
+3       WR              4 9815    3.918635          3.926618     3.902500
+4       TE              4 4905    3.033282          3.045461     3.022896
+  model23_RMSE model232_RMSE model23_correlation model232_correlation
+1     7.596404      7.612580           0.5496684            0.5478496
+2     5.799372      5.820837           0.6307983            0.6274341
+3     5.409058      5.434104           0.5747029            0.5700368
+4     4.310310      4.291457           0.5229281            0.5289450
+  model23_rank_correlation model232_rank_correlation model23_starter_MAE
+1                0.5327555                 0.5290460            6.592885
+2                0.6953909                 0.6941120            6.039171
+3                0.6336527                 0.6316660            5.831149
+4                0.5623981                 0.5675658            4.882015
+  model232_starter_MAE MAE_improvement_vs_23_pct RMSE_improvement_vs_23_pct
+1             6.583781                 0.3323955                 -0.2129328
+2             6.097719                 0.8202914                 -0.3701286
+3             5.872913                 0.4117514                 -0.4630440
+4             4.855054                 0.3424279                  0.4374079
+  promoted_for_2026
+1              TRUE
+2             FALSE
+3             FALSE
+4              TRUE
+[STAGE] Completed 12_train_validate_signal_feedback_2_3_2.R

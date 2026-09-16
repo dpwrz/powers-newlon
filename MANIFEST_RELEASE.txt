@@ -1,0 +1,10 @@
+Fantasy Model 3.0.0 + Web 1.0.0
+Consolidated from the cleaned 2.4.3 production baseline, 3.0 dynasty/role modules, validated 2.5 accuracy challenger layer, forward-only live refresh, final-error feedback, league scoring/live game-state layer, and Web 1.0.
+
+Primary commands:
+  R: source("RUN_FIRST_TIME_SETUP.R")
+  R: source("RUN_AUTO_REFRESH.R")
+  Web: npm install && npm run build
+
+Deployment guide:
+  docs/CLEAN_INSTALL_GITHUB_CLOUDFLARE.md

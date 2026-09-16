@@ -1,0 +1,556 @@
+[STAGE] Running 14_build_talent_context_2_4.R
+[2.2] Weekly accuracy engine loaded: neutral role + opportunity/stat line + matchup delta + direct model + honest stack.
+[2.3] Historical meta-calibration engine loaded: OOF matchup shrinkage + phase-aware meta stack + guarded residual calibration + cross-version guardrail.
+[2.4] Signal-attribution + player-talent engine loaded.
+
+[2.4 DATA] Building player talent + opponent-style context.
+[2.4 DATA] Existing PBP/weekly feature stores are NOT rebuilt.
+[2.4 COMBINE] NFL player profiles: 8498; combine rows: 8968
+[2.4 COLLEGE] 2013 player stats...
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in data.table::rbindlist(out, use.names = TRUE, fill = TRUE) :
+  Column 1 ['contest_id'] of item 1 is length 0. This (and 6 others like it) has been filled with NA (NULL for list columns) to make each item uniform.
+[2.4 COLLEGE] 2014 player stats...
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in data.table::rbindlist(out, use.names = TRUE, fill = TRUE) :
+  Column 1 ['contest_id'] of item 1 is length 0. This (and 6 others like it) has been filled with NA (NULL for list columns) to make each item uniform.
+[2.4 COLLEGE] 2015 player stats...
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in data.table::rbindlist(out, use.names = TRUE, fill = TRUE) :
+  Column 1 ['contest_id'] of item 1 is length 0. This (and 6 others like it) has been filled with NA (NULL for list columns) to make each item uniform.
+[2.4 COLLEGE] 2016 player stats...
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in data.table::rbindlist(out, use.names = TRUE, fill = TRUE) :
+  Column 1 ['contest_id'] of item 1 is length 0. This (and 6 others like it) has been filled with NA (NULL for list columns) to make each item uniform.
+[2.4 COLLEGE] 2017 player stats...
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in data.table::rbindlist(out, use.names = TRUE, fill = TRUE) :
+  Column 1 ['contest_id'] of item 1 is length 0. This (and 6 others like it) has been filled with NA (NULL for list columns) to make each item uniform.
+[2.4 COLLEGE] 2018 player stats...
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in data.table::rbindlist(out, use.names = TRUE, fill = TRUE) :
+  Column 1 ['contest_id'] of item 1 is length 0. This (and 6 others like it) has been filled with NA (NULL for list columns) to make each item uniform.
+[2.4 COLLEGE] 2019 player stats...
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in data.table::rbindlist(out, use.names = TRUE, fill = TRUE) :
+  Column 1 ['contest_id'] of item 1 is length 0. This (and 6 others like it) has been filled with NA (NULL for list columns) to make each item uniform.
+[2.4 COLLEGE] 2020 player stats...
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in data.table::rbindlist(out, use.names = TRUE, fill = TRUE) :
+  Column 1 ['contest_id'] of item 1 is length 0. This (and 28 others like it) has been filled with NA (NULL for list columns) to make each item uniform.
+[2.4 COLLEGE] 2021 player stats...
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in data.table::rbindlist(out, use.names = TRUE, fill = TRUE) :
+  Column 1 ['contest_id'] of item 1 is length 0. This (and 26 others like it) has been filled with NA (NULL for list columns) to make each item uniform.
+[2.4 COLLEGE] 2022 player stats...
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in data.table::rbindlist(out, use.names = TRUE, fill = TRUE) :
+  Column 1 ['contest_id'] of item 1 is length 0. This (and 26 others like it) has been filled with NA (NULL for list columns) to make each item uniform.
+[2.4 COLLEGE] 2023 player stats...
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in data.table::rbindlist(out, use.names = TRUE, fill = TRUE) :
+  Column 1 ['contest_id'] of item 1 is length 0. This (and 27 others like it) has been filled with NA (NULL for list columns) to make each item uniform.
+[2.4 COLLEGE] 2024 player stats...
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in data.table::rbindlist(out, use.names = TRUE, fill = TRUE) :
+  Column 1 ['contest_id'] of item 1 is length 0. This (and 26 others like it) has been filled with NA (NULL for list columns) to make each item uniform.
+[2.4 COLLEGE] 2025 player stats...
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in readRDS(con) :
+  cannot unserialize ALTVEC object of class 'arrow::array_large_string_vector' from package 'arrow'; returning length zero vector
+Warning in data.table::rbindlist(out, use.names = TRUE, fill = TRUE) :
+  Column 1 ['contest_id'] of item 1 is length 0. This (and 48 others like it) has been filled with NA (NULL for list columns) to make each item uniform.
+[2.4 TALENT] Raw talent profiles: 8498; with college match: 0
+[2.4 TALENT] Rookie outcomes: 1050; 2026 rookies ranked: 80
+[2.4.2 DEFENSE] Reusing valid participation 2016.
+[2.4.2 DEFENSE] Reusing valid participation 2017.
+[2.4.2 DEFENSE] Reusing valid participation 2018.
+[2.4.2 DEFENSE] Reusing valid participation 2019.
+[2.4.2 DEFENSE] Reusing valid participation 2020.
+[2.4.2 DEFENSE] Reusing valid participation 2021.
+[2.4.2 DEFENSE] Reusing valid participation 2022.
+[2.4.2 DEFENSE] Reusing valid participation 2023.
+[2.4.2 DEFENSE] Reusing valid participation 2024.
+[2.4.2 DEFENSE] Reusing valid participation 2025.
+[2.4.2 DEFENSE] FTN 2022...
+[2.4.2 DEFENSE] FTN 2023...
+[2.4.2 DEFENSE] FTN 2024...
+[2.4.2 DEFENSE] FTN 2025...
+[2.4.2 DEFENSE] FTN 2026...
+[2.4.2 DEFENSE] Participation game rows: 5522; FTN game rows: 2278
+[2.4 DEFENSE] Lagged defense-style rows: 6066
+[2.4.3 xFP] 2020...
+[2.4.3 xFP] 2021...
+[2.4.3 xFP] 2022...
+[2.4.3 xFP] 2023...
+[2.4.3 xFP] 2024...
+[2.4.3 xFP] 2025...
+[2.4.3 xFP] 2026...
+Warning in value[[3L]](cond) :
+  [2.4.3 xFP] 2026 unavailable: seasons <= most_recent_season() is not TRUE
+[2.4.3 xFP] Lagged expected-opportunity rows: 33613
+
+[2.4 DATA] COMPLETE.
+  data/processed/player_talent_profiles_2_4.csv
+  data/processed/talent_prior_oof_2_4.csv
+  data/processed/defense_style_context_2_4.csv
+  data/processed/expected_opportunity_history_2_4.csv
+  output/rookie_talent_rankings_2026.csv
+[STAGE] Completed 14_build_talent_context_2_4.R

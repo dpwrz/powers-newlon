@@ -1,0 +1,78 @@
+[STAGE] Running 04_validate_models.R
+[VALIDATE] Walk-forward holdout seasons: 2022, 2023, 2024, 2025
+[VALIDATE] Trees/fit: regression=8, tier=6, breakout=6
+[VALIDATE] 2022 QB (train=310, test=57, features=65)...
+[VALIDATE] 2022 RB (train=748, test=132, features=60)...
+[VALIDATE] 2022 WR (train=1144, test=193, features=79)...
+[VALIDATE] 2022 TE (train=622, test=104, features=70)...
+[VALIDATE] 2023 QB (train=367, test=60, features=65)...
+[VALIDATE] 2023 RB (train=880, test=118, features=60)...
+[VALIDATE] 2023 WR (train=1337, test=190, features=79)...
+[VALIDATE] 2023 TE (train=726, test=99, features=70)...
+[VALIDATE] 2024 QB (train=427, test=58, features=65)...
+[VALIDATE] 2024 RB (train=998, test=117, features=60)...
+[VALIDATE] 2024 WR (train=1527, test=200, features=79)...
+[VALIDATE] 2024 TE (train=825, test=103, features=70)...
+[VALIDATE] 2025 QB (train=485, test=62, features=65)...
+[VALIDATE] 2025 RB (train=1115, test=127, features=60)...
+[VALIDATE] 2025 WR (train=1727, test=207, features=79)...
+[VALIDATE] 2025 TE (train=928, test=109, features=70)...
+
+[VALIDATE] Selected 2026 veteran model weights:
+# A tibble: 4 × 5
+  position selected_model_weight selected_recent_weight validation_MAE
+  <chr>                    <dbl>                  <dbl>          <dbl>
+1 QB                         0.8                    0.2           3.81
+2 RB                         0.5                    0.5           2.61
+3 TE                         0.5                    0.5           1.53
+4 WR                         0.8                    0.2           2.14
+# ℹ 1 more variable: validation_RMSE <dbl>
+
+[VALIDATE] Multi-year direct-FPPG baseline summary:
+# A tibble: 4 × 13
+  position seasons_tested     n model_MAE baseline_MAE MAE_improvement_pct
+  <chr>             <int> <int>     <dbl>        <dbl>               <dbl>
+1 QB                    4   237      3.78         5.00                24.5
+2 RB                    4   494      2.60         3.08                15.4
+3 TE                    4   415      1.52         1.88                19.0
+4 WR                    4   790      2.10         2.66                21.0
+# ℹ 7 more variables: model_RMSE <dbl>, baseline_RMSE <dbl>,
+#   RMSE_improvement_pct <dbl>, correlation <dbl>,
+#   spearman_rank_correlation <dbl>, bias <dbl>, mean_abs_rank_error <dbl>
+
+[VALIDATE] Probability-model summary:
+# A tibble: 4 × 14
+  position     n elite_AUC elite_Brier elite_recall_at_50 elite_precision_at_50
+  <chr>    <int>     <dbl>       <dbl>              <dbl>                 <dbl>
+1 QB         237     0.783      0.0804               41.7                  58.8
+2 RB         494     0.885      0.0684               20.8                  45.5
+3 TE         415     0.927      0.0371               37.5                  81.8
+4 WR         790     0.910      0.0414               35.4                  58.6
+# ℹ 8 more variables: starter_AUC <dbl>, starter_Brier <dbl>,
+#   starter_recall_at_50 <dbl>, starter_precision_at_50 <dbl>,
+#   breakout_AUC <dbl>, breakout_Brier <dbl>, breakout_recall_at_50 <dbl>,
+#   breakout_precision_at_50 <dbl>
+
+[VALIDATE] Fantasy tier recall:
+  position fantasy_tier cutoff actual_slots predicted_slots true_positives
+1       QB         Top5      5           20              20              7
+2       QB        Top12     12           48              48             27
+3       RB        Top12     12           48              48             28
+4       RB        Top24     24           96              96             67
+5       WR        Top12     12           48              48             24
+6       WR        Top24     24           96              96             57
+7       WR        Top36     36          144             144             95
+8       TE         Top6      6           24              24             12
+9       TE        Top12     12           48              48             29
+  recall_pct precision_pct
+1   35.00000      35.00000
+2   56.25000      56.25000
+3   58.33333      58.33333
+4   69.79167      69.79167
+5   50.00000      50.00000
+6   59.37500      59.37500
+7   65.97222      65.97222
+8   50.00000      50.00000
+9   60.41667      60.41667
+Direct-FPPG guardrail validation + decision diagnostics complete for 2.0 comparison.
+[STAGE] Completed 04_validate_models.R

@@ -1,0 +1,30 @@
+[STAGE] Running BUILD_WEEKLY_DEFENSE_CONTEXT.R
+
+========================================
+ FANTASY MODEL 2.2 - WEEKLY DEFENSE CONTEXT
+========================================
+
+[WEEKLY DEF] Processing seasons: 2020-2025 (training still stops at 2025)
+[WEEKLY DEF] Processing 2020...
+[WEEKLY DEF] 2020: CSV selected-column fallback.
+[WEEKLY DEF] 2020 checkpoint saved.
+[WEEKLY DEF] Processing 2021...
+[WEEKLY DEF] 2021: CSV selected-column fallback.
+[WEEKLY DEF] 2021 checkpoint saved.
+[WEEKLY DEF] Processing 2022...
+[WEEKLY DEF] 2022: CSV selected-column fallback.
+[WEEKLY DEF] 2022 checkpoint saved.
+[WEEKLY DEF] Processing 2023...
+[WEEKLY DEF] 2023: CSV selected-column fallback.
+[WEEKLY DEF] 2023 checkpoint saved.
+[WEEKLY DEF] Processing 2024...
+[WEEKLY DEF] 2024: CSV selected-column fallback.
+[WEEKLY DEF] 2024 checkpoint saved.
+[WEEKLY DEF] Processing 2025...
+[WEEKLY DEF] 2025: CSV selected-column fallback.
+[WEEKLY DEF] 2025 checkpoint saved.
+
+[WEEKLY DEF] Combined weekly defense store: 3230 rows.
+[WEEKLY DEF] Complete.
+
+[STAGE] Completed BUILD_WEEKLY_DEFENSE_CONTEXT.R

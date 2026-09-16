@@ -1,0 +1,10 @@
+# Core R packages used by Fantasy Model 2.2.
+# ranger/xgboost are OPTIONAL research challengers and are not required by the
+# default Posit-safe production pipeline.
+dplyr
+readr
+tidyr
+nflreadr
+janitor
+rpart
+shiny
