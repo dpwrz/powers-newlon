@@ -273,12 +273,14 @@ score_live_accuracy25 <- function() {
   weekly_summary <- dplyr::bind_rows(lapply(split(scored, scored$week), function(d) cbind(data.frame(week = as.integer(d$week[1])), summarise_accuracy(d)))) |> dplyr::arrange(week)
   weekly_position <- dplyr::bind_rows(lapply(split(scored, interaction(scored$week, scored$position, drop = TRUE)), function(d) cbind(data.frame(week = as.integer(d$week[1]), position = as.character(d$position[1])), summarise_accuracy(d)))) |> dplyr::arrange(week, factor(position, levels = POSITIONS))
   cumulative_position <- dplyr::bind_rows(lapply(split(scored, scored$position), function(d) cbind(data.frame(position = as.character(d$position[1])), summarise_accuracy(d)))) |> dplyr::arrange(factor(position, levels = POSITIONS))
+  cumulative_summary <- cbind(data.frame(season = CURRENT_SEASON), summarise_accuracy(scored))
   misses <- scored |> dplyr::arrange(dplyr::desc(abs_error)) |> dplyr::select(week, player_id, player_display_name, position, team, opponent, projection, incumbent_projection, actual_fppg, error, abs_error, incumbent_error, incumbent_abs_error, floor, ceiling, expected_abs_error, projection_confidence, starter_cohort, relevant_cohort) |> dplyr::slice_head(n = 50)
 
   readr::write_csv(scored, paste0("output/live_accuracy_player_weeks_", CURRENT_SEASON, ".csv"))
   readr::write_csv(weekly_summary, paste0("output/live_accuracy_weekly_summary_", CURRENT_SEASON, ".csv"))
   readr::write_csv(weekly_position, paste0("output/live_accuracy_weekly_position_", CURRENT_SEASON, ".csv"))
   readr::write_csv(cumulative_position, paste0("output/live_accuracy_cumulative_position_", CURRENT_SEASON, ".csv"))
+  readr::write_csv(cumulative_summary, paste0("output/live_accuracy_cumulative_summary_", CURRENT_SEASON, ".csv"))
   readr::write_csv(misses, paste0("output/live_accuracy_biggest_misses_", CURRENT_SEASON, ".csv"))
 
   cat("\n[2.5 LIVE SCORE] Completed player-weeks scored: ", nrow(scored), "\n", sep = "")

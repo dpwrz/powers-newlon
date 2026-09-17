@@ -67,6 +67,7 @@ manifest25_file <- first_existing(c(file.path(out,"weekly_2_5_champion_manifest.
 live_weekly_file <- first_existing(c(file.path(out,paste0("live_accuracy_weekly_summary_", 2026, ".csv"))))
 live_position_file <- first_existing(c(file.path(out,paste0("live_accuracy_weekly_position_", 2026, ".csv"))))
 live_cumulative_file <- first_existing(c(file.path(out,paste0("live_accuracy_cumulative_position_", 2026, ".csv"))))
+live_overall_file <- first_existing(c(file.path(out,paste0("live_accuracy_cumulative_summary_", 2026, ".csv"))))
 live_misses_file <- first_existing(c(file.path(out,paste0("live_accuracy_biggest_misses_", 2026, ".csv"))))
 live_refresh_file <- first_existing(c(file.path(root,"data","state",paste0("live_refresh_state_", 2026, ".json"))))
 
@@ -85,6 +86,7 @@ manifest25 <- read_optional(manifest25_file)
 live_weekly <- read_optional(live_weekly_file)
 live_position <- read_optional(live_position_file)
 live_cumulative <- read_optional(live_cumulative_file)
+live_overall <- read_optional(live_overall_file)
 live_misses <- read_optional(live_misses_file)
 live_refresh <- if (!is.null(live_refresh_file) && file.exists(live_refresh_file)) tryCatch(jsonlite::fromJSON(live_refresh_file, simplifyVector = TRUE), error = function(e) NULL) else NULL
 
@@ -348,6 +350,7 @@ quality <- list(
   live_weekly = if (!is.null(live_weekly)) live_weekly else list(),
   live_position = if (!is.null(live_position)) live_position else list(),
   live_cumulative = if (!is.null(live_cumulative)) live_cumulative else list(),
+  live_overall = if (!is.null(live_overall)) live_overall else list(),
   live_misses = if (!is.null(live_misses)) live_misses else list()
 )
 
