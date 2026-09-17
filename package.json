@@ -3,6 +3,6 @@
   "private": true,
   "version": "3.0.1",
   "scripts": {
-    "build": "npm --prefix web install --no-audit --no-fund && npm --prefix web run build"
+    "build": "npm --prefix web install --no-audit --no-fund && npm --prefix web run build && rm -rf dist && cp -R web/dist dist"
   }
 }
