@@ -1,0 +1,72 @@
+name: Apply league refresh and draft-pick fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/league-refresh-fix-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch Web 1.1 league refresh behavior
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('web/src/main.js')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+            (
+              "picks:[],players:null",
+              "picks:[],drafts:[],players:null"
+            ),
+            (
+              "async function json(url,fallback=null){try{const r=await fetch(url,{headers:{accept:'application/json'}});if(!r.ok)throw Error(r.status);return await r.json()}catch(e){console.warn(url,e);return fallback}}",
+              "async function json(url,fallback=null){try{const r=await fetch(url,{headers:{accept:'application/json'}});if(!r.ok)throw Error(r.status);return await r.json()}catch(e){console.warn(url,e);return fallback}}\nasync function liveJson(url,fallback=null){try{const sep=url.includes('?')?'&':'?';const r=await fetch(`${url}${sep}_fm=${Date.now()}`,{headers:{accept:'application/json'},cache:'no-store'});if(!r.ok)throw Error(r.status);return await r.json()}catch(e){console.warn(url,e);return fallback}}"
+            ),
+            (
+              "async function loadLeagues(user=st.username,season=st.season){st.loading=true;render();const u=await json(`${S}/user/${encodeURIComponent(user)}`);if(!u?.user_id){st.loading=false;st.error='Sleeper user not found.';render();return}st.user=u;st.leagues=await json(`${S}/user/${u.user_id}/leagues/nfl/${season}`,[])||[];st.username=user;st.season=+season;st.error='';localStorage.fm_username=user;localStorage.fm_season=season;st.loading=false;render()}\nasync function openLeague(id){st.league=st.leagues.find(l=>String(l.league_id)===String(id))||await json(`${S}/league/${id}`);if(!st.league)return toast('Could not load league.');st.loading=true;st.tab='home';localStorage.fm_league_id=id;localStorage.fm_league_tab='home';render();await Promise.all([players(),nflState()]);[st.users,st.rosters,st.matchups,st.picks]=await Promise.all([json(`${S}/league/${id}/users`,[]),json(`${S}/league/${id}/rosters`,[]),json(`${S}/league/${id}/matchups/${st.week}`,[]),json(`${S}/league/${id}/traded_picks`,[])]);st.team=me()?.roster_id||st.rosters[0]?.roster_id;st.tradeA=me()?.roster_id||st.rosters[0]?.roster_id;st.tradeB=st.rosters.find(r=>r.roster_id!==st.tradeA)?.roster_id;st.loading=false;auditProjections();render()}\nasync function setWeek(w){st.week=+w;if(st.league)st.matchups=await json(`${S}/league/${st.league.league_id}/matchups/${w}`,[])||[];auditProjections();render()}",
+              "async function loadLeagues(user=st.username,season=st.season){st.loading=true;render();const u=await liveJson(`${S}/user/${encodeURIComponent(user)}`);if(!u?.user_id){st.loading=false;st.error='Sleeper user not found.';render();return}st.user=u;st.leagues=await liveJson(`${S}/user/${u.user_id}/leagues/nfl/${season}`,[])||[];st.username=user;st.season=+season;st.error='';localStorage.fm_username=user;localStorage.fm_season=season;st.loading=false;render()}\nasync function refreshLeague(notify=true){const id=st.league?.league_id;if(!id)return;st.loading=true;render();await Promise.all([players(),nflState()]);const [league,users,rosters,matchups,picks,drafts]=await Promise.all([liveJson(`${S}/league/${id}`,st.league),liveJson(`${S}/league/${id}/users`,[]),liveJson(`${S}/league/${id}/rosters`,[]),liveJson(`${S}/league/${id}/matchups/${st.week}`,[]),liveJson(`${S}/league/${id}/traded_picks`,[]),liveJson(`${S}/league/${id}/drafts`,[])]);if(league)st.league=league;st.users=users||[];st.rosters=rosters||[];st.matchups=matchups||[];st.picks=picks||[];st.drafts=drafts||[];st.team=rby(st.team)?.roster_id||me()?.roster_id||st.rosters[0]?.roster_id;st.tradeA=rby(st.tradeA)?.roster_id||me()?.roster_id||st.rosters[0]?.roster_id;st.tradeB=rby(st.tradeB)?.roster_id||st.rosters.find(r=>r.roster_id!==st.tradeA)?.roster_id;st.assetsA=new Set;st.assetsB=new Set;st.loading=false;auditProjections();render();if(notify)toast('League refreshed from Sleeper.')}\nasync function openLeague(id){st.league=st.leagues.find(l=>String(l.league_id)===String(id))||await liveJson(`${S}/league/${id}`);if(!st.league)return toast('Could not load league.');st.tab='home';localStorage.fm_league_id=id;localStorage.fm_league_tab='home';await refreshLeague(false)}\nasync function setWeek(w){st.week=+w;if(st.league)st.matchups=await liveJson(`${S}/league/${st.league.league_id}/matchups/${w}`,[])||[];auditProjections();render()}"
+            ),
+            (
+              "function pickAssets(id){const rounds=+(st.league?.settings?.draft_rounds||4),out=[];for(let y=st.season+1;y<=st.season+3;y++)for(let r=1;r<=rounds;r++){let owner=id;const t=[...st.picks].reverse().find(p=>+p.roster_id===+id&&+p.season===y&&+p.round===r);if(t?.owner_id)owner=t.owner_id;if(+owner===+id)out.push({season:y,round:r,original:id,key:`pick:${y}:${r}:${id}`})}for(const p of st.picks)if(+p.owner_id===+id&&+p.roster_id!==+id&&+p.season>=st.season){const q={season:+p.season,round:+p.round,original:+p.roster_id,key:`pick:${p.season}:${p.round}:${p.roster_id}`};if(!out.some(x=>x.key===q.key))out.push(q)}return out.sort((a,b)=>a.season-b.season||a.round-b.round)}",
+              "function draftComplete(y=st.season){return st.drafts.some(d=>+d.season===+y&&String(d.status||'').toLowerCase()==='complete')}\nfunction pickAssets(id){const rounds=+(st.league?.settings?.draft_rounds||4),out=[],first=draftComplete(st.season)?st.season+1:st.season;for(let y=first;y<=st.season+3;y++)for(let r=1;r<=rounds;r++){let owner=id;const t=[...st.picks].reverse().find(p=>+p.roster_id===+id&&+p.season===y&&+p.round===r);if(t?.owner_id)owner=t.owner_id;if(+owner===+id)out.push({season:y,round:r,original:id,key:`pick:${y}:${r}:${id}`})}for(const p of st.picks)if(+p.owner_id===+id&&+p.roster_id!==+id&&+p.season>=first){const q={season:+p.season,round:+p.round,original:+p.roster_id,key:`pick:${p.season}:${p.round}:${p.roster_id}`};if(!out.some(x=>x.key===q.key))out.push(q)}return out.sort((a,b)=>a.season-b.season||a.round-b.round)}"
+            ),
+            (
+              "<div class=\"top-actions\">${st.league?'<button class=\"btn btn-ghost\" data-a=\"back\">All leagues</button>':''}<span class=\"pill\">",
+              "<div class=\"top-actions\">${st.league?'<button class=\"btn btn-ghost\" data-a=\"refreshLeague\">Refresh league</button><button class=\"btn btn-ghost\" data-a=\"back\">All leagues</button>':''}<span class=\"pill\">"
+            ),
+            (
+              "$('[data-a=\"load\"]')?.addEventListener('click',()=>loadLeagues($('#username').value.trim(),+$('#season').value));$$('[data-league]').forEach(x=>x.onclick=()=>openLeague(x.dataset.league));$('[data-a=\"back\"]')?.addEventListener('click',()=>{st.league=null;localStorage.removeItem('fm_league_id');render()});",
+              "$('[data-a=\"load\"]')?.addEventListener('click',()=>loadLeagues($('#username').value.trim(),+$('#season').value));$$('[data-league]').forEach(x=>x.onclick=()=>openLeague(x.dataset.league));$('[data-a=\"refreshLeague\"]')?.addEventListener('click',()=>refreshLeague(true));$('[data-a=\"back\"]')?.addEventListener('click',()=>{st.league=null;localStorage.removeItem('fm_league_id');render()});"
+            )
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'Expected source block not found; refusing partial patch: {old[:80]}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/src/main.js
+          git commit -m "Refresh Sleeper league state and hide completed draft picks"
+          git pull --rebase origin main
+          git push origin HEAD:main
