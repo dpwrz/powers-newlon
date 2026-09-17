@@ -77,15 +77,21 @@ jobs:
           FM_FORCE_REFRESH: ${{ github.event_name == 'workflow_dispatch' && inputs.force && 'true' || 'false' }}
         run: Rscript RUN_AUTO_REFRESH.R
 
-      - name: Verify snapshot
+      - name: Verify refreshed snapshot
+        if: ${{ !inputs.skip_model_refresh }}
         run: test -f output/model_snapshot.json
 
       - name: Sync snapshot into web app
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p web/public/data
-          cp output/model_snapshot.json web/public/data/model_snapshot.json
+          if [ -f output/model_snapshot.json ]; then
+            mkdir -p web/public/data
+            cp output/model_snapshot.json web/public/data/model_snapshot.json
+            echo "Synced refreshed snapshot into web app."
+          else
+            echo "No output/model_snapshot.json found; retaining existing web snapshot."
+          fi
 
       - name: Commit persistent engine and web state
         shell: bash
@@ -94,7 +100,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add -f output/model_snapshot.json output/ web/public/data/model_snapshot.json 2>/dev/null || true
+          if [ -f output/model_snapshot.json ]; then
+            git add -f output/model_snapshot.json output/ web/public/data/model_snapshot.json 2>/dev/null || true
+          elif [ -f web/public/data/model_snapshot.json ]; then
+            git add -f web/public/data/model_snapshot.json 2>/dev/null || true
+          fi
 
           if git diff --cached --quiet; then
             echo "No persistent state changes to commit."
