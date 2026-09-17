@@ -1,0 +1,46 @@
+name: Diagnose Mason live data
+
+on:
+  push:
+    paths:
+      - '.github/mason-live-trigger'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Sleeper and ESPN live data
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, urllib.request
+
+          def get(url):
+              req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0','Accept':'application/json'})
+              with urllib.request.urlopen(req,timeout=30) as r:
+                  return json.load(r), dict(r.headers)
+
+          players,_=get('https://api.sleeper.app/v1/players/nfl?position=RB&active=true')
+          mason=None
+          for pid,p in players.items():
+              if (p.get('full_name') or f"{p.get('first_name','')} {p.get('last_name','')}".strip()).lower()=='jordan mason':
+                  mason=(pid,p); break
+          if not mason:
+              raise SystemExit('Jordan Mason not found in Sleeper RB feed')
+          pid,p=mason
+          print('SLEEPER_ID',pid)
+          for k in ['full_name','status','injury_status','injury_body_part','injury_notes','injury_start_date','espn_id','team']:
+              print('SLEEPER',k,repr(p.get(k)))
+          espn=p.get('espn_id')
+          if not espn:
+              raise SystemExit('Sleeper Jordan Mason record has no espn_id')
+          data,h=get(f'https://site.api.espn.com/apis/fantasy/v2/games/ffl/news/players?limit=20&playerId={espn}')
+          feed=data.get('feed') or []
+          print('ESPN_ID',espn)
+          print('ESPN_FEED_COUNT',len(feed))
+          print('ESPN_ACAO',h.get('Access-Control-Allow-Origin') or h.get('access-control-allow-origin'))
+          for a in feed[:5]:
+              print('NEWS',repr(a.get('published')),repr(a.get('headline')))
+          if not feed:
+              raise SystemExit('ESPN fantasy player news feed returned no items')
+          PY
