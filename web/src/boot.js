@@ -1,9 +1,10 @@
 // Fantasy Model Web 1.1 bootstrap.
-// Adapts the production model snapshot into the stable field names consumed by
-// the UI. The model exporter intentionally preserves richer production names;
-// this layer keeps the website compatible without changing model outputs.
+// New snapshots are normalized by the model pipeline before they reach the
+// browser. This file keeps a one-time in-memory fallback for older snapshots
+// without cloning, stringifying, and reparsing the full JSON payload.
 
 const nativeFetch = window.fetch.bind(window);
+const WEB_SCHEMA_VERSION = 2;
 
 const asNumber = (value) => {
   if (value === null || value === undefined || value === '') return null;
@@ -47,7 +48,6 @@ function adaptPlayer(player, projectionWeek) {
   const current = weeks.find((w) => asNumber(w?.week) === currentWeek) || null;
   const avgPpg = averageCompletedActuals(weeks) ?? asNumber(player.season_fppg);
 
-  // Make the current-week production fields explicit for the existing UI.
   const currentProjection = asNumber(current?.projection) ?? asNumber(player.week_projection);
   if (currentProjection !== null) {
     player.projection = currentProjection;
@@ -64,12 +64,8 @@ function adaptPlayer(player, projectionWeek) {
     player.season_ppg = avgPpg;
   }
 
-  // Sleeper roster IDs should resolve directly whenever the exporter provides
-  // its identity map. GSIS/name remain fallbacks.
   player.player_id = player.sleeper_id || player.gsis_id || player.player_id;
 
-  // The UI flattens snapshot objects when a week is selected. Give every
-  // weekly row enough identity + persistent value context to stand alone.
   for (const week of weeks) {
     if (!week || typeof week !== 'object') continue;
     week.player_id = player.sleeper_id || player.gsis_id || week.player_id;
@@ -94,11 +90,6 @@ function adaptPlayer(player, projectionWeek) {
   return player;
 }
 
-// A small number of player-week rows can arrive without an opponent even when
-// teammates (or the reciprocal opponent) have the matchup populated. Build one
-// canonical team/week schedule from the snapshot and fill only future/current
-// gaps. Historical rows are left untouched so player movement cannot rewrite
-// past matchups.
 function repairOpponentCoverage(snapshot) {
   const players = Array.isArray(snapshot?.players) ? snapshot.players : [];
   const startWeek = asNumber(snapshot?.projection_week) ?? 1;
@@ -148,10 +139,6 @@ function repairOpponentCoverage(snapshot) {
   }
 }
 
-// The current production snapshot contains player dynasty values but no generic
-// future-pick rows. main.js already defines this exact fallback curve; exposing
-// it as snapshot rows prevents missing/null values from being rendered as zero
-// and keeps the same valuation available everywhere, including the trade tool.
 function ensureBaselinePickValues(snapshot) {
   const storedSeason = asNumber(localStorage.getItem('fm_season'));
   const baseSeason = storedSeason ?? new Date().getFullYear();
@@ -173,8 +160,6 @@ function ensureBaselinePickValues(snapshot) {
       );
 
       existing.push({
-        // main.js flatten() retains objects with an identity-shaped key. The
-        // value stays null so this row cannot be mistaken for an NFL player.
         sleeper_id: null,
         asset_type: 'future_pick',
         season,
@@ -193,6 +178,12 @@ function ensureBaselinePickValues(snapshot) {
 function adaptSnapshot(snapshot) {
   if (!snapshot || typeof snapshot !== 'object') return snapshot;
 
+  // Producer-normalized Web 1.1 snapshots are already ready for the UI. This
+  // is the normal path after the next model refresh and avoids a full traversal.
+  if ((asNumber(snapshot.web_schema_version) ?? 0) >= WEB_SCHEMA_VERSION) {
+    return snapshot;
+  }
+
   if (Array.isArray(snapshot.players)) {
     snapshot.players.forEach((p) => adaptPlayer(p, snapshot.projection_week));
     repairOpponentCoverage(snapshot);
@@ -202,6 +193,15 @@ function adaptSnapshot(snapshot) {
   return snapshot;
 }
 
+window.FantasySnapshot = Object.freeze({
+  schemaVersion: WEB_SCHEMA_VERSION,
+  adapt: adaptSnapshot,
+});
+
+// Backward compatibility for the snapshot already deployed today. Instead of
+// response.clone().json() -> JSON.stringify() -> new Response() -> .json(),
+// override only the snapshot response's json() method. The payload is parsed
+// once, adapted in memory once, and handed directly to main.js.
 window.fetch = async (input, init) => {
   const response = await nativeFetch(input, init);
   let url = '';
@@ -213,19 +213,27 @@ window.fetch = async (input, init) => {
 
   if (!url.endsWith('/data/model_snapshot.json') || !response.ok) return response;
 
-  try {
-    const snapshot = adaptSnapshot(await response.clone().json());
-    const headers = new Headers(response.headers);
-    headers.set('content-type', 'application/json; charset=utf-8');
-    return new Response(JSON.stringify(snapshot), {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
-  } catch (error) {
-    console.warn('Fantasy Model snapshot adapter failed; using raw snapshot.', error);
-    return response;
-  }
+  let adaptedPromise = null;
+  return new Proxy(response, {
+    get(target, prop) {
+      if (prop === 'json') {
+        return () => {
+          if (!adaptedPromise) {
+            adaptedPromise = target.json()
+              .then(adaptSnapshot)
+              .catch((error) => {
+                console.warn('Fantasy Model snapshot adapter failed; using raw snapshot.', error);
+                throw error;
+              });
+          }
+          return adaptedPromise;
+        };
+      }
+
+      const value = Reflect.get(target, prop, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
 };
 
 await import('./main.js');
