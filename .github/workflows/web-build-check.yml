@@ -1,4 +1,4 @@
-name: Web 1.0 build check
+name: Web 1.1 Cloudflare build check
 
 on:
   workflow_dispatch:
@@ -6,10 +6,14 @@ on:
     branches: [main]
     paths:
       - 'web/**'
+      - 'package.json'
+      - 'wrangler.toml'
       - '.github/workflows/web-build-check.yml'
   pull_request:
     paths:
       - 'web/**'
+      - 'package.json'
+      - 'wrangler.toml'
 
 permissions:
   contents: read
@@ -17,13 +21,16 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --no-audit --no-fund
-      - run: npm run build
+      - name: Build exactly as Cloudflare Pages builds the repository
+        run: npm run build
+      - name: Verify Pages output
+        run: |
+          test -f dist/index.html
+          test -f dist/data/model_snapshot.json
+          test -f dist/data/snapshot_version.json
+          test -f dist/_headers
