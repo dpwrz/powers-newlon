@@ -1,10 +1,14 @@
 // Fantasy Model Web 1.1 bootstrap.
 // New snapshots are normalized by the model pipeline before they reach the
-// browser. This file keeps a one-time in-memory fallback for older snapshots
-// without cloning, stringifying, and reparsing the full JSON payload.
+// browser. A tiny version manifest controls a browser Cache API entry so the
+// 10+ MB model snapshot is downloaded only when the model actually changes.
 
 const nativeFetch = window.fetch.bind(window);
 const WEB_SCHEMA_VERSION = 2;
+const SNAPSHOT_URL = '/data/model_snapshot.json';
+const SNAPSHOT_VERSION_URL = '/data/snapshot_version.json';
+const SNAPSHOT_CACHE = 'fantasy-model-snapshot-v1';
+const SNAPSHOT_VERSION_KEY = 'fm_snapshot_version';
 
 const asNumber = (value) => {
   if (value === null || value === undefined || value === '') return null;
@@ -198,20 +202,76 @@ window.FantasySnapshot = Object.freeze({
   adapt: adaptSnapshot,
 });
 
+async function fetchSnapshotManifest() {
+  try {
+    const response = await nativeFetch(SNAPSHOT_VERSION_URL, {
+      cache: 'no-store',
+      headers: { accept: 'application/json' },
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    console.warn('Fantasy Model snapshot manifest unavailable.', error);
+    return null;
+  }
+}
+
+async function fetchVersionedSnapshot(input, init) {
+  const manifest = await fetchSnapshotManifest();
+  const version = cleanText(manifest?.version || manifest?.hash || manifest?.etag);
+  const cachedVersion = cleanText(localStorage.getItem(SNAPSHOT_VERSION_KEY));
+
+  let cache = null;
+  if ('caches' in window) {
+    try {
+      cache = await caches.open(SNAPSHOT_CACHE);
+    } catch (error) {
+      console.warn('Fantasy Model snapshot cache unavailable.', error);
+    }
+  }
+
+  if (cache && version && cachedVersion === version) {
+    try {
+      const cached = await cache.match(SNAPSHOT_URL);
+      if (cached) return cached;
+    } catch (error) {
+      console.warn('Fantasy Model cached snapshot read failed.', error);
+    }
+  }
+
+  const response = await nativeFetch(input, init);
+  if (!response.ok) return response;
+
+  if (cache) {
+    try {
+      await cache.put(SNAPSHOT_URL, response.clone());
+      if (version) localStorage.setItem(SNAPSHOT_VERSION_KEY, version);
+    } catch (error) {
+      console.warn('Fantasy Model snapshot cache write failed.', error);
+    }
+  }
+
+  return response;
+}
+
 // Backward compatibility for the snapshot already deployed today. Instead of
 // response.clone().json() -> JSON.stringify() -> new Response() -> .json(),
 // override only the snapshot response's json() method. The payload is parsed
-// once, adapted in memory once, and handed directly to main.js.
+// once, adapted in memory once, and handed directly to main.js. Producer-
+// normalized snapshots skip the traversal entirely.
 window.fetch = async (input, init) => {
-  const response = await nativeFetch(input, init);
   let url = '';
   try {
     url = new URL(typeof input === 'string' ? input : input?.url || '', window.location.href).pathname;
   } catch {
-    return response;
+    return nativeFetch(input, init);
   }
 
-  if (!url.endsWith('/data/model_snapshot.json') || !response.ok) return response;
+  const response = url.endsWith(SNAPSHOT_URL)
+    ? await fetchVersionedSnapshot(input, init)
+    : await nativeFetch(input, init);
+
+  if (!url.endsWith(SNAPSHOT_URL) || !response.ok) return response;
 
   let adaptedPromise = null;
   return new Proxy(response, {
