@@ -1,0 +1,15 @@
+{
+  "generated_at": "2026-09-17 20:14:35 UTC",
+  "model_version": "3.1",
+  "status": "refreshed",
+  "refresh_reason": "forced",
+  "stats_fingerprint": "dc41024dc7553ca026c5076b134bca48",
+  "schedule_fingerprint": "eed638fd73739e0abe74a60c6705493f",
+  "future_context_fingerprint": "aa4d111fe568397d534fe0383a1a8cdb",
+  "public_fingerprint": "9633822a8f7b3d87b14a6c7d080881ce",
+  "completed_games": 16,
+  "latest_actual_week": 1,
+  "projection_week": 1,
+  "current_stat_rows": 1118,
+  "schedule_rows": 272
+}
