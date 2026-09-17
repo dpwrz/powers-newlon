@@ -8,9 +8,8 @@ on:
         required: false
         default: false
         type: boolean
-      
       force:
-        description: Force refresh even if the public-state fingerprint is unchanged
+        description: "Force refresh even if the public-state fingerprint is unchanged"
         required: false
         default: false
         type: boolean
@@ -34,17 +33,11 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     timeout-minutes: 60
-
-    env:
-      WEB_REPO: ${{ secrets.WEB_REPO }}
-      WEB_REPO_TOKEN: ${{ secrets.WEB_REPO_TOKEN }}
-      WEB_BRANCH: ${{ secrets.WEB_BRANCH || 'main' }}
-
     steps:
-      - name: Checkout Fantasy Model engine
+      - name: Checkout Fantasy Model
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Set up R
         if: ${{ !inputs.skip_model_refresh }}
@@ -77,7 +70,7 @@ jobs:
         if: ${{ !inputs.skip_model_refresh }}
         run: Rscript tests/TEST_3_0_PRODUCTION.R
 
-      - name: Refresh only unplayed player-weeks, ROS, performance and snapshot
+      - name: Refresh unplayed player-weeks, ROS, performance and snapshot
         if: ${{ !inputs.skip_model_refresh }}
         env:
           FM_RELEASE_VERSION: '3.0.1'
@@ -85,99 +78,35 @@ jobs:
         run: Rscript RUN_AUTO_REFRESH.R
 
       - name: Verify snapshot
-        if: ${{ !inputs.skip_model_refresh }}
         run: test -f output/model_snapshot.json
 
-      - name: Commit persistent engine state
+      - name: Sync snapshot into web app
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p web/public/data
+          cp output/model_snapshot.json web/public/data/model_snapshot.json
 
+      - name: Commit persistent engine and web state
+        shell: bash
+        run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          echo "=== Working tree before persistent-state commit ==="
-          git status --short
-
-          # Stage the persistent production artifacts.
-          git add -f \
-            output/model_snapshot.json \
-            output/ 2>/dev/null || true
+          git add -f output/model_snapshot.json output/ web/public/data/model_snapshot.json 2>/dev/null || true
 
           if git diff --cached --quiet; then
-            echo "No persistent engine-state changes to commit."
-          else
-            git commit -m "Auto-refresh Fantasy Model 3.0 production state"
+            echo "No persistent state changes to commit."
+            exit 0
+          fi
 
-            echo "=== Non-persistent runtime changes left after commit ==="
-            git status --short
+          git commit -m "Auto-refresh Fantasy Model 3.0 production state"
 
-            # The model refresh can modify temporary/runtime files that are
-            # intentionally NOT part of the persistent production state.
-            # Stash them so Git can safely rebase.
           if [[ -n "$(git status --porcelain)" ]]; then
-            echo "Stashing non-persistent runtime changes..."
             git stash push --include-untracked -m "ci-runtime-leftovers"
           fi
 
-          echo "=== Synchronizing production commit with GitHub ==="
           git fetch origin "${GITHUB_REF_NAME}"
           git rebase "origin/${GITHUB_REF_NAME}"
-
-          echo "=== Pushing refreshed Fantasy Model 3.0 state ==="
           git push origin "HEAD:${GITHUB_REF_NAME}"
-          fi
-
-          echo "=== Remaining non-persistent working-tree changes ==="
-          git status --short
-
-          # Model execution can alter temporary/runtime files that are not meant
-          # to become part of the persistent production commit.
-          #
-          # Return the checkout to the commit we just created before syncing.
-          git reset --hard HEAD
-          git clean -fd
-
-          echo "=== Synchronizing with remote main ==="
-          git fetch origin main
-
-          # Only rebase when the remote actually contains commits we do not have.
-          if ! git merge-base --is-ancestor origin/main HEAD; then
-            git rebase origin/main
-          fi
-
-          echo "=== Push persistent engine state ==="
-          git push origin HEAD:main
-
-      - name: Checkout Cloudflare web repository
-        if: ${{ env.WEB_REPO != '' && env.WEB_REPO_TOKEN != '' }}
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ env.WEB_REPO }}
-          token: ${{ env.WEB_REPO_TOKEN }}
-          ref: ${{ env.WEB_BRANCH }}
-          path: web-publish
-          fetch-depth: 1
-
-      - name: Publish refreshed snapshot to Cloudflare web repository
-        if: ${{ env.WEB_REPO != '' && env.WEB_REPO_TOKEN != '' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -f output/model_snapshot.json
-          mkdir -p web-publish/public/data
-          cp output/model_snapshot.json web-publish/public/data/model_snapshot.json
-
-          cd web-publish
-          git config user.name "fantasy-model-bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add public/data/model_snapshot.json
-
-          if git diff --cached --quiet; then
-            echo "Web snapshot is already current."
-          else
-            git commit -m "Refresh Fantasy Model 3.0 snapshot"
-            git pull --rebase origin "$WEB_BRANCH"
-            git push origin "HEAD:$WEB_BRANCH"
-          fi
