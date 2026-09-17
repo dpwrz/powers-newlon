@@ -1,0 +1,72 @@
+name: Apply dynamic pick valuation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/dynamic-pick-values-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch Web draft-pick valuation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('web/src/main.js')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+            (
+              "drafts:[],players:null,week:null,team:null",
+              "drafts:[],players:null,week:null,nflWeek:null,team:null"
+            ),
+            (
+              "async function nflState(){const x=await json(`${S}/state/nfl`,{});if(!st.week)st.week=+(x?.week||1);if(!st.season)st.season=+(x?.season||new Date().getFullYear());return x}",
+              "async function nflState(){const x=await json(`${S}/state/nfl`,{});st.nflWeek=+(x?.week||st.nflWeek||1);if(!st.week)st.week=st.nflWeek;if(!st.season)st.season=+(x?.season||new Date().getFullYear());return x}"
+            ),
+            (
+              "function draftComplete(y=st.season){return st.drafts.some(d=>+d.season===+y&&String(d.status||'').toLowerCase()==='complete')}\nfunction pickAssets(id){const rounds=+(st.league?.settings?.draft_rounds||4),out=[],first=draftComplete(st.season)?st.season+1:st.season;for(let y=first;y<=st.season+3;y++)for(let r=1;r<=rounds;r++){let owner=id;const t=[...st.picks].reverse().find(p=>+p.roster_id===+id&&+p.season===y&&+p.round===r);if(t?.owner_id)owner=t.owner_id;if(+owner===+id)out.push({season:y,round:r,original:id,key:`pick:${y}:${r}:${id}`})}for(const p of st.picks)if(+p.owner_id===+id&&+p.roster_id!==+id&&+p.season>=first){const q={season:+p.season,round:+p.round,original:+p.roster_id,key:`pick:${p.season}:${p.round}:${p.roster_id}`};if(!out.some(x=>x.key===q.key))out.push(q)}return out.sort((a,b)=>a.season-b.season||a.round-b.round)}\nfunction pickVal(p){const v=st.pickValues.get(`${+p.season}:${+p.round}`);if(v!=null)return v;return Math.round(({1:4200,2:1800,3:800,4:350}[p.round]||100)*Math.pow(.92,Math.max(0,p.season-st.season-1)))}",
+              "function draftComplete(y=st.season){return st.drafts.some(d=>+d.season===+y&&String(d.status||'').toLowerCase()==='complete')}\nfunction pickAssets(id){const rounds=+(st.league?.settings?.draft_rounds||4),out=[],first=draftComplete(st.season)?st.season+1:st.season;for(let y=first;y<=st.season+3;y++)for(let r=1;r<=rounds;r++){let owner=id;const t=[...st.picks].reverse().find(p=>+p.roster_id===+id&&+p.season===y&&+p.round===r);if(t?.owner_id)owner=t.owner_id;if(+owner===+id)out.push({season:y,round:r,original:id,key:`pick:${y}:${r}:${id}`})}for(const p of st.picks)if(+p.owner_id===+id&&+p.roster_id!==+id&&+p.season>=first){const q={season:+p.season,round:+p.round,original:+p.roster_id,key:`pick:${p.season}:${p.round}:${p.roster_id}`};if(!out.some(x=>x.key===q.key))out.push(q)}return out.sort((a,b)=>a.season-b.season||a.round-b.round)}\nfunction rosterPF(r){const s=r?.settings||{};return n(s.fpts,0)+n(s.fpts_decimal,0)/100}\nfunction currentDraftSlots(){const a=[...st.rosters].sort((a,b)=>{const sa=a.settings||{},sb=b.settings||{};return n(sa.wins,0)-n(sb.wins,0)||n(sa.ties,0)-n(sb.ties,0)||rosterPF(a)-rosterPF(b)||+a.roster_id-+b.roster_id});return new Map(a.map((r,i)=>[+r.roster_id,i+1]))}\nfunction metricSlots(fn){const a=st.rosters.map(r=>({id:+r.roster_id,v:n(fn(r))})).sort((a,b)=>(a.v??-Infinity)-(b.v??-Infinity)||a.id-b.id);return new Map(a.map((x,i)=>[x.id,i+1]))}\nfunction powerDraftSlot(id){const teams=Math.max(1,st.rosters.length),mid=(teams+1)/2,dyn=metricSlots(r=>rdyn(r)),proj=metricSlots(r=>rproj(r)),form=metricSlots(r=>ppg(r));const d=dyn.get(+id)??mid,q=proj.get(+id)??mid,g=form.get(+id)??mid,week=Math.max(1,+st.nflWeek||1),formW=Math.min(.30,.10+Math.max(0,week-1)*.02),dynW=.52-formW/2,projW=1-dynW-formW;return dynW*d+projW*q+formW*g}\nfunction draftOutlook(p){const teams=Math.max(1,st.rosters.length),mid=(teams+1)/2,current=currentDraftSlots().get(+p.original)??mid,power=powerDraftSlot(p.original),week=Math.max(1,+st.nflWeek||1),progress=Math.min(1,Math.max(0,(week-1)/11)),standW=.35+.50*progress,horizon=Math.max(0,+p.season-+st.season-1),regress=Math.min(.45,horizon*.18);let projected=standW*current+(1-standW)*power;projected=(1-regress)*projected+regress*mid;projected=Math.max(1,Math.min(teams,projected));const spread=Math.max(1,Math.round((1-progress)*teams*.22+horizon*.75)),lo=Math.max(1,Math.round(projected-spread)),hi=Math.min(teams,Math.round(projected+spread));return{teams,current:Math.round(current),power,projected,slot:Math.max(1,Math.min(teams,Math.round(projected))),lo,hi}}\nfunction pickCode(p,slot){return`${+p.round}.${String(Math.max(1,Math.round(slot))).padStart(2,'0')}`}\nfunction pickBaseVal(p){const v=st.pickValues.get(`${+p.season}:${+p.round}`);if(v!=null)return v;return({1:4200,2:1800,3:800,4:350}[p.round]||100)*Math.pow(.92,Math.max(0,p.season-st.season-1))}\nfunction pickSlotMultiplier(round,slot,teams){if(teams<=1)return 1;const steep=({1:.70,2:.50,3:.35,4:.25}[+round]||.20),pos=(Math.max(1,Math.min(teams,slot))-1)/(teams-1);return Math.exp(steep*(.5-pos))}\nfunction pickVal(p){const o=draftOutlook(p);return Math.round(pickBaseVal(p)*pickSlotMultiplier(p.round,o.projected,o.teams))}\nfunction pickMeta(p){const o=draftOutlook(p),proj=pickCode(p,o.slot),cur=pickCode(p,o.current),range=o.lo===o.hi?pickCode(p,o.lo):`${pickCode(p,o.lo)}–${pickCode(p,o.hi)}`;return{...o,proj,cur,range,label:`Projected ${proj} · current ${cur}`,detail:`Range ${range}`}}"
+            ),
+            (
+              "function picks(r){const p=pickAssets(r.roster_id);return p.length?`<div class=\"pick-grid\">${p.map(x=>`<div class=\"pick\"><strong>${x.season} ${ord(x.round)}</strong><div class=\"muted small\">${x.original===r.roster_id?'Own pick':`via ${esc(tname(x.original))}`}</div><div class=\"small\" style=\"color:var(--accent);margin-top:5px\">Value ${fi(pickVal(x))}</div></div>`).join('')}</div>`:'<div class=\"empty\">No future picks found.</div>'}",
+              "function picks(r){const p=pickAssets(r.roster_id);return p.length?`<div class=\"pick-grid\">${p.map(x=>{const o=pickMeta(x);return`<div class=\"pick\"><strong>${x.season} ${ord(x.round)} · ${o.proj}</strong><div class=\"muted small\">${x.original===r.roster_id?'Own pick':`via ${esc(tname(x.original))}`}</div><div class=\"muted small\">${esc(o.label)} · ${esc(o.detail)}</div><div class=\"small\" style=\"color:var(--accent);margin-top:5px\">Value ${fi(pickVal(x))}</div></div>`}).join('')}</div>`:'<div class=\"empty\">No future picks found.</div>'}"
+            ),
+            (
+              "pk=pickAssets(r?.roster_id).map(x=>({k:x.key,l:`${x.season} ${ord(x.round)}`,m:x.original===r.roster_id?'Own pick':`via ${tname(x.original)}`,v:pickVal(x)}));",
+              "pk=pickAssets(r?.roster_id).map(x=>{const o=pickMeta(x);return{k:x.key,l:`${x.season} ${ord(x.round)} · ${o.proj}`,m:`${x.original===r.roster_id?'Own pick':`via ${tname(x.original)}`} · current ${o.cur} · ${o.detail}`,v:pickVal(x)}});"
+            ),
+            (
+              "Pick values use model snapshot values when available and a baseline future-pick curve otherwise. League trade-history calibration can be added later.",
+              "Pick values start from the model's round/year baseline, then adjust for the original team's projected draft slot. Current standings gain weight as the season progresses; farther-out picks regress toward the middle because their exact slot is less certain."
+            )
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'Expected source block not found; refusing partial patch: {old[:120]}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Commit fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/src/main.js
+          git commit -m "Project dynasty pick slots from league strength"
+          git pull --rebase origin main
+          git push origin HEAD:main
