@@ -6,8 +6,26 @@
 const nativeFetch = window.fetch.bind(window);
 
 const asNumber = (value) => {
+  if (value === null || value === undefined || value === '') return null;
   const x = Number(value);
   return Number.isFinite(x) ? x : null;
+};
+
+const cleanText = (value) => String(value ?? '').trim();
+
+const TEAM_ALIASES = {
+  LA: 'LAR',
+  STL: 'LAR',
+  JAC: 'JAX',
+  OAK: 'LV',
+  SD: 'LAC',
+  WAS: 'WSH',
+};
+
+const teamCode = (value) => {
+  const raw = cleanText(value).toUpperCase();
+  if (!raw) return '';
+  return TEAM_ALIASES[raw] || raw;
 };
 
 const averageCompletedActuals = (weeks) => {
@@ -39,7 +57,7 @@ function adaptPlayer(player, projectionWeek) {
   if (current && asNumber(current.floor) !== null) player.floor = asNumber(current.floor);
   if (current && asNumber(current.ceiling) !== null) player.ceiling = asNumber(current.ceiling);
   if (current?.confidence != null) player.confidence = current.confidence;
-  if (current?.opponent != null) player.opponent = current.opponent;
+  if (cleanText(current?.opponent)) player.opponent = current.opponent;
   if (avgPpg !== null) {
     player.avg_ppg = avgPpg;
     player.current_avg_ppg = avgPpg;
@@ -76,11 +94,111 @@ function adaptPlayer(player, projectionWeek) {
   return player;
 }
 
+// A small number of player-week rows can arrive without an opponent even when
+// teammates (or the reciprocal opponent) have the matchup populated. Build one
+// canonical team/week schedule from the snapshot and fill only future/current
+// gaps. Historical rows are left untouched so player movement cannot rewrite
+// past matchups.
+function repairOpponentCoverage(snapshot) {
+  const players = Array.isArray(snapshot?.players) ? snapshot.players : [];
+  const startWeek = asNumber(snapshot?.projection_week) ?? 1;
+  const byTeamWeek = new Map();
+
+  for (const player of players) {
+    const team = teamCode(player?.team);
+    if (!team) continue;
+
+    const weeks = Array.isArray(player?.weekly_projections)
+      ? player.weekly_projections
+      : [];
+
+    for (const week of weeks) {
+      const weekNo = asNumber(week?.week);
+      const opponent = teamCode(week?.opponent);
+      if (weekNo === null || weekNo < startWeek || !opponent) continue;
+
+      const key = `${team}|${weekNo}`;
+      if (!byTeamWeek.has(key) || byTeamWeek.get(key) === 'BYE') {
+        byTeamWeek.set(key, opponent);
+      }
+
+      if (opponent !== 'BYE') {
+        const reverseKey = `${opponent}|${weekNo}`;
+        if (!byTeamWeek.has(reverseKey)) byTeamWeek.set(reverseKey, team);
+      }
+    }
+  }
+
+  for (const player of players) {
+    const team = teamCode(player?.team);
+    const weeks = Array.isArray(player?.weekly_projections)
+      ? player.weekly_projections
+      : [];
+
+    for (const week of weeks) {
+      const weekNo = asNumber(week?.week);
+      if (!team || weekNo === null || weekNo < startWeek || cleanText(week?.opponent)) continue;
+      const inferred = byTeamWeek.get(`${team}|${weekNo}`);
+      if (inferred) week.opponent = inferred;
+    }
+
+    const currentWeek = asNumber(player?.week) ?? asNumber(snapshot?.projection_week);
+    const current = weeks.find((w) => asNumber(w?.week) === currentWeek) || null;
+    if (cleanText(current?.opponent)) player.opponent = current.opponent;
+  }
+}
+
+// The current production snapshot contains player dynasty values but no generic
+// future-pick rows. main.js already defines this exact fallback curve; exposing
+// it as snapshot rows prevents missing/null values from being rendered as zero
+// and keeps the same valuation available everywhere, including the trade tool.
+function ensureBaselinePickValues(snapshot) {
+  const storedSeason = asNumber(localStorage.getItem('fm_season'));
+  const baseSeason = storedSeason ?? new Date().getFullYear();
+  const existing = Array.isArray(snapshot.pick_values) ? snapshot.pick_values : [];
+  const seen = new Set(
+    existing
+      .map((x) => `${asNumber(x?.season)}|${asNumber(x?.round)}`)
+      .filter((x) => !x.includes('null')),
+  );
+
+  for (let season = baseSeason + 1; season <= baseSeason + 6; season += 1) {
+    for (let round = 1; round <= 8; round += 1) {
+      const key = `${season}|${round}`;
+      if (seen.has(key)) continue;
+
+      const roundBase = ({ 1: 4200, 2: 1800, 3: 800, 4: 350 }[round] || 100);
+      const value = Math.round(
+        roundBase * Math.pow(0.92, Math.max(0, season - baseSeason - 1)),
+      );
+
+      existing.push({
+        // main.js flatten() retains objects with an identity-shaped key. The
+        // value stays null so this row cannot be mistaken for an NFL player.
+        sleeper_id: null,
+        asset_type: 'future_pick',
+        season,
+        round,
+        dynasty_value: value,
+        pick_value: value,
+        valuation_source: 'baseline_future_pick_curve',
+      });
+      seen.add(key);
+    }
+  }
+
+  snapshot.pick_values = existing;
+}
+
 function adaptSnapshot(snapshot) {
   if (!snapshot || typeof snapshot !== 'object') return snapshot;
+
   if (Array.isArray(snapshot.players)) {
     snapshot.players.forEach((p) => adaptPlayer(p, snapshot.projection_week));
+    repairOpponentCoverage(snapshot);
   }
+
+  ensureBaselinePickValues(snapshot);
   return snapshot;
 }
 
