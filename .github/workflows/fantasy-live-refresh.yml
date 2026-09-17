@@ -26,7 +26,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: fantasy-model-31-live-refresh
+  group: fantasy-model-production-state
   cancel-in-progress: false
 
 jobs:
@@ -71,6 +71,7 @@ jobs:
         run: |
           Rscript tests/TEST_3_0_PRODUCTION.R
           Rscript tests/TEST_3_1_RUNTIME.R
+          Rscript tests/TEST_3_1_BENCHMARK_ARCHIVE.R
 
       - name: Refresh unplayed player-weeks, ROS, performance and snapshot
         if: ${{ !inputs.skip_model_refresh }}
@@ -78,6 +79,12 @@ jobs:
           FM_RELEASE_VERSION: '3.1'
           FM_FORCE_REFRESH: ${{ github.event_name == 'workflow_dispatch' && inputs.force && 'true' || 'false' }}
         run: Rscript RUN_AUTO_REFRESH.R
+
+      - name: Capture frozen pregame benchmarks
+        if: ${{ !inputs.skip_model_refresh }}
+        env:
+          FM_RELEASE_VERSION: '3.1'
+        run: Rscript runners/RUN_3_1_BENCHMARK_ARCHIVE.R
 
       - name: Verify refreshed snapshot
         if: ${{ !inputs.skip_model_refresh }}
@@ -106,7 +113,7 @@ jobs:
             "$VERSION" "$PUBLISHED_AT" > web/public/data/snapshot_version.json
           echo "Published lightweight snapshot manifest: $VERSION"
 
-      - name: Commit persistent engine and web state
+      - name: Commit persistent engine, benchmark and web state
         shell: bash
         run: |
           set -euo pipefail
@@ -116,7 +123,7 @@ jobs:
           if [ -f output/model_snapshot.json ]; then
             git add -f data/state/ output/model_snapshot.json output/ web/public/data/model_snapshot.json web/public/data/snapshot_version.json 2>/dev/null || true
           elif [ -f web/public/data/model_snapshot.json ]; then
-            git add -f data/state/ web/public/data/model_snapshot.json web/public/data/snapshot_version.json 2>/dev/null || true
+            git add -f data/state/ output/ web/public/data/model_snapshot.json web/public/data/snapshot_version.json 2>/dev/null || true
           fi
 
           if git diff --cached --quiet; then
