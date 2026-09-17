@@ -19,7 +19,18 @@ jobs:
         with:
           node-version: '22'
       - name: Apply patch
-        run: python scripts/patch_web_1_4_1_accuracy.py
+        run: |
+          python scripts/patch_web_1_4_1_accuracy.py
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('web/src/main.js')
+          s=p.read_text(encoding='utf-8')
+          bad="derived=o?._derived?'Overall core metrics derived from cumulative position rows until the next live refresh exports an explicit season aggregate.':'Exact season aggregate from frozen pregame player-weeks.':'';"
+          good="derived=o?(o._derived?'Overall core metrics derived from cumulative position rows until the next live refresh exports an explicit season aggregate.':'Exact season aggregate from frozen pregame player-weeks.'):'';"
+          if bad not in s:
+              raise SystemExit('accuracy derived expression not found')
+          p.write_text(s.replace(bad,good,1),encoding='utf-8')
+          PY
       - name: JavaScript syntax check
         run: node --check web/src/main.js
       - name: Build exactly as Cloudflare Pages
