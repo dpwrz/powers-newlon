@@ -1,0 +1,547 @@
+name: Apply dynasty career value and DST revision
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/dynasty-dst-revision-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  revise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::dplyr
+            any::readr
+            any::tibble
+            any::stringr
+            any::jsonlite
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Patch dynasty engine, pick currency, trade utility and DST web support
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          def read(path): return Path(path).read_text(encoding='utf-8')
+          def write(path, text): Path(path).write_text(text, encoding='utf-8')
+          def one(text, old, new, label):
+              if old not in text:
+                  raise SystemExit(f'Missing expected block: {label}')
+              return text.replace(old, new, 1)
+          def regex_one(text, pattern, repl, label):
+              out, n = re.subn(pattern, repl, text, count=1, flags=re.S)
+              if n != 1:
+                  raise SystemExit(f'Expected one regex match for {label}, found {n}')
+              return out
+
+          # --------------------------------------------------
+          # config.R: widen dynasty currency so elite assets
+          # can naturally exceed individual rookie picks.
+          # --------------------------------------------------
+          p='config.R'; t=read(p)
+          t=one(t,'DYNASTY_VALUE_MAX <- 10000','DYNASTY_VALUE_MAX <- 20000','dynasty max')
+          write(p,t)
+
+          # --------------------------------------------------
+          # R/dynasty_value_engine.R: career surplus + age
+          # survival + convex elite scarcity + rookie pick EV.
+          # --------------------------------------------------
+          p='R/dynasty_value_engine.R'; t=read(p)
+          build=r'''fm3_percentile_rank <- function(x) {
+  x <- suppressWarnings(as.numeric(x))
+  out <- rep(0, length(x)); ok <- is.finite(x)
+  n <- sum(ok)
+  if (!n) return(out)
+  if (n == 1) { out[ok] <- 0.5; return(out) }
+  out[ok] <- (rank(x[ok], ties.method = "average") - 1) / (n - 1)
+  out
+}
+
+fm3_dynasty_replacement_ranks <- function(settings) {
+  teams <- suppressWarnings(as.numeric(settings$teams %||% 12)); if (!is.finite(teams)) teams <- 12
+  qb <- suppressWarnings(as.numeric(settings$qb_starters %||% 1)); if (!is.finite(qb)) qb <- 1
+  rb <- suppressWarnings(as.numeric(settings$rb_starters %||% 2)); if (!is.finite(rb)) rb <- 2
+  wr <- suppressWarnings(as.numeric(settings$wr_starters %||% 2)); if (!is.finite(wr)) wr <- 2
+  te <- suppressWarnings(as.numeric(settings$te_starters %||% 1)); if (!is.finite(te)) te <- 1
+  flex <- suppressWarnings(as.numeric(settings$flex_starters %||% 1)); if (!is.finite(flex)) flex <- 1
+  sf <- suppressWarnings(as.numeric(settings$superflex_starters %||% 0)); if (!is.finite(sf)) sf <- 0
+  c(
+    QB = max(1, round(teams * (qb + 0.75 * sf) + 2)),
+    RB = max(1, round(teams * (rb + 0.30 * flex + 0.08 * sf) + 3)),
+    WR = max(1, round(teams * (wr + 0.55 * flex + 0.08 * sf) + 5)),
+    TE = max(1, round(teams * (te + 0.15 * flex + 0.04 * sf) + 2))
+  )
+}
+
+fm3_dynasty_tail_retention <- function(position, age) {
+  pos <- toupper(as.character(position)); age <- suppressWarnings(as.numeric(age))
+  dplyr::case_when(
+    pos == "QB" & age <= 32 ~ 0.98,
+    pos == "QB" & age <= 35 ~ 0.94,
+    pos == "QB" ~ 0.86,
+    pos == "RB" & age <= 25 ~ 0.92,
+    pos == "RB" & age <= 27 ~ 0.85,
+    pos == "RB" ~ 0.75,
+    pos == "WR" & age <= 28 ~ 0.96,
+    pos == "WR" & age <= 30 ~ 0.90,
+    pos == "WR" ~ 0.82,
+    pos == "TE" & age <= 29 ~ 0.96,
+    pos == "TE" & age <= 31 ~ 0.90,
+    pos == "TE" ~ 0.83,
+    TRUE ~ 0.85
+  )
+}
+
+fm3_dynasty_abs_survival <- function(position, age) {
+  pos <- toupper(as.character(position)); age <- suppressWarnings(as.numeric(age))
+  threshold <- dplyr::case_when(pos == "QB" ~ 32, pos == "RB" ~ 25, pos == "WR" ~ 28, pos == "TE" ~ 29, TRUE ~ 27)
+  retention <- dplyr::case_when(pos == "QB" ~ 0.91, pos == "RB" ~ 0.80, pos == "WR" ~ 0.87, pos == "TE" ~ 0.88, TRUE ~ 0.85)
+  retention ^ pmax(0, age - threshold)
+}
+
+fm3_build_dynasty_values <- function(settings, sleeper_players = NULL) {
+  d <- fm3_model_player_frame()
+  n <- nrow(d)
+
+  num_col <- function(name, default = NA_real_) {
+    if (!name %in% names(d)) return(rep(as.numeric(default), n))
+    x <- suppressWarnings(as.numeric(d[[name]]))
+    if (length(x) != n) x <- rep(as.numeric(default), n)
+    x[!is.finite(x)] <- as.numeric(default)
+    x
+  }
+  chr_col <- function(name, default = "") {
+    if (!name %in% names(d)) return(rep(as.character(default), n))
+    x <- as.character(d[[name]])
+    if (length(x) != n) x <- rep(as.character(default), n)
+    x[is.na(x) | !nzchar(x)] <- as.character(default)
+    x
+  }
+
+  pos <- toupper(chr_col("position", ""))
+  y1_raw <- num_col("year1_fppg", NA_real_)
+  season_raw <- num_col("projected_fppg", NA_real_)
+  y1 <- ifelse(is.finite(y1_raw), y1_raw, season_raw)
+  y1[!is.finite(y1)] <- 0
+  y3 <- num_col("year3_fppg", NA_real_)
+  y3[!is.finite(y3)] <- y1[!is.finite(y3)]
+  y3 <- pmax(0, y3)
+  y2 <- pmax(0, (2 * y1 + y3) / 3)
+
+  age <- num_col("age", NA_real_)
+  fallback_age <- dplyr::case_when(pos == "QB" ~ 27, pos == "RB" ~ 25, pos == "WR" ~ 26, pos == "TE" ~ 27, TRUE ~ 27)
+  age[!is.finite(age)] <- fallback_age[!is.finite(age)]
+
+  replacement_ranks <- fm3_dynasty_replacement_ranks(settings)
+  replacement <- rep(0, n)
+  for (pp in c("QB","RB","WR","TE")) {
+    idx <- which(pos == pp & is.finite(y1))
+    if (!length(idx)) next
+    vals <- sort(y1[idx], decreasing = TRUE)
+    rr <- min(length(vals), as.integer(replacement_ranks[[pp]]))
+    replacement[idx] <- if (rr > 0) vals[[rr]] else 0
+  }
+
+  horizon <- 8L
+  proj <- matrix(0, nrow = n, ncol = horizon)
+  proj[,1] <- pmax(0, y1); proj[,2] <- y2; proj[,3] <- y3
+  if (horizon >= 4) for (yy in 4:horizon) {
+    entering_age <- age + yy - 1
+    proj[,yy] <- pmax(0, proj[,yy-1] * fm3_dynasty_tail_retention(pos, entering_age))
+  }
+
+  current_survival <- pmax(1e-6, fm3_dynasty_abs_survival(pos, age))
+  survival <- matrix(1, nrow = n, ncol = horizon)
+  for (yy in seq_len(horizon)) {
+    survival[,yy] <- pmin(1, fm3_dynasty_abs_survival(pos, age + yy - 1) / current_survival)
+  }
+  discount <- 0.90 ^ (seq_len(horizon) - 1)
+  weighted_games <- sweep(survival, 2, 17 * discount, `*`)
+  surplus <- pmax(0, proj - replacement)
+  career_surplus_points <- rowSums(surplus * weighted_games, na.rm = TRUE)
+  career_projected_points <- rowSums(proj * weighted_games, na.rm = TRUE)
+  # A small absolute-production term keeps useful veterans/depth differentiated
+  # even when they sit near replacement. Surplus remains the dominant signal.
+  career_signal <- career_surplus_points + 0.14 * career_projected_points
+
+  career_pct <- fm3_percentile_rank(career_signal)
+  prod_pct <- rep(0, n)
+  for (pp in c("QB","RB","WR","TE")) {
+    idx <- which(pos == pp)
+    if (length(idx)) prod_pct[idx] <- fm3_percentile_rank(y1[idx])
+  }
+  elite_mult <- 1 +
+    0.65 * pmax(0, (career_pct - 0.80) / 0.20) ^ 2 +
+    0.25 * pmax(0, (prod_pct - 0.85) / 0.15) ^ 2
+
+  format_mult <- fm3_format_premium(pos, settings)
+  conf <- tolower(chr_col("confidence", "medium"))
+  uncertainty <- dplyr::case_when(
+    grepl("high", conf) ~ 1.02,
+    grepl("low", conf) ~ 0.96,
+    TRUE ~ 1
+  )
+  breakout <- pmax(0, pmin(1, num_col("breakout_probability", 0)))
+  elite <- pmax(0, pmin(1, num_col("elite_probability", 0)))
+  upside_mult <- 1 + 0.05 * breakout + 0.08 * elite
+
+  score <- pmax(0, career_signal * elite_mult * format_mult * uncertainty * upside_mult)
+  score_max <- if (length(score) && any(is.finite(score))) max(score, na.rm = TRUE) else 0
+  scaled <- if (is.finite(score_max) && score_max > 0) DYNASTY_VALUE_MAX * (score / score_max) ^ 1.18 else rep(0, n)
+
+  d[["year1_fppg"]] <- y1
+  d[["year3_fppg"]] <- y3
+  d[["age"]] <- age
+  d[["dynasty_replacement_fppg"]] <- replacement
+  d[["dynasty_year1_surplus"]] <- pmax(0, y1 - replacement)
+  d[["dynasty_career_surplus_points"]] <- career_surplus_points
+  d[["dynasty_career_projected_points"]] <- career_projected_points
+  d[["dynasty_elite_multiplier"]] <- elite_mult
+  d[["dynasty_format_multiplier"]] <- format_mult
+  d[["dynasty_age_survival_year4"]] <- survival[,4]
+  d[["dynasty_value_method"]] <- "career_surplus_v2"
+  d[["model_dynasty_value"]] <- pmin(DYNASTY_VALUE_MAX, scaled)
+  d <- d |>
+    dplyr::arrange(dplyr::desc(model_dynasty_value)) |>
+    dplyr::mutate(model_dynasty_rank = dplyr::row_number())
+
+  # Sleeper supplies identity only; it does not set the player value.
+  d[["sleeper_id"]] <- rep(NA_character_, nrow(d))
+  if (!is.null(sleeper_players) && is.data.frame(sleeper_players) && nrow(sleeper_players)) {
+    sleeper_players <- fm3_identity_sleeper_schema(sleeper_players)
+    identity <- fm3_build_identity_map(sleeper_players, d)
+    if (nrow(identity)) {
+      id_join <- identity[, intersect(c("sleeper_id", "gsis_id"), names(identity)), drop = FALSE]
+      if (all(c("sleeper_id", "gsis_id") %in% names(id_join))) {
+        id_join[["sleeper_id"]] <- as.character(id_join[["sleeper_id"]])
+        id_join[["gsis_id"]] <- as.character(id_join[["gsis_id"]])
+        id_join <- id_join[nzchar(id_join[["gsis_id"]]), , drop = FALSE]
+        id_join <- id_join[!duplicated(id_join[["gsis_id"]]), , drop = FALSE]
+        d <- dplyr::left_join(d |> dplyr::select(-dplyr::any_of("sleeper_id")), id_join, by = "gsis_id")
+      }
+    }
+  }
+
+  d[["market_rank_proxy"]] <- rep(NA_real_, nrow(d))
+  d[["market_value_proxy"]] <- rep(NA_real_, nrow(d))
+  d[["model_market_gap"]] <- rep(NA_real_, nrow(d))
+  d[["model_market_gap_pct"]] <- rep(NA_real_, nrow(d))
+  d[["value_signal"]] <- rep("MODEL", nrow(d))
+
+  market_path <- "data/external/dynasty_market_values.csv"
+  if (file.exists(market_path) && "sleeper_id" %in% names(d)) {
+    ext <- tryCatch(readr::read_csv(market_path, show_col_types = FALSE), error = function(e) NULL)
+    if (!is.null(ext) && nrow(ext) && all(c("sleeper_id", "market_value") %in% names(ext))) {
+      ext <- ext |>
+        dplyr::transmute(sleeper_id = as.character(sleeper_id), external_market_value = suppressWarnings(as.numeric(market_value)),
+                         external_market_rank = if ("market_rank" %in% names(ext)) suppressWarnings(as.numeric(market_rank)) else NA_real_,
+                         market_source = if ("source" %in% names(ext)) as.character(source) else "external") |>
+        dplyr::filter(nzchar(sleeper_id), is.finite(external_market_value)) |>
+        dplyr::distinct(sleeper_id, .keep_all = TRUE)
+      d <- d |> dplyr::left_join(ext, by = "sleeper_id") |>
+        dplyr::mutate(
+          market_value_proxy = dplyr::if_else(is.finite(external_market_value), external_market_value, market_value_proxy),
+          market_rank_proxy = dplyr::if_else(is.finite(external_market_rank), external_market_rank, market_rank_proxy),
+          model_market_gap = dplyr::if_else(is.finite(market_value_proxy), model_dynasty_value - market_value_proxy, NA_real_),
+          model_market_gap_pct = dplyr::if_else(is.finite(market_value_proxy) & market_value_proxy > 0, model_market_gap / market_value_proxy, NA_real_),
+          value_signal = dplyr::case_when(
+            is.finite(model_market_gap_pct) & model_market_gap_pct >= 0.12 ~ "BUY",
+            is.finite(model_market_gap_pct) & model_market_gap_pct <= -0.12 ~ "SELL",
+            is.finite(market_value_proxy) ~ "HOLD",
+            TRUE ~ "MODEL"
+          )
+        )
+    }
+  }
+  d
+}
+'''
+          t=regex_one(t,r'fm3_build_dynasty_values <- function\(settings, sleeper_players = NULL\) \{.*?\n\}\n\n(?=fm3_rookie_pick_curve <- function)',build,'career dynasty function')
+
+          curve=r'''fm3_rookie_pick_curve <- function(dynasty_values, teams = 12, rounds = 4, current_season = CURRENT_SEASON) {
+  d <- dynasty_values
+  if ("is_rookie" %in% names(d) && any(d$is_rookie %in% 1, na.rm = TRUE)) {
+    rookie <- d |> dplyr::filter(is_rookie %in% 1)
+  } else {
+    rookie <- d |> dplyr::filter(!is.na(age), age <= 23, position %in% c("QB","RB","WR","TE"))
+  }
+  rookie <- rookie |> dplyr::arrange(dplyr::desc(model_dynasty_value))
+  n_needed <- as.integer(teams * rounds)
+
+  if (!nrow(rookie)) {
+    vals <- DYNASTY_VALUE_MAX * 0.36 * exp(-0.080 * (seq_len(n_needed) - 1))
+  } else {
+    rv <- pmax(0, suppressWarnings(as.numeric(rookie$model_dynasty_value)))
+    rv[!is.finite(rv)] <- 0
+    if (!length(rv)) rv <- 0
+    value_at <- function(i) {
+      if (i <= length(rv)) return(rv[[i]])
+      tail_start <- if (length(rv)) tail(rv, 1) else DYNASTY_VALUE_MAX * 0.18
+      tail_start * 0.82 ^ (i - length(rv))
+    }
+    vals <- vapply(seq_len(n_needed), function(i) {
+      rd <- ceiling(i / teams)
+      slot <- value_at(i)
+      near <- mean(vapply(i:(i + 3), value_at, numeric(1)))
+      downside <- value_at(i + 8)
+      expected_player <- 0.50 * slot + 0.35 * near + 0.15 * downside
+      uncertainty <- c(`1` = 0.68, `2` = 0.58, `3` = 0.50, `4` = 0.44)[as.character(rd)]
+      if (is.na(uncertainty)) uncertainty <- 0.40
+      cap <- if (rd == 1) 0.62 * DYNASTY_VALUE_MAX else if (rd == 2) 0.35 * DYNASTY_VALUE_MAX else 0.22 * DYNASTY_VALUE_MAX
+      min(cap, expected_player * uncertainty)
+    }, numeric(1))
+  }
+
+  tibble::tibble(
+    season = current_season,
+    overall_pick = seq_len(n_needed),
+    round = ceiling(overall_pick / teams),
+    pick_in_round = ((overall_pick - 1) %% teams) + 1,
+    pick_label = paste0(round, ".", sprintf("%02d", pick_in_round)),
+    pick_value = pmax(350, vals),
+    valuation_source = "rookie_expected_value_with_selection_uncertainty"
+  )
+}
+'''
+          t=regex_one(t,r'fm3_rookie_pick_curve <- function\(dynasty_values, teams = 12, rounds = 4, current_season = CURRENT_SEASON\) \{.*?\n\}\n\n(?=fm3_future_pick_value <- function)',curve,'rookie pick EV curve')
+          write(p,t)
+
+          # --------------------------------------------------
+          # R/trade_engine.R: age is now inside the fundamental
+          # asset value; do not penalize it a second time.
+          # --------------------------------------------------
+          p='R/trade_engine.R'; t=read(p)
+          old='''fm3_strategy_utility <- function(strategy, production_delta, dynasty_delta, age_delta = 0) {
+  if (strategy == "CONTENDER") return(0.62 * production_delta + 0.38 * dynasty_delta / 500)
+  if (strategy == "FRINGE CONTENDER") return(0.52 * production_delta + 0.48 * dynasty_delta / 500)
+  if (strategy %in% c("REBUILD", "DEEP REBUILD")) return(0.20 * production_delta + 0.80 * dynasty_delta / 500 - 0.10 * age_delta)
+  0.38 * production_delta + 0.62 * dynasty_delta / 500 - 0.05 * age_delta
+}'''
+          new='''fm3_strategy_utility <- function(strategy, production_delta, dynasty_delta, age_delta = 0) {
+  # Age/longevity is already embedded in model_dynasty_value through the
+  # remaining-career survival curve. Team strategy changes the production vs.
+  # long-term-value preference only; it must not double-count age.
+  if (strategy == "CONTENDER") return(0.68 * production_delta + 0.32 * dynasty_delta / 1000)
+  if (strategy == "FRINGE CONTENDER") return(0.55 * production_delta + 0.45 * dynasty_delta / 1000)
+  if (strategy %in% c("REBUILD", "DEEP REBUILD")) return(0.18 * production_delta + 0.82 * dynasty_delta / 1000)
+  0.35 * production_delta + 0.65 * dynasty_delta / 1000
+}'''
+          t=one(t,old,new,'trade utility')
+          write(p,t)
+
+          # --------------------------------------------------
+          # Auto-refresh: rebuild dynasty currency before export.
+          # --------------------------------------------------
+          p='runners/RUN_2_5_AUTO_REFRESH.R'; t=read(p)
+          anchor='''  # Export only after the state file is written so Data Health shows this run, not the previous run.
+'''
+          insert='''  cat("[AUTO] Rebuilding career-based dynasty values and rookie-pick expected values...\\n")
+  source("R/player_identity.R", local = FALSE)
+  source("R/league_engine.R", local = FALSE)
+  source("R/dynasty_value_engine.R", local = FALSE)
+  fm3_write_dynasty_value_outputs(BASE_LEAGUE_SETTINGS)
+
+  # Export only after the state file is written so Data Health shows this run, not the previous run.
+'''
+          t=one(t,anchor,insert,'auto dynasty rebuild')
+          write(p,t)
+
+          # --------------------------------------------------
+          # Snapshot exporter: prefer model_dynasty_value output.
+          # --------------------------------------------------
+          p='scripts/export_model_snapshot.R'; t=read(p)
+          t=one(t,'dynasty_file <- first_existing(c(file.path(out,"final_dynasty_rankings.csv"), file.path(out,"dynasty_rankings.csv")))',
+                'dynasty_file <- first_existing(c(file.path(out,"dynasty_values_3_0.csv"), file.path(out,"final_dynasty_rankings.csv"), file.path(out,"dynasty_rankings.csv")))','export dynasty source')
+          t=one(t,'dynasty_value = function(d) clean_num(first_col(d,c("dynasty_value","model_dynasty_value","value")))',
+                'dynasty_value = function(d) clean_num(first_col(d,c("model_dynasty_value","dynasty_value","value")))','export dynasty value preference')
+          t=one(t,'dynasty_rank = function(d) clean_num(first_col(d,c("overall_rank","dynasty_rank","rank")))',
+                'dynasty_rank = function(d) clean_num(first_col(d,c("model_dynasty_rank","overall_rank","dynasty_rank","rank")))','export dynasty rank preference')
+          write(p,t)
+
+          # --------------------------------------------------
+          # Snapshot normalizer: one common model currency for
+          # player values and future-pick baselines.
+          # --------------------------------------------------
+          p='scripts/normalize_web_snapshot.R'; t=read(p)
+          pick_fn=r'''fm_web11_pick_values <- function(snapshot, curve_path = NULL) {
+  base_season <- fm_web11_number(snapshot$season)
+  if (is.null(base_season)) base_season <- as.integer(format(Sys.Date(), "%Y"))
+  future_discount <- 0.88
+  round_base <- c(`1` = 4200, `2` = 1800, `3` = 800, `4` = 350)
+  source_name <- "fallback_future_pick_curve"
+
+  if (!is.null(curve_path) && file.exists(curve_path)) {
+    curve <- tryCatch(read.csv(curve_path, stringsAsFactors = FALSE), error = function(e) NULL)
+    if (!is.null(curve) && nrow(curve) && all(c("round", "pick_value") %in% names(curve))) {
+      med <- tapply(suppressWarnings(as.numeric(curve$pick_value)), suppressWarnings(as.integer(curve$round)), median, na.rm = TRUE)
+      med <- med[is.finite(med)]
+      if (length(med)) {
+        round_base <- med
+        source_name <- "career_model_rookie_ev_curve"
+      }
+    }
+  }
+
+  existing <- list()
+  for (season in seq.int(as.integer(base_season) + 1L, as.integer(base_season) + 6L)) {
+    for (round in 1:8) {
+      key <- as.character(round)
+      if (key %in% names(round_base)) {
+        base_value <- as.numeric(round_base[[key]])
+      } else {
+        last_known <- if (length(round_base)) as.numeric(tail(round_base, 1)) else 100
+        max(100, last_known * 0.55 ^ max(1, round - length(round_base)))
+      }
+      value <- round(base_value * future_discount ^ max(1, season - base_season))
+      existing[[length(existing) + 1L]] <- list(
+        sleeper_id = NA_character_, asset_type = "future_pick",
+        season = season, round = round,
+        dynasty_value = value, pick_value = value,
+        valuation_source = source_name
+      )
+    }
+  }
+  snapshot$pick_values <- existing
+  snapshot
+}
+'''
+          t=regex_one(t,r'fm_web11_pick_values <- function\(snapshot\) \{.*?\n\}\n\n(?=fm_normalize_web_snapshot <- function)',pick_fn,'snapshot pick currency')
+          t=one(t,'snapshot <- fm_web11_pick_values(snapshot)',
+                'snapshot <- fm_web11_pick_values(snapshot, file.path(dirname(path), "dynasty_pick_curve_3_0.csv"))','normalizer curve call')
+          t=one(t,'snapshot$web_version <- "1.1.0"','snapshot$web_version <- "1.3.0"','normalizer web version')
+          t=one(t,'snapshot$web_snapshot_contract <- "web-1.1-native"','snapshot$web_snapshot_contract <- "web-1.3-career-value-dst"','normalizer contract')
+          write(p,t)
+
+          # --------------------------------------------------
+          # Web 1.3: Sleeper DST projections + league scoring +
+          # team-logo rendering; keep skill players model-first.
+          # --------------------------------------------------
+          p='web/src/main.js'; t=read(p)
+          t=one(t,'pickValues:new Map,games:[]','pickValues:new Map,dstProjections:new Map,games:[]','DST state')
+          t=one(t,'function model(id,p=st.players?.[id],week=st.week){const e=resolveModel(id,p)',
+                'function model(id,p=st.players?.[id],week=st.week){if(isDstId(id,p))return dstModel(id,p,week);const e=resolveModel(id,p)','DST model branch')
+
+          head_anchor='''function head(id){return `https://sleepercdn.com/content/nfl/players/${encodeURIComponent(id)}.jpg`}
+'''
+          dst_helpers=r'''const NFL_TEAM_META={
+  ARI:['Arizona Cardinals','ari'],ATL:['Atlanta Falcons','atl'],BAL:['Baltimore Ravens','bal'],BUF:['Buffalo Bills','buf'],CAR:['Carolina Panthers','car'],CHI:['Chicago Bears','chi'],CIN:['Cincinnati Bengals','cin'],CLE:['Cleveland Browns','cle'],DAL:['Dallas Cowboys','dal'],DEN:['Denver Broncos','den'],DET:['Detroit Lions','det'],GB:['Green Bay Packers','gb'],HOU:['Houston Texans','hou'],IND:['Indianapolis Colts','ind'],JAX:['Jacksonville Jaguars','jax'],KC:['Kansas City Chiefs','kc'],LV:['Las Vegas Raiders','lv'],LAC:['Los Angeles Chargers','lac'],LAR:['Los Angeles Rams','lar'],MIA:['Miami Dolphins','mia'],MIN:['Minnesota Vikings','min'],NE:['New England Patriots','ne'],NO:['New Orleans Saints','no'],NYG:['New York Giants','nyg'],NYJ:['New York Jets','nyj'],PHI:['Philadelphia Eagles','phi'],PIT:['Pittsburgh Steelers','pit'],SF:['San Francisco 49ers','sf'],SEA:['Seattle Seahawks','sea'],TB:['Tampa Bay Buccaneers','tb'],TEN:['Tennessee Titans','ten'],WSH:['Washington Commanders','wsh']
+};
+function teamCode(v){const x=String(v??'').toUpperCase().replace(/^TEAM_/,'');return({LA:'LAR',STL:'LAR',JAC:'JAX',OAK:'LV',SD:'LAC',WAS:'WSH'}[x]||x)}
+function isDstId(id,p=st.players?.[id]){const pos=String(p?.position||'').toUpperCase();return pos==='DEF'||pos==='DST'||!!NFL_TEAM_META[teamCode(id)]}
+function dstTeam(id,p=st.players?.[id]){const byId=teamCode(id),byTeam=teamCode(p?.team);return NFL_TEAM_META[byId]?byId:NFL_TEAM_META[byTeam]?byTeam:byId}
+function dstName(id,p=st.players?.[id]){const c=dstTeam(id,p),m=NFL_TEAM_META[c];return m?`${m[0]} D/ST`:`${c||'Team'} D/ST`}
+function dstLogo(id,p=st.players?.[id]){const c=dstTeam(id,p),m=NFL_TEAM_META[c];return m?`https://a.espncdn.com/i/teamlogos/nfl/500/${m[1]}.png`:''}
+function assetImage(id,p=st.players?.[id]){return isDstId(id,p)?dstLogo(id,p):head(id)}
+function maybeNum(v){if(v==null||v==='')return null;const x=Number(v);return Number.isFinite(x)?x:null}
+function dstStats(row){return row&&typeof row==='object'?{...(row.stats&&typeof row.stats==='object'?row.stats:{}),...row}:{} }
+function dstProjectionValue(row){const x=dstStats(row),scoring=st.league?.scoring_settings||{};let total=0,matched=0;for(const[k,w0]of Object.entries(scoring)){const sv=maybeNum(x[k]),w=maybeNum(w0);if(sv!=null&&w!=null){total+=sv*w;matched++}}if(matched)return total;for(const k of ['pts_ppr','pts_half_ppr','pts_std','fantasy_points','projection']){const v=maybeNum(x[k]);if(v!=null)return v}return null}
+async function loadDstProjections(week=st.week){st.dstProjections=new Map;if(!week)return;const urls=[`https://api.sleeper.app/v1/projections/nfl/regular/${st.season}/${week}?position[]=DEF&order_by=pts_ppr`,`https://api.sleeper.app/projections/nfl/${st.season}/${week}?season_type=regular&position[]=DEF&order_by=pts_ppr`,`https://api.sleeper.com/projections/nfl/${st.season}/${week}?season_type=regular&position=DEF&order_by=pts_ppr`];for(const url of urls){const data=await liveJson(url,null);const entries=Array.isArray(data)?data.map((r,i)=>[r?.player_id||r?.team||String(i),r]):data&&typeof data==='object'?Object.entries(data):[];if(!entries.length)continue;for(const[key,row]of entries){const x=dstStats(row),raw=x.player_id||x.team||key,c=teamCode(raw);if(NFL_TEAM_META[c]){st.dstProjections.set(String(raw),row);st.dstProjections.set(c,row)}}if(st.dstProjections.size)break}}
+function dstModel(id,p=st.players?.[id],week=st.week){const c=dstTeam(id,p),row=st.dstProjections.get(String(id))||st.dstProjections.get(c)||null,v=dstProjectionValue(row);return{projection:v,pregame:v,floor:null,ceiling:null,avg:null,dynasty:null,confidence:'Sleeper',opp:field(dstStats(row),['opponent','opp']),matched:true,hasWeek:v!=null,source:'Sleeper'}}
+'''
+          t=one(t,head_anchor,head_anchor+dst_helpers,'DST helpers')
+          t=one(t,"function pname(id){const p=st.players?.[id];return p?.full_name||[p?.first_name,p?.last_name].filter(Boolean).join(' ')||`Player ${id}`}",
+                "function pname(id){const p=st.players?.[id];if(isDstId(id,p))return dstName(id,p);return p?.full_name||[p?.first_name,p?.last_name].filter(Boolean).join(' ')||`Player ${id}`}",'DST display name')
+          t=one(t,'await Promise.all([players(),nflState()]);const [league,users,rosters,matchups,picks,drafts]=await Promise.all([',
+                'await Promise.all([players(),nflState()]);await loadDstProjections(st.week);const [league,users,rosters,matchups,picks,drafts]=await Promise.all([','DST refresh fetch')
+          t=one(t,'async function setWeek(w){st.week=+w;if(st.league)st.matchups=await liveJson(',
+                'async function setWeek(w){st.week=+w;await loadDstProjections(st.week);if(st.league)st.matchups=await liveJson(','DST week fetch')
+          t=one(t,"const p=st.players?.[id]||{},m=model(id,p),live=n(mi(r.roster_id)?.players_points?.[id],0),slot=opt.get(id)",
+                "const p=st.players?.[id]||{},dst=isDstId(id,p),m=model(id,p),live=n(mi(r.roster_id)?.players_points?.[id],0),slot=opt.get(id)",'roster DST flag')
+          t=one(t,'<img class="player-headshot" src="${head(id)}"',
+                '<img class="player-headshot ${dst?\'dst-logo\':\'\'}" src="${assetImage(id,p)}"','DST roster image')
+          t=one(t,'const ps=(r?.players||[]).map(id=>({k:`player:${id}`,l:pname(id),m:st.players?.[id]?.position||\'\',v:dval(id)}))',
+                'const ps=(r?.players||[]).filter(id=>!isDstId(id,st.players?.[id])).map(id=>({k:`player:${id}`,l:pname(id),m:st.players?.[id]?.position||\'\',v:dval(id)}))','exclude DST from dynasty trades')
+          write(p,t)
+
+          p='web/src/styles.css'; t=read(p)
+          style_anchor='.player-headshot{width:54px;height:54px;border-radius:12px;object-fit:cover;object-position:center 15%;background:#1a241f;border:1px solid var(--line)}'
+          style_new=style_anchor+'.player-headshot.dst-logo{object-fit:contain;object-position:center;padding:6px;background:radial-gradient(circle,#29271f 0,#171a16 68%,#101510 100%);filter:sepia(.16) saturate(.9) contrast(1.06);border-color:rgba(255,209,102,.32);box-shadow:inset 0 0 0 1px rgba(255,209,102,.09),0 4px 14px rgba(0,0,0,.22)}'
+          t=one(t,style_anchor,style_new,'DST vintage badge CSS')
+          write(p,t)
+
+          p='web/package.json'; t=read(p)
+          t=one(t,'"version": "1.2.0"','"version": "1.3.0"','Web version')
+          write(p,t)
+          PY
+
+      - name: Parse changed R files
+        run: |
+          Rscript -e 'for (f in c("config.R","R/dynasty_value_engine.R","R/trade_engine.R","runners/RUN_2_5_AUTO_REFRESH.R","scripts/export_model_snapshot.R","scripts/normalize_web_snapshot.R")) { parse(file=f); cat("parsed",f,"\n") }'
+
+      - name: Rebuild and validate dynasty currency
+        shell: bash
+        run: |
+          Rscript - <<'RS'
+          source("config.R")
+          source("R/player_identity.R")
+          source("R/league_engine.R")
+          source("R/dynasty_value_engine.R")
+          result <- fm3_write_dynasty_value_outputs(BASE_LEAGUE_SETTINGS)
+          v <- result$values
+          pc <- result$pick_curve
+          cat("\n=== SELECTED PLAYER VALUES ===\n")
+          keep <- grepl("Justin Jefferson|Ja.Marr Chase|Mike Evans|Zachariah Branch", v$player_display_name, ignore.case=TRUE)
+          print(v[keep, intersect(c("player_display_name","position","age","year1_fppg","year3_fppg","dynasty_career_projected_points","dynasty_career_surplus_points","model_dynasty_value","model_dynasty_rank"), names(v)), drop=FALSE])
+          cat("\n=== TOP 20 DYNASTY ===\n")
+          print(head(v[, intersect(c("player_display_name","position","age","year1_fppg","model_dynasty_value","model_dynasty_rank"), names(v)), drop=FALSE],20))
+          cat("\n=== ROUND 1 ROOKIE PICK EV ===\n")
+          print(pc[pc$round==1,])
+          stopifnot(max(v$model_dynasty_value, na.rm=TRUE) >= 19000)
+          stopifnot(all(diff(pc$pick_value[pc$round==1]) <= 1e-8))
+          stopifnot(max(v$model_dynasty_value, na.rm=TRUE) > 1.25 * median(pc$pick_value[pc$round==1], na.rm=TRUE))
+          RS
+
+      - name: Re-export Web 1.3 snapshot without rebuilding weekly projections
+        shell: bash
+        run: |
+          set -euo pipefail
+          FANTASY_MODEL_ROOT="$PWD" FANTASY_WEB_SNAPSHOT="output/model_snapshot.json" Rscript scripts/export_model_snapshot.R
+          Rscript scripts/normalize_web_snapshot.R output/model_snapshot.json
+          mkdir -p web/public/data
+          cp output/model_snapshot.json web/public/data/model_snapshot.json
+          VERSION="$(sha256sum web/public/data/model_snapshot.json | awk '{print $1}')"
+          PUBLISHED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          printf '{"version":"%s","snapshot":"model_snapshot.json","published_at":"%s","contract":"web-1.3-career-value-dst"}\n' "$VERSION" "$PUBLISHED_AT" > web/public/data/snapshot_version.json
+
+      - name: Build exactly as Cloudflare Pages builds the repository
+        run: npm run build
+
+      - name: Verify Pages output
+        run: |
+          test -f dist/index.html
+          test -f dist/data/model_snapshot.json
+          test -f dist/data/snapshot_version.json
+          test -f dist/_headers
+
+      - name: Commit coordinated revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add config.R R/dynasty_value_engine.R R/trade_engine.R runners/RUN_2_5_AUTO_REFRESH.R scripts/export_model_snapshot.R scripts/normalize_web_snapshot.R web/src/main.js web/src/styles.css web/package.json
+          git add -f output/dynasty_values_3_0.csv output/dynasty_pick_curve_3_0.csv output/model_snapshot.json web/public/data/model_snapshot.json web/public/data/snapshot_version.json
+          git commit -m "Rebuild dynasty values and add Sleeper DST support"
+          git pull --rebase origin main
+          git push origin HEAD:main
