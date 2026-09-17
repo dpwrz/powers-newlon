@@ -13,12 +13,12 @@ jobs:
         shell: bash
         run: |
           python - <<'PY'
-          import json, urllib.request
+          import json, urllib.request, urllib.parse
 
           def get(url):
               req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0','Accept':'application/json'})
               with urllib.request.urlopen(req,timeout=30) as r:
-                  return json.load(r), dict(r.headers)
+                  return json.load(r), {k.lower():v for k,v in r.headers.items()}
 
           players,_=get('https://api.sleeper.app/v1/players/nfl?position=RB&active=true')
           mason=None
@@ -31,16 +31,36 @@ jobs:
           print('SLEEPER_ID',pid)
           for k in ['full_name','status','injury_status','injury_body_part','injury_notes','injury_start_date','espn_id','team']:
               print('SLEEPER',k,repr(p.get(k)))
+
+          search,h=get('https://site.web.api.espn.com/apis/search/v2?limit=20&query='+urllib.parse.quote(p['full_name']))
+          print('SEARCH_ACAO',h.get('access-control-allow-origin'))
+          print('SEARCH_KEYS',sorted(search.keys()))
+          print('SEARCH_RAW',json.dumps(search)[:6000])
+
           espn=p.get('espn_id')
           if not espn:
-              raise SystemExit('Sleeper Jordan Mason record has no espn_id')
-          data,h=get(f'https://site.api.espn.com/apis/fantasy/v2/games/ffl/news/players?limit=20&playerId={espn}')
-          feed=data.get('feed') or []
-          print('ESPN_ID',espn)
-          print('ESPN_FEED_COUNT',len(feed))
-          print('ESPN_ACAO',h.get('Access-Control-Allow-Origin') or h.get('access-control-allow-origin'))
-          for a in feed[:5]:
-              print('NEWS',repr(a.get('published')),repr(a.get('headline')))
-          if not feed:
-              raise SystemExit('ESPN fantasy player news feed returned no items')
+              text=json.dumps(search)
+              import re
+              m=re.search(r'"id"\s*:\s*"?(\d{5,})"?',text)
+              if m: espn=m.group(1)
+          print('RESOLVED_ESPN_ID',espn)
+
+          if espn:
+              data,h=get(f'https://site.api.espn.com/apis/fantasy/v2/games/ffl/news/players?limit=20&playerId={espn}')
+              feed=data.get('feed') or []
+              print('ESPN_FEED_COUNT',len(feed))
+              print('ESPN_NEWS_ACAO',h.get('access-control-allow-origin'))
+              for a in feed[:5]:
+                  print('NEWS',repr(a.get('published')),repr(a.get('headline')))
+
+          league,h=get('https://site.api.espn.com/apis/site/v2/sports/football/nfl/news?limit=100')
+          articles=league.get('articles') or []
+          matches=[]
+          needle='jordan mason'
+          for a in articles:
+              txt=((a.get('headline') or '')+' '+(a.get('description') or '')).lower()
+              if needle in txt: matches.append(a)
+          print('LEAGUE_NEWS_ACAO',h.get('access-control-allow-origin'))
+          print('LEAGUE_MATCH_COUNT',len(matches))
+          for a in matches[:5]: print('LEAGUE_NEWS',repr(a.get('published')),repr(a.get('headline')))
           PY
