@@ -171,46 +171,47 @@ fm_web11_repair_opponents <- function(snapshot) {
   snapshot
 }
 
-fm_web11_pick_values <- function(snapshot) {
-  existing <- snapshot$pick_values
-  if (is.null(existing) || !is.list(existing)) existing <- list()
-
-  seen <- new.env(hash = TRUE, parent = emptyenv())
-  if (length(existing)) {
-    for (row in existing) {
-      season <- fm_web11_number(row$season)
-      round <- fm_web11_number(row$round)
-      if (!is.null(season) && !is.null(round)) assign(paste(as.integer(season), as.integer(round), sep = "|"), TRUE, envir = seen)
-    }
-  }
-
+fm_web11_pick_values <- function(snapshot, curve_path = NULL) {
   base_season <- fm_web11_number(snapshot$season)
   if (is.null(base_season)) base_season <- as.integer(format(Sys.Date(), "%Y"))
+  future_discount <- 0.88
   round_base <- c(`1` = 4200, `2` = 1800, `3` = 800, `4` = 350)
+  source_name <- "fallback_future_pick_curve"
 
-  for (season in seq.int(as.integer(base_season) + 1L, as.integer(base_season) + 6L)) {
-    for (round in 1:8) {
-      key <- paste(season, round, sep = "|")
-      if (exists(key, envir = seen, inherits = FALSE)) next
-      base_value <- if (as.character(round) %in% names(round_base)) round_base[[as.character(round)]] else 100
-      value <- round(base_value * (0.92 ^ max(0, season - base_season - 1)))
-      existing[[length(existing) + 1L]] <- list(
-        sleeper_id = NA_character_,
-        asset_type = "future_pick",
-        season = season,
-        round = round,
-        dynasty_value = value,
-        pick_value = value,
-        valuation_source = "baseline_future_pick_curve"
-      )
-      assign(key, TRUE, envir = seen)
+  if (!is.null(curve_path) && file.exists(curve_path)) {
+    curve <- tryCatch(read.csv(curve_path, stringsAsFactors = FALSE), error = function(e) NULL)
+    if (!is.null(curve) && nrow(curve) && all(c("round", "pick_value") %in% names(curve))) {
+      med <- tapply(suppressWarnings(as.numeric(curve$pick_value)), suppressWarnings(as.integer(curve$round)), median, na.rm = TRUE)
+      med <- med[is.finite(med)]
+      if (length(med)) {
+        round_base <- med
+        source_name <- "career_model_rookie_ev_curve"
+      }
     }
   }
 
+  existing <- list()
+  for (season in seq.int(as.integer(base_season) + 1L, as.integer(base_season) + 6L)) {
+    for (round in 1:8) {
+      key <- as.character(round)
+      if (key %in% names(round_base)) {
+        base_value <- as.numeric(round_base[[key]])
+      } else {
+        last_known <- if (length(round_base)) as.numeric(tail(round_base, 1)) else 100
+        max(100, last_known * 0.55 ^ max(1, round - length(round_base)))
+      }
+      value <- round(base_value * future_discount ^ max(1, season - base_season))
+      existing[[length(existing) + 1L]] <- list(
+        sleeper_id = NA_character_, asset_type = "future_pick",
+        season = season, round = round,
+        dynasty_value = value, pick_value = value,
+        valuation_source = source_name
+      )
+    }
+  }
   snapshot$pick_values <- existing
   snapshot
 }
-
 fm_normalize_web_snapshot <- function(path = "output/model_snapshot.json") {
   if (!requireNamespace("jsonlite", quietly = TRUE)) stop("Install jsonlite first: install.packages('jsonlite')")
   if (!file.exists(path)) stop("Snapshot not found: ", path)
@@ -224,10 +225,10 @@ fm_normalize_web_snapshot <- function(path = "output/model_snapshot.json") {
     snapshot <- fm_web11_repair_opponents(snapshot)
   }
 
-  snapshot <- fm_web11_pick_values(snapshot)
+  snapshot <- fm_web11_pick_values(snapshot, file.path(dirname(path), "dynasty_pick_curve_3_0.csv"))
   snapshot$web_schema_version <- 2L
-  snapshot$web_version <- "1.1.0"
-  snapshot$web_snapshot_contract <- "web-1.1-native"
+  snapshot$web_version <- "1.3.0"
+  snapshot$web_snapshot_contract <- "web-1.3-career-value-dst"
 
   jsonlite::write_json(snapshot, path, pretty = FALSE, auto_unbox = TRUE, na = "null", digits = NA)
   message("[WEB 1.1] Normalized snapshot for single-parse browser delivery: ", path)

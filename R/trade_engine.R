@@ -7,10 +7,13 @@ ensure_packages(c("dplyr", "tibble", "purrr"))
 `%||%` <- function(x, y) if (is.null(x) || length(x) == 0 || (length(x) == 1 && is.na(x))) y else x
 
 fm3_strategy_utility <- function(strategy, production_delta, dynasty_delta, age_delta = 0) {
-  if (strategy == "CONTENDER") return(0.62 * production_delta + 0.38 * dynasty_delta / 500)
-  if (strategy == "FRINGE CONTENDER") return(0.52 * production_delta + 0.48 * dynasty_delta / 500)
-  if (strategy %in% c("REBUILD", "DEEP REBUILD")) return(0.20 * production_delta + 0.80 * dynasty_delta / 500 - 0.10 * age_delta)
-  0.38 * production_delta + 0.62 * dynasty_delta / 500 - 0.05 * age_delta
+  # Age/longevity is already embedded in model_dynasty_value through the
+  # remaining-career survival curve. Team strategy changes the production vs.
+  # long-term-value preference only; it must not double-count age.
+  if (strategy == "CONTENDER") return(0.68 * production_delta + 0.32 * dynasty_delta / 1000)
+  if (strategy == "FRINGE CONTENDER") return(0.55 * production_delta + 0.45 * dynasty_delta / 1000)
+  if (strategy %in% c("REBUILD", "DEEP REBUILD")) return(0.18 * production_delta + 0.82 * dynasty_delta / 1000)
+  0.35 * production_delta + 0.65 * dynasty_delta / 1000
 }
 
 fm3_pick_asset_table <- function(state, team_power, dynasty_values) {

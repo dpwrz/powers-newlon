@@ -147,6 +147,12 @@ run_auto_refresh25 <- function() {
     projection_week = projection_week, duration_sec = round(as.numeric(difftime(Sys.time(), started, units = "secs")), 1), stringsAsFactors = FALSE
   ))
 
+  cat("[AUTO] Rebuilding career-based dynasty values and rookie-pick expected values...\n")
+  source("R/player_identity.R", local = FALSE)
+  source("R/league_engine.R", local = FALSE)
+  source("R/dynasty_value_engine.R", local = FALSE)
+  fm3_write_dynasty_value_outputs(BASE_LEAGUE_SETTINGS)
+
   # Export only after the state file is written so Data Health shows this run, not the previous run.
   # In the production two-repository layout the engine owns the snapshot.
   # The separate web repository receives a copy in GitHub Actions.

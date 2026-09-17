@@ -807,7 +807,7 @@ SLEEPER_PLAYER_CACHE_HOURS <- 24
 SLEEPER_COMPACT_PLAYERS_PATH <- "data/processed/sleeper_players_compact_3_0.csv"
 FM3_APP_WEEKLY_SNAPSHOT_PATH <- "data/processed/app_current_week_snapshot_3_0.csv"
 DYNASTY_SETTINGS_PATH <- "settings/dynasty_config.csv"
-DYNASTY_VALUE_MAX <- 10000
+DYNASTY_VALUE_MAX <- 20000
 DYNASTY_FUTURE_PICK_DISCOUNT <- 0.88
 DYNASTY_ROOKIE_DRAFT_MAX_ROUNDS <- 6
 

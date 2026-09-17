@@ -49,7 +49,7 @@ scalar <- function(x) if (length(x) && !is.na(x[[1]])) x[[1]] else NULL
 out <- file.path(root, "output")
 weekly_file <- first_existing(c(file.path(out,"weekly_2026_projections.csv"), file.path(out,"final_2026_rankings.csv")))
 season_file <- first_existing(c(file.path(out,"final_2026_rankings.csv"), file.path(out,"final_rankings.csv")))
-dynasty_file <- first_existing(c(file.path(out,"final_dynasty_rankings.csv"), file.path(out,"dynasty_rankings.csv")))
+dynasty_file <- first_existing(c(file.path(out,"dynasty_values_3_0.csv"), file.path(out,"final_dynasty_rankings.csv"), file.path(out,"dynasty_rankings.csv")))
 ros_file <- first_existing(c(file.path(out,"rest_of_season_2026.csv")))
 role_file <- first_existing(c(file.path(out,"weekly_role_forecasts_3_0.csv")))
 identity_file <- first_existing(c(
@@ -181,8 +181,8 @@ players <- merge_fields(players, season, list(
 ))
 
 players <- merge_fields(players, dynasty, list(
-  dynasty_value = function(d) clean_num(first_col(d,c("dynasty_value","model_dynasty_value","value"))),
-  dynasty_rank = function(d) clean_num(first_col(d,c("overall_rank","dynasty_rank","rank"))),
+  dynasty_value = function(d) clean_num(first_col(d,c("model_dynasty_value","dynasty_value","value"))),
+  dynasty_rank = function(d) clean_num(first_col(d,c("model_dynasty_rank","overall_rank","dynasty_rank","rank"))),
   season_fppg = function(d) clean_num(first_col(d,c("year1_fppg","season_fppg","projected_fppg"))),
   year3_fppg = function(d) clean_num(first_col(d,c("year3_fppg"))),
   elite_probability = function(d) clean_num(first_col(d,c("elite_probability"))),
