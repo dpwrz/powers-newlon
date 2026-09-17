@@ -1,0 +1,8 @@
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/data/snapshot_version.json
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/data/model_snapshot.json
+  Cache-Control: public, max-age=0, must-revalidate
