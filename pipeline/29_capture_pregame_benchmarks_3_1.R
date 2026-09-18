@@ -181,13 +181,14 @@ bench31_add_capture_context <- function(candidates, weekly, schedule_team, activ
   candidates
 }
 
-active_week <- bench31_active_week(weekly)
+captured_at <- Sys.time()
+schedule_team <- bench31_schedule(season)
+if (!nrow(schedule_team)) stop("Could not load a kickoff schedule for benchmark protection.")
+active_week <- bench31_active_week(weekly, schedule_team, captured_at)
+
 if (!is.finite(active_week)) {
-  cat("[3.1 BENCHMARK] No unplayed player-weeks remain. Nothing to archive.\n")
+  cat("[3.1 BENCHMARK] No future kickoff remains. Nothing to archive.\n")
 } else {
-  captured_at <- Sys.time()
-  schedule_team <- bench31_schedule(season)
-  if (!nrow(schedule_team)) stop("Could not load a kickoff schedule for benchmark protection.")
 
   now_num <- as.numeric(as.POSIXct(captured_at, tz = "UTC"))
   future_schedule <- schedule_team |>
@@ -267,6 +268,14 @@ if (!is.finite(active_week)) {
       captured_at_utc, season, week, provider, eligible_pregame_rows,
       rows_captured, archive_rows_after_capture, status
     )
+
+  # readr may auto-parse an existing ISO timestamp as POSIXct while the new
+  # status row is character. Normalize the persisted contract before binding.
+  if (nrow(manifest_old) && "captured_at_utc" %in% names(manifest_old)) {
+    manifest_old$captured_at_utc <- as.character(manifest_old$captured_at_utc)
+  }
+  manifest_new$captured_at_utc <- as.character(manifest_new$captured_at_utc)
+
   manifest <- dplyr::bind_rows(manifest_old, manifest_new) |>
     dplyr::distinct(captured_at_utc, season, week, provider, .keep_all = TRUE) |>
     dplyr::arrange(captured_at_utc, provider)
