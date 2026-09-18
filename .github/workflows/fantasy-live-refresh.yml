@@ -1,6 +1,9 @@
 name: Fantasy Model 3.1 live refresh
 
 on:
+  push:
+    branches:
+      - fm-3-1-accuracy-admin-fix
   workflow_dispatch:
     inputs:
       skip_model_refresh:
@@ -80,12 +83,6 @@ jobs:
           FM_FORCE_REFRESH: ${{ github.event_name == 'workflow_dispatch' && inputs.force && 'true' || 'false' }}
         run: Rscript RUN_AUTO_REFRESH.R
 
-      - name: Capture frozen pregame benchmarks
-        if: ${{ !inputs.skip_model_refresh }}
-        env:
-          FM_RELEASE_VERSION: '3.1'
-        run: Rscript runners/RUN_3_1_BENCHMARK_ARCHIVE.R
-
       - name: Verify refreshed snapshot
         if: ${{ !inputs.skip_model_refresh }}
         run: test -f output/model_snapshot.json
@@ -137,6 +134,42 @@ jobs:
             git stash push --include-untracked -m "ci-runtime-leftovers"
           fi
 
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      # Benchmark capture is intentionally after the production snapshot commit.
+      # A third-party/feed/archive error must never block a valid model refresh
+      # from reaching the admin console.
+      - name: Capture frozen pregame benchmarks
+        if: ${{ !inputs.skip_model_refresh }}
+        env:
+          FM_RELEASE_VERSION: '3.1'
+        run: Rscript runners/RUN_3_1_BENCHMARK_ARCHIVE.R
+
+      - name: Commit benchmark archive state
+        if: ${{ !inputs.skip_model_refresh }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -f \
+            output/benchmark_pregame_archive_*.csv \
+            output/benchmark_provider_status_*.csv \
+            output/benchmark_snapshot_manifest_*.csv \
+            output/benchmark_scored_long_*.csv \
+            output/benchmark_metrics_*.csv \
+            output/benchmark_paired_*.csv \
+            2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No benchmark changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Archive latest pregame benchmark projections"
           git fetch origin "${GITHUB_REF_NAME}"
           git rebase "origin/${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
