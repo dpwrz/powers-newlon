@@ -107,16 +107,42 @@ if (!is.null(prior_snapshot$players)) {
   }
 }
 
-# Current projected week = first unplayed week in the full weekly schedule.
+# Current projected week = first schedule week with at least one future
+# kickoff. Player-level is_actual is not a reliable week clock because backups
+# and inactive players can remain unplayed in prior weeks indefinitely.
 projection_week <- NA_real_
 weekly_current <- weekly
 if (!is.null(weekly) && nrow(weekly)) {
   wk <- clean_num(first_col(weekly, c("season_week","week")))
-  played <- clean_num(first_col(weekly, c("game_played","is_actual"), 0))
-  candidate <- wk[is.na(played) | played == 0]
-  candidate <- candidate[is.finite(candidate)]
-  if (!length(candidate)) candidate <- wk[is.finite(wk)]
-  if (length(candidate)) projection_week <- min(candidate)
+
+  schedule_path <- file.path(root, "data", "raw", "schedules_live_2026.csv")
+  if (file.exists(schedule_path)) {
+    sched <- read_optional(schedule_path)
+    if (!is.null(sched) && nrow(sched) &&
+        all(c("week", "gameday", "gametime") %in% names(sched))) {
+      gt <- clean_chr(sched$gametime)
+      gt[!nzchar(gt)] <- "00:00:00"
+      short_time <- grepl("^\\d{1,2}:\\d{2}$", gt)
+      gt[short_time] <- paste0(gt[short_time], ":00")
+      kickoff <- as.POSIXct(
+        paste(clean_chr(sched$gameday), gt),
+        format = "%Y-%m-%d %H:%M:%S",
+        tz = "America/New_York"
+      )
+      sw <- clean_num(sched$week)
+      future_weeks <- sw[is.finite(sw) & is.finite(as.numeric(kickoff)) & kickoff > Sys.time()]
+      if (length(future_weeks)) projection_week <- min(future_weeks)
+    }
+  }
+
+  if (!is.finite(projection_week)) {
+    played <- clean_num(first_col(weekly, c("game_played","is_actual"), 0))
+    candidate <- wk[is.na(played) | played == 0]
+    candidate <- candidate[is.finite(candidate)]
+    if (!length(candidate)) candidate <- wk[is.finite(wk)]
+    if (length(candidate)) projection_week <- min(candidate)
+  }
+
   if (is.finite(projection_week)) weekly_current <- weekly[wk == projection_week, , drop = FALSE]
 }
 
