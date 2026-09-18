@@ -1,2 +1,3 @@
 generated_at,status,reason,completed_games,latest_actual_week,projection_week,duration_sec
 2026-09-17 20:27:51 +0000,refreshed,forced,16,1,1,856.9
+2026-09-18 10:13:39 +0000,refreshed,completed_game,17,2,1,815.2
