@@ -47,6 +47,28 @@ schedule_team <- tibble::tibble(
 mr <- bench31_model_rows(weekly, schedule_team, 3, now)
 stopifnot(nrow(mr) == 1, mr$player_id[[1]] == "future-player")
 
+# A stale prior-week backup must not drag the archive back to an old week.
+weekly_clock <- dplyr::bind_rows(
+  weekly,
+  tibble::tibble(
+    week = 2, player_id = "old-backup", player_display_name = "Old Backup",
+    position = "WR", team = "ZZZ", opponent = "YYY",
+    projected_weekly_fppg = 1, is_actual = 0, weekly_position_rank = 99,
+    weekly_floor = 0, weekly_ceiling = 3, expected_abs_error = 2,
+    projection_confidence = "low", model31_promoted = FALSE,
+    production_base_31 = 1
+  )
+)
+schedule_clock <- dplyr::bind_rows(
+  schedule_team,
+  tibble::tibble(
+    week = 4, team = "EEE", opponent = "FFF",
+    kickoff = now + 7 * 86400, score_started = FALSE
+  )
+)
+stopifnot(bench31_active_week(weekly_clock, schedule_clock, now) == 3L)
+stopifnot(is.finite(as.numeric(bench31_parse_kickoff("2026-09-17", "20:15:00"))))
+
 existing <- mr
 existing$projection <- 10
 existing$captured_at_utc <- "2026-09-17T10:00:00Z"
