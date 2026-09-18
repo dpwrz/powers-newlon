@@ -32,71 +32,184 @@ score_live_accuracy25 <- function() {
   }
 
   # -------------------------------------------------------------------------
-  # 1) Seed an archive from prior projection history if this is the first run.
+  # 1) Audit/recover the frozen pregame archive using actual kickoff times.
   # -------------------------------------------------------------------------
-  archive <- if (file.exists(archive_path)) tryCatch(readr::read_csv(archive_path, show_col_types = FALSE, progress = FALSE), error = function(e) data.frame()) else data.frame()
+  archive <- if (file.exists(archive_path)) tryCatch(
+    readr::read_csv(archive_path, show_col_types = FALSE, progress = FALSE),
+    error = function(e) data.frame()
+  ) else data.frame()
   archive <- normalize_archive_types(archive)
 
-  if (!nrow(archive) && file.exists(history_path)) {
-    hist <- tryCatch(readr::read_csv(history_path, show_col_types = FALSE, progress = FALSE), error = function(e) data.frame())
+  schedule_live_path <- paste0("data/raw/schedules_live_", CURRENT_SEASON, ".csv")
+  parse_kickoff25 <- function(gameday, gametime) {
+    gd <- live25_chr(gameday)
+    gt <- live25_chr(gametime)
+    gt[!nzchar(gt)] <- "00:00:00"
+    short <- grepl("^\\d{1,2}:\\d{2}$", gt)
+    gt[short] <- paste0(gt[short], ":00")
+    as.POSIXct(paste(gd, gt), format = "%Y-%m-%d %H:%M:%S", tz = "America/New_York")
+  }
+  parse_capture25 <- function(x) {
+    raw <- live25_chr(x)
+    out <- suppressWarnings(as.POSIXct(raw, format = "%Y-%m-%d %H:%M:%S %z", tz = "UTC"))
+    bad <- !is.finite(as.numeric(out))
+    if (any(bad)) {
+      alt <- suppressWarnings(as.POSIXct(raw[bad], format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+      out[bad] <- alt
+    }
+    out
+  }
+
+  schedule_team <- data.frame()
+  if (file.exists(schedule_live_path)) {
+    ss_all <- tryCatch(
+      readr::read_csv(schedule_live_path, show_col_types = FALSE, progress = FALSE),
+      error = function(e) data.frame()
+    )
+    if (nrow(ss_all) && all(c("week", "home_team", "away_team", "gameday") %in% names(ss_all))) {
+      if (!"gametime" %in% names(ss_all)) ss_all$gametime <- "00:00:00"
+      ss_all <- ss_all |>
+        dplyr::mutate(
+          week = as.integer(live25_num(week)),
+          .kickoff = parse_kickoff25(gameday, gametime)
+        ) |>
+        dplyr::filter(is.finite(week), is.finite(as.numeric(.kickoff)))
+      schedule_team <- dplyr::bind_rows(
+        ss_all |> dplyr::transmute(week, team = live25_chr(home_team), kickoff = .kickoff),
+        ss_all |> dplyr::transmute(week, team = live25_chr(away_team), kickoff = .kickoff)
+      ) |>
+        dplyr::filter(nzchar(team)) |>
+        dplyr::distinct(week, team, .keep_all = TRUE)
+    }
+  }
+
+  # Existing rows are allowed into accuracy evaluation only when we can prove
+  # their capture timestamp preceded that player's kickoff. This removes stale
+  # postgame rows created by older active-week logic instead of scoring them.
+  if (nrow(archive) && nrow(schedule_team) &&
+      all(c("week", "team", "captured_at") %in% names(archive))) {
+    original_names <- names(archive)
+    audited <- archive |>
+      dplyr::mutate(
+        week = as.integer(live25_num(week)),
+        team = live25_chr(team),
+        .captured_time = parse_capture25(captured_at)
+      ) |>
+      dplyr::left_join(schedule_team, by = c("week", "team"))
+    honest <- is.finite(as.numeric(audited$.captured_time)) &
+      is.finite(as.numeric(audited$kickoff)) &
+      audited$.captured_time < audited$kickoff
+    removed <- sum(!honest, na.rm = TRUE)
+    archive <- audited[honest, original_names, drop = FALSE]
+    archive <- normalize_archive_types(archive)
+    if (removed > 0) {
+      cat("[2.5 LIVE SCORE] Removed ", removed,
+          " archive rows without a provable pre-kickoff timestamp.\n", sep = "")
+    }
+  }
+
+  # Recover a missing most-recent started week from timestamped projection
+  # history. This is strict: rows without both a valid capture time and kickoff
+  # are rejected. We never reconstruct a forecast from postgame/current values.
+  recent_started_week <- NA_integer_
+  if (nrow(schedule_team)) {
+    now_num <- as.numeric(Sys.time())
+    started_weeks <- schedule_team$week[
+      is.finite(as.numeric(schedule_team$kickoff)) &
+        as.numeric(schedule_team$kickoff) <= now_num
+    ]
+    if (length(started_weeks)) recent_started_week <- max(started_weeks, na.rm = TRUE)
+  }
+  archive_weeks <- if (nrow(archive) && "week" %in% names(archive)) {
+    as.integer(live25_num(archive$week))
+  } else integer()
+  need_history_recovery <- !nrow(archive) ||
+    (is.finite(recent_started_week) && !any(archive_weeks == recent_started_week, na.rm = TRUE))
+
+  if (need_history_recovery && file.exists(history_path) && nrow(schedule_team)) {
+    hist <- tryCatch(
+      readr::read_csv(history_path, show_col_types = FALSE, progress = FALSE),
+      error = function(e) data.frame()
+    )
     if (nrow(hist) && all(c("week", "player_id", "projected_weekly_fppg") %in% names(hist))) {
-      for (nm in c("generated_at", "model_version", "player_display_name", "position", "team", "opponent", "weekly_floor", "weekly_ceiling", "expected_abs_error", "projection_confidence", "weekly_position_rank", "matchup_grade", "projected_weekly_fppg_232", "incumbent_fppg_25")) {
-        hist <- ensure_col(hist, nm, if (nm %in% c("generated_at", "model_version", "player_display_name", "position", "team", "opponent", "projection_confidence", "matchup_grade")) "" else NA_real_)
+      for (nm in c(
+        "generated_at", "model_version", "player_display_name", "position",
+        "team", "opponent", "weekly_floor", "weekly_ceiling",
+        "expected_abs_error", "projection_confidence", "weekly_position_rank",
+        "matchup_grade", "projected_weekly_fppg_232", "incumbent_fppg_25"
+      )) {
+        hist <- ensure_col(
+          hist, nm,
+          if (nm %in% c(
+            "generated_at", "model_version", "player_display_name", "position",
+            "team", "opponent", "projection_confidence", "matchup_grade"
+          )) "" else NA_real_
+        )
       }
+
       hist <- hist |>
         dplyr::mutate(
-          week = as.integer(live25_num(week)), player_id = live25_chr(player_id),
-          generated_at = live25_chr(generated_at), model_version = live25_chr(model_version),
-          player_display_name = live25_chr(player_display_name), position = live25_chr(position),
-          team = live25_chr(team), opponent = live25_chr(opponent),
-          projection_confidence = live25_chr(projection_confidence), matchup_grade = live25_chr(matchup_grade)
+          week = as.integer(live25_num(week)),
+          player_id = live25_chr(player_id),
+          generated_at = live25_chr(generated_at),
+          model_version = live25_chr(model_version),
+          player_display_name = live25_chr(player_display_name),
+          position = live25_chr(position),
+          team = live25_chr(team),
+          opponent = live25_chr(opponent),
+          projection_confidence = live25_chr(projection_confidence),
+          matchup_grade = live25_chr(matchup_grade),
+          .captured_time = parse_capture25(generated_at)
         ) |>
-        dplyr::filter(position %in% POSITIONS, nzchar(player_id), is.finite(week))
-
-      # If schedule/kickoff data are available, backfill ONLY snapshots captured
-      # before kickoff. This prevents a first-time live deployment from scoring a
-      # postgame refresh as though it were the final pregame prediction.
-      schedule_seed_path <- paste0("data/raw/schedules_live_", CURRENT_SEASON, ".csv")
-      if (file.exists(schedule_seed_path) && nrow(hist)) {
-        ss_seed <- tryCatch(readr::read_csv(schedule_seed_path, show_col_types = FALSE, progress = FALSE), error = function(e) data.frame())
-        if (nrow(ss_seed) && all(c("week", "home_team", "away_team", "gameday") %in% names(ss_seed))) {
-          if (!"gametime" %in% names(ss_seed)) ss_seed$gametime <- "00:00"
-          kick_seed <- ss_seed |>
-            dplyr::mutate(
-              week = as.integer(live25_num(week)),
-              .kickoff = as.POSIXct(paste(live25_chr(gameday), live25_chr(gametime)), format = "%Y-%m-%d %H:%M", tz = "America/New_York")
-            ) |>
-            dplyr::select(week, .kickoff, home_team, away_team)
-          kick_seed <- dplyr::bind_rows(
-            kick_seed |> dplyr::transmute(week, team = live25_chr(home_team), .kickoff),
-            kick_seed |> dplyr::transmute(week, team = live25_chr(away_team), .kickoff)
-          ) |> dplyr::distinct(week, team, .keep_all = TRUE)
-          hist <- hist |>
-            dplyr::left_join(kick_seed, by = c("week", "team")) |>
-            dplyr::mutate(.captured_time = as.POSIXct(generated_at, format = "%Y-%m-%d %H:%M:%S %z", tz = "UTC")) |>
-            dplyr::filter(!is.finite(as.numeric(.kickoff)) | !is.finite(as.numeric(.captured_time)) | .captured_time < .kickoff) |>
-            dplyr::select(-.kickoff, -.captured_time)
-        }
-      }
-
-      hist <- hist |>
-        dplyr::arrange(player_id, week, generated_at) |>
+        dplyr::filter(position %in% POSITIONS, nzchar(player_id), nzchar(team), is.finite(week)) |>
+        dplyr::left_join(schedule_team, by = c("week", "team")) |>
+        dplyr::filter(
+          is.finite(as.numeric(.captured_time)),
+          is.finite(as.numeric(kickoff)),
+          .captured_time < kickoff
+        ) |>
+        dplyr::arrange(player_id, week, .captured_time) |>
         dplyr::group_by(player_id, week) |>
         dplyr::slice_tail(n = 1) |>
         dplyr::ungroup()
 
-      archive <- hist |>
+      recovered <- hist |>
         dplyr::transmute(
-          captured_at = generated_at, model_version, week, player_id, player_display_name, position, team, opponent,
+          captured_at = generated_at, model_version, week, player_id,
+          player_display_name, position, team, opponent,
           projection = live25_num(projected_weekly_fppg),
-          incumbent_projection = dplyr::coalesce(live25_num(incumbent_fppg_25), live25_num(projected_weekly_fppg)),
+          incumbent_projection = dplyr::coalesce(
+            live25_num(incumbent_fppg_25), live25_num(projected_weekly_fppg)
+          ),
           controller_projection_232 = live25_num(projected_weekly_fppg_232),
-          floor = live25_num(weekly_floor), ceiling = live25_num(weekly_ceiling),
-          expected_abs_error = live25_num(expected_abs_error), projection_confidence,
-          weekly_position_rank = live25_num(weekly_position_rank), matchup_grade
-        )
-      archive <- normalize_archive_types(archive)
-      cat("[2.5 LIVE SCORE] Seeded pregame archive from projection history: ", nrow(archive), " rows.\n", sep = "")
+          floor = live25_num(weekly_floor),
+          ceiling = live25_num(weekly_ceiling),
+          expected_abs_error = live25_num(expected_abs_error),
+          projection_confidence,
+          weekly_position_rank = live25_num(weekly_position_rank),
+          matchup_grade
+        ) |>
+        dplyr::filter(is.finite(projection))
+
+      if (nrow(archive) && nrow(recovered)) {
+        recovered <- recovered |>
+          dplyr::anti_join(
+            archive |> dplyr::transmute(
+              week = as.integer(live25_num(week)),
+              player_id = live25_chr(player_id)
+            ),
+            by = c("week", "player_id")
+          )
+      }
+      if (nrow(recovered)) {
+        archive <- dplyr::bind_rows(
+          normalize_archive_types(archive),
+          normalize_archive_types(recovered)
+        ) |>
+          dplyr::arrange(week, position, weekly_position_rank, player_display_name)
+        cat("[2.5 LIVE SCORE] Recovered ", nrow(recovered),
+            " honest pregame rows from projection history.\n", sep = "")
+      }
     }
   }
 
@@ -112,8 +225,29 @@ score_live_accuracy25 <- function() {
     dplyr::filter(position %in% POSITIONS, .actual_num == 0, is.finite(.week_num))
 
   if (nrow(unplayed)) {
-    active_week <- min(unplayed$.week_num, na.rm = TRUE)
+    active_week <- NA_integer_
+    if (nrow(schedule_team)) {
+      future_weeks <- schedule_team$week[
+        is.finite(as.numeric(schedule_team$kickoff)) &
+          as.numeric(schedule_team$kickoff) > as.numeric(Sys.time())
+      ]
+      if (length(future_weeks)) active_week <- min(future_weeks, na.rm = TRUE)
+    }
+    if (!is.finite(active_week)) active_week <- min(unplayed$.week_num, na.rm = TRUE)
+
     active <- unplayed |> dplyr::filter(.week_num == active_week)
+    if (nrow(schedule_team)) {
+      active <- active |>
+        dplyr::left_join(
+          schedule_team |> dplyr::rename(.kickoff = kickoff),
+          by = c(".week_num" = "week", "team")
+        ) |>
+        dplyr::filter(
+          !is.finite(as.numeric(.kickoff)) |
+            as.numeric(.kickoff) > as.numeric(Sys.time())
+        ) |>
+        dplyr::select(-.kickoff)
+    }
 
     # Never overwrite a pregame archive after a game has started. The automatic
     # poll may run during a live window because schedule scores can change before
@@ -156,6 +290,10 @@ score_live_accuracy25 <- function() {
       readr::write_csv(archive, archive_path)
       cat("[2.5 LIVE SCORE] Pregame archive updated for Week ", active_week, ": ", nrow(now_rows), " unplayed players.\n", sep = "")
     }
+  }
+
+  if (nrow(archive)) {
+    readr::write_csv(normalize_archive_types(archive), archive_path)
   }
 
   if (!nrow(archive)) {
