@@ -70,9 +70,11 @@ bench31_atomic_write_csv <- function(x, path) {
 
 bench31_parse_kickoff <- function(gameday, gametime) {
   gd <- bench31_chr(gameday)
-  gt <- bench31_chr(gametime, "00:00")
-  gt[!nzchar(gt)] <- "00:00"
-  as.POSIXct(paste(gd, gt), format = "%Y-%m-%d %H:%M", tz = "America/New_York")
+  gt <- bench31_chr(gametime, "00:00:00")
+  gt[!nzchar(gt)] <- "00:00:00"
+  short_time <- grepl("^\\d{1,2}:\\d{2}$", gt)
+  gt[short_time] <- paste0(gt[short_time], ":00")
+  as.POSIXct(paste(gd, gt), format = "%Y-%m-%d %H:%M:%S", tz = "America/New_York")
 }
 
 bench31_schedule <- function(season = CURRENT_SEASON) {
@@ -119,7 +121,23 @@ bench31_schedule <- function(season = CURRENT_SEASON) {
     dplyr::distinct(week, team, .keep_all = TRUE)
 }
 
-bench31_active_week <- function(weekly) {
+bench31_active_week <- function(weekly, schedule_team = NULL, captured_at = Sys.time()) {
+  # Player-level is_actual cannot define the active NFL week: backups/inactives can
+  # remain is_actual=0 forever. Prefer the first schedule week with a kickoff that
+  # has not happened yet; this also handles Thursday/Sunday split weeks correctly.
+  if (!is.null(schedule_team) && nrow(schedule_team) &&
+      all(c("week", "kickoff") %in% names(schedule_team))) {
+    now_num <- as.numeric(as.POSIXct(captured_at, tz = "UTC"))
+    sw <- schedule_team |>
+      dplyr::mutate(
+        .week = as.integer(bench31_num(week)),
+        .kick = as.numeric(as.POSIXct(kickoff, tz = "UTC"))
+      ) |>
+      dplyr::filter(is.finite(.week), is.finite(.kick), .kick > now_num) |>
+      dplyr::pull(.week)
+    if (length(sw)) return(as.integer(min(sw, na.rm = TRUE)))
+  }
+
   if (!nrow(weekly) || !all(c("week", "position") %in% names(weekly))) return(NA_integer_)
   if (!"is_actual" %in% names(weekly)) weekly$is_actual <- 0
   w <- weekly |>
