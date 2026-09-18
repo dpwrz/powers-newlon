@@ -1,9 +1,6 @@
 name: Fantasy Model 3.1 pregame benchmarks
 
 on:
-  push:
-    branches:
-      - fm-3-1-accuracy-admin-fix
   workflow_dispatch:
   schedule:
     # Thursday Night Football - both EDT and EST windows
