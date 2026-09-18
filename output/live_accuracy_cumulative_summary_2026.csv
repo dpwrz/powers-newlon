@@ -1,0 +1,2 @@
+season,n,mae,rmse,bias,incumbent_mae,incumbent_rmse,mae_improvement_pct,correlation,rank_correlation,starter_n,starter_mae,incumbent_starter_mae,starter_mae_improvement_pct,relevant_mae,interval_coverage,expected_error_coverage,start_sit_pairs,start_sit_accuracy
+2026,20,5.3387551915578175,7.506398776555071,3.028991438482026,5.3387551915578175,7.506398776555071,0,0.8920997052354787,0.8121445177964531,20,5.3387551915578175,5.3387551915578175,0,5.3387551915578175,0.45,0.45,24,0.5833333333333334
