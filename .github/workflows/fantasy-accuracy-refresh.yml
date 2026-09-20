@@ -103,6 +103,11 @@ jobs:
           fi
 
           git commit -m "Refresh finalized-game live accuracy"
+
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git stash push --include-untracked -m "accuracy-runtime-leftovers"
+          fi
+
           git fetch origin "${GITHUB_REF_NAME}"
           git rebase "origin/${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
