@@ -40,4 +40,13 @@ chg2 <- live31_classify_change(cur, prev, force = FALSE)
 stopifnot(identical(chg2$reason, "completed_game"))
 stopifnot(isTRUE(chg2$rebuild))
 
+sched_done <- data.frame(
+  result = c(7, NA_real_, NA_real_),
+  home_score = c(21, 10, NA_real_),
+  away_score = c(14, 7, NA_real_)
+)
+mask_done <- live25_completed_mask(sched_done)
+stopifnot(identical(mask_done, c(TRUE, FALSE, FALSE)))
+stopifnot(live25_completed_games(sched_done) == 1L)
+
 cat("Model 3.1 runtime checks passed.\n")
