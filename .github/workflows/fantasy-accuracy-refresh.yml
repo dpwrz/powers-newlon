@@ -20,7 +20,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: fantasy-model-production-state
+  group: fantasy-model-accuracy-staging
   cancel-in-progress: false
 
 jobs:
