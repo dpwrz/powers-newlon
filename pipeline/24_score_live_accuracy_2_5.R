@@ -68,15 +68,23 @@ score_live_accuracy25 <- function() {
     )
     if (nrow(ss_all) && all(c("week", "home_team", "away_team", "gameday") %in% names(ss_all))) {
       if (!"gametime" %in% names(ss_all)) ss_all$gametime <- "00:00:00"
+      completed_mask <- live25_completed_mask(ss_all)
       ss_all <- ss_all |>
         dplyr::mutate(
           week = as.integer(live25_num(week)),
-          .kickoff = parse_kickoff25(gameday, gametime)
+          .kickoff = parse_kickoff25(gameday, gametime),
+          .completed = completed_mask
         ) |>
         dplyr::filter(is.finite(week), is.finite(as.numeric(.kickoff)))
       schedule_team <- dplyr::bind_rows(
-        ss_all |> dplyr::transmute(week, team = live25_chr(home_team), kickoff = .kickoff),
-        ss_all |> dplyr::transmute(week, team = live25_chr(away_team), kickoff = .kickoff)
+        ss_all |> dplyr::transmute(
+          week, team = live25_chr(home_team), kickoff = .kickoff,
+          game_completed = .completed
+        ),
+        ss_all |> dplyr::transmute(
+          week, team = live25_chr(away_team), kickoff = .kickoff,
+          game_completed = .completed
+        )
       ) |>
         dplyr::filter(nzchar(team)) |>
         dplyr::distinct(week, team, .keep_all = TRUE)
@@ -323,6 +331,28 @@ score_live_accuracy25 <- function() {
     ) |>
     dplyr::filter(is.finite(actual_fppg)) |>
     dplyr::distinct(week, player_id, .keep_all = TRUE)
+
+  # Accuracy is final-game only. Weekly stat feeds can expose partial rows while
+  # a game is in progress, so never score a player-week until the schedule marks
+  # that player's team game completed.
+  if (!nrow(schedule_team) || !"game_completed" %in% names(schedule_team)) {
+    cat("[2.5 LIVE SCORE] Completion schedule unavailable; preserving prior accuracy outputs.\n")
+    return(invisible(NULL))
+  }
+  actual <- actual |>
+    dplyr::inner_join(
+      schedule_team |>
+        dplyr::select(week, team = team, game_completed) |>
+        dplyr::distinct(week, team, .keep_all = TRUE),
+      by = c("week", "team_actual" = "team")
+    ) |>
+    dplyr::filter(isTRUE(game_completed) | game_completed == TRUE) |>
+    dplyr::select(-game_completed)
+
+  if (!nrow(actual)) {
+    cat("[2.5 LIVE SCORE] No finalized player-week outcomes are available yet.\n")
+    return(invisible(NULL))
+  }
 
   scored <- normalize_archive_types(archive) |>
     dplyr::inner_join(actual, by = c("week", "player_id")) |>
