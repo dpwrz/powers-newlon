@@ -1,0 +1,110 @@
+name: Fantasy Model 3.1 accuracy refresh
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Sunday afternoon/evening games and Sunday Night Football.
+    - cron: '23 20-23 * * 0'
+    - cron: '23 0-5 * * 1'
+
+    # Monday Night Football windows.
+    - cron: '23 3-6 * * 2'
+
+    # Thursday Night Football windows.
+    - cron: '23 3-6 * * 5'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fantasy-model-production-state
+  cancel-in-progress: false
+
+jobs:
+  accuracy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Fantasy Model
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Install accuracy dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::dplyr
+            any::readr
+            any::jsonlite
+            any::nflreadr
+          cache-version: 1
+
+      - name: Check completed-game gate
+        run: Rscript tests/TEST_3_1_RUNTIME.R
+
+      - name: Score finalized games and patch snapshot
+        env:
+          FM_RELEASE_VERSION: '3.1'
+        run: Rscript runners/RUN_3_1_ACCURACY_REFRESH.R
+
+      - name: Verify accuracy outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f output/model_snapshot.json
+          test -f output/live_accuracy_weekly_summary_2026.csv
+          test -f output/live_accuracy_cumulative_summary_2026.csv
+
+      - name: Publish version manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p web/public/data
+          cp output/model_snapshot.json web/public/data/model_snapshot.json
+          SNAPSHOT="web/public/data/model_snapshot.json"
+          VERSION="$(sha256sum "$SNAPSHOT" | awk '{print $1}')"
+          PUBLISHED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          printf '{"version":"%s","snapshot":"model_snapshot.json","published_at":"%s","contract":"web-1.1-versioned-snapshot"}\n' \
+            "$VERSION" "$PUBLISHED_AT" > web/public/data/snapshot_version.json
+
+      - name: Commit live accuracy state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -f \
+            output/live_accuracy_player_weeks_*.csv \
+            output/live_accuracy_weekly_summary_*.csv \
+            output/live_accuracy_weekly_position_*.csv \
+            output/live_accuracy_cumulative_summary_*.csv \
+            output/live_accuracy_cumulative_position_*.csv \
+            output/live_accuracy_biggest_misses_*.csv \
+            output/pregame_projection_archive_*.csv \
+            output/model_snapshot.json \
+            web/public/data/model_snapshot.json \
+            web/public/data/snapshot_version.json \
+            2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No finalized-game accuracy changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Refresh finalized-game live accuracy"
+
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git stash push --include-untracked -m "accuracy-runtime-leftovers"
+          fi
+
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
