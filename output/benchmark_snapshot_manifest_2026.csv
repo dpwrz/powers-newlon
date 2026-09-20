@@ -5,5 +5,7 @@ captured_at_utc,season,week,provider,eligible_pregame_rows,rows_captured,archive
 2026-09-18 20:21:28,2026,2,sleeper,559,0,559,unavailable
 2026-09-20 17:29:38,2026,2,fantasy_model,267,267,559,ok
 2026-09-20 17:29:38,2026,2,sleeper,267,0,559,unavailable
-2026-09-20T19:04:34Z,2026,2,fantasy_model,267,267,559,ok
-2026-09-20T19:04:34Z,2026,2,sleeper,267,0,559,unavailable
+2026-09-20 19:04:34,2026,2,fantasy_model,267,267,559,ok
+2026-09-20 19:04:34,2026,2,sleeper,267,0,559,unavailable
+2026-09-20T19:44:09Z,2026,2,fantasy_model,267,267,559,ok
+2026-09-20T19:44:09Z,2026,2,sleeper,267,0,559,unavailable
