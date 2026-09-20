@@ -65,13 +65,17 @@ live25_compact_schedule <- function(x) {
   z
 }
 
-live25_completed_games <- function(schedule) {
-  if (is.null(schedule) || !nrow(schedule)) return(0L)
+live25_completed_mask <- function(schedule) {
+  if (is.null(schedule) || !nrow(schedule)) return(logical())
   result <- live25_num(live25_first_col(schedule, c("result")))
-  if (any(is.finite(result))) return(as.integer(sum(is.finite(result))))
+  if (any(is.finite(result))) return(is.finite(result))
   hs <- live25_num(live25_first_col(schedule, c("home_score")))
   as <- live25_num(live25_first_col(schedule, c("away_score")))
-  as.integer(sum(is.finite(hs) & is.finite(as)))
+  is.finite(hs) & is.finite(as)
+}
+
+live25_completed_games <- function(schedule) {
+  as.integer(sum(live25_completed_mask(schedule), na.rm = TRUE))
 }
 
 live25_latest_actual_week <- function(stats) {
