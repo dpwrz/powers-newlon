@@ -1,3 +1,3 @@
 captured_at_utc,season,week,provider,eligible_pregame_rows,rows_captured,archive_rows_after_capture,status,message
-2026-09-21T07:30:35Z,2026,2,fantasy_model,37,37,559,ok,Captured current production projections from output/weekly_2026_projections.csv
-2026-09-21T07:30:35Z,2026,2,sleeper,37,0,559,unavailable,QB: HTTP 404 Not Found. | RB: HTTP 404 Not Found. | WR: HTTP 404 Not Found. | TE: HTTP 404 Not Found.
+2026-09-21T11:21:06Z,2026,2,fantasy_model,37,37,559,ok,Captured current production projections from output/weekly_2026_projections.csv
+2026-09-21T11:21:06Z,2026,2,sleeper,37,0,559,unavailable,QB: HTTP 404 Not Found. | RB: HTTP 404 Not Found. | WR: HTTP 404 Not Found. | TE: HTTP 404 Not Found.
