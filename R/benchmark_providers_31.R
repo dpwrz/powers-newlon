@@ -354,6 +354,108 @@ bench31_espn_rows <- function(espn, identity, model_rows, captured_at) {
     captured_at_utc = format(as.POSIXct(captured_at, tz = "UTC"), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     minutes_to_kickoff = bench31_num(d$minutes_to_kickoff),
     source_endpoint = source_endpoint,
+    capture_mode = "live_pregame",
+    model31_promoted = NA,
+    production_base_31 = NA_real_,
+    sleeper_pts_std = NA_real_, sleeper_pts_half_ppr = NA_real_, sleeper_pts_ppr = NA_real_,
+    pass_yd = NA_real_, pass_td = NA_real_, pass_int = NA_real_, rush_att = NA_real_, rush_yd = NA_real_,
+    rush_td = NA_real_, rec_tgt = NA_real_, rec = NA_real_, rec_yd = NA_real_, rec_td = NA_real_, fum_lost = NA_real_
+  ) |>
+    dplyr::filter(is.finite(projection))
+}
+
+# ---------------- Optional licensed FantasyPros API -------------------------
+
+bench31_fetch_fantasypros_api <- function(season, week) {
+  key <- trimws(Sys.getenv("FM_FANTASYPROS_API_KEY", unset = ""))
+  if (!nzchar(key)) {
+    x <- tibble::tibble()
+    attr(x, "not_configured") <- TRUE
+    return(x)
+  }
+
+  url <- paste0("https://api.fantasypros.com/public/v2/json/nfl/", season, "/projections")
+  out <- tryCatch({
+    req <- httr2::request(url) |>
+      httr2::req_url_query(
+        week = as.integer(week),
+        positions = "QB:RB:WR:TE",
+        scoring = "HALF"
+      ) |>
+      httr2::req_headers(`x-api-key` = key) |>
+      httr2::req_user_agent("FantasyModel/3.1 licensed FantasyPros benchmark adapter") |>
+      httr2::req_timeout(30) |>
+      httr2::req_retry(max_tries = 3)
+    resp <- httr2::req_perform(req)
+    if (httr2::resp_status(resp) >= 300) stop("HTTP ", httr2::resp_status(resp))
+    payload <- httr2::resp_body_json(resp, simplifyVector = FALSE)
+    players <- payload$players
+    if (is.null(players) || !length(players)) return(tibble::tibble())
+    if (is.data.frame(players)) players <- split(players, seq_len(nrow(players)))
+
+    parsed <- purrr::map_dfr(players, function(z) {
+      if (is.null(z) || !is.list(z)) return(tibble::tibble())
+      stats <- z$stats
+      if (is.null(stats) || !is.list(stats)) stats <- list()
+      pts <- bench31_scalar(z, c("points", "projected_points", "fantasy_points"), NA_real_)
+      if (!is.finite(pts)) pts <- bench31_scalar(stats, c("points", "fantasy_points"), NA_real_)
+      if (!is.finite(pts)) return(tibble::tibble())
+      tibble::tibble(
+        fantasypros_id = bench31_scalar_chr(z, c("player_id", "id"), ""),
+        fp_name = bench31_scalar_chr(z, c("player_name", "name"), ""),
+        fp_position = toupper(bench31_scalar_chr(z, c("position_id", "position", "pos"), "")),
+        fp_team = toupper(bench31_scalar_chr(z, c("team_id", "team"), "")),
+        fp_projection = pts
+      )
+    }) |>
+      dplyr::filter(nzchar(fantasypros_id), fp_position %in% POSITIONS, is.finite(fp_projection)) |>
+      dplyr::group_by(fp_position) |>
+      dplyr::mutate(fp_rank = rank(-fp_projection, ties.method = "min", na.last = "keep")) |>
+      dplyr::ungroup() |>
+      dplyr::distinct(fantasypros_id, .keep_all = TRUE)
+
+    attr(parsed, "source_endpoint") <- paste0(url, "?week=", week, "&positions=QB:RB:WR:TE&scoring=HALF")
+    parsed
+  }, error = function(e) {
+    x <- tibble::tibble()
+    attr(x, "error") <- conditionMessage(e)
+    attr(x, "source_endpoint") <- url
+    x
+  })
+  out
+}
+
+bench31_fantasypros_api_rows <- function(fp, identity, model_rows, captured_at) {
+  if (!nrow(fp) || !nrow(model_rows)) return(tibble::tibble())
+  d <- bench31_attach_external_identity(
+    fp, identity, model_rows,
+    provider_id_col = "fantasypros_id",
+    name_col = "fp_name",
+    pos_col = "fp_position"
+  )
+  if (!nrow(d)) return(tibble::tibble())
+
+  tibble::tibble(
+    season = as.integer(d$season),
+    week = as.integer(d$week),
+    player_id = bench31_chr(d$player_id),
+    sleeper_id = "",
+    player_display_name = bench31_chr(d$player_display_name),
+    position = bench31_chr(d$position),
+    team = bench31_chr(d$team),
+    opponent = bench31_chr(d$opponent),
+    kickoff_utc = bench31_chr(d$kickoff_utc),
+    provider = "fantasypros_api",
+    provider_version = "official-api",
+    scoring_id = "half_ppr",
+    projection = bench31_num(d$fp_projection),
+    provider_rank = bench31_num(d$fp_rank),
+    floor = NA_real_, ceiling = NA_real_, expected_abs_error = NA_real_,
+    projection_confidence = "",
+    captured_at_utc = format(as.POSIXct(captured_at, tz = "UTC"), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+    minutes_to_kickoff = bench31_num(d$minutes_to_kickoff),
+    source_endpoint = attr(fp, "source_endpoint") %||% "FantasyPros official API",
+    capture_mode = "live_pregame",
     model31_promoted = NA,
     production_base_31 = NA_real_,
     sleeper_pts_std = NA_real_, sleeper_pts_half_ppr = NA_real_, sleeper_pts_ppr = NA_real_,
@@ -433,6 +535,7 @@ bench31_fantasypros_rows <- function(fp, identity, model_rows, captured_at) {
     captured_at_utc = format(as.POSIXct(captured_at, tz = "UTC"), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     minutes_to_kickoff = bench31_num(d$minutes_to_kickoff),
     source_endpoint = source_endpoint,
+    capture_mode = "live_pregame",
     model31_promoted = NA,
     production_base_31 = NA_real_,
     sleeper_pts_std = NA_real_, sleeper_pts_half_ppr = NA_real_, sleeper_pts_ppr = NA_real_,
@@ -525,6 +628,7 @@ bench31_manual_rows <- function(season, week, model_rows, captured_at, dir = "da
       captured_at_utc = format(as.POSIXct(captured_at, tz = "UTC"), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
       minutes_to_kickoff = bench31_num(minutes_to_kickoff),
       source_endpoint = bench31_chr(source_file),
+      capture_mode = "live_pregame",
       model31_promoted = NA,
       production_base_31 = NA_real_,
       sleeper_pts_std = NA_real_, sleeper_pts_half_ppr = NA_real_, sleeper_pts_ppr = NA_real_,
@@ -552,7 +656,10 @@ bench31_capture_external_providers <- function(season, week, identity, model_row
 
   sleeper <- bench31_fetch_sleeper_week(season, week)
   sr <- bench31_sleeper_rows(sleeper, identity, model_rows, captured_at)
-  if (nrow(sr)) rows[[length(rows) + 1]] <- sr
+  if (nrow(sr)) {
+    sr$capture_mode <- "live_pregame"
+    rows[[length(rows) + 1]] <- sr
+  }
   se <- attr(sleeper, "errors")
   add_status(
     "sleeper", nrow(sr), !length(se),
@@ -571,6 +678,19 @@ bench31_capture_external_providers <- function(season, week, identity, model_row
     else if (length(ee)) paste(ee, collapse = " | ")
     else "ESPN feed returned no matched rows"
   )
+
+  fp_api <- bench31_fetch_fantasypros_api(season, week)
+  if (!isTRUE(attr(fp_api, "not_configured"))) {
+    far <- bench31_fantasypros_api_rows(fp_api, identity, model_rows, captured_at)
+    if (nrow(far)) rows[[length(rows) + 1]] <- far
+    fae <- attr(fp_api, "error")
+    add_status(
+      "fantasypros_api", nrow(far), is.null(fae) || !nzchar(fae),
+      if (nrow(far)) "Captured official FantasyPros Half-PPR projections"
+      else if (!is.null(fae) && nzchar(fae)) fae
+      else "FantasyPros API returned no matched rows"
+    )
+  }
 
   fp <- bench31_fetch_fantasypros_ecr(captured_at)
   fr <- bench31_fantasypros_rows(fp, identity, model_rows, captured_at)
@@ -600,6 +720,64 @@ bench31_capture_external_providers <- function(season, week, identity, model_row
     rows = dplyr::bind_rows(rows),
     status = dplyr::bind_rows(status)
   )
+}
+
+# ---------------- Historical week-addressable backfill ---------------------
+
+bench31_capture_backfill_providers <- function(season, week, identity, model_rows, captured_at = Sys.time()) {
+  rows <- list()
+  status <- list()
+
+  add_status <- function(provider, n, message) {
+    status[[length(status) + 1]] <<- tibble::tibble(
+      provider = provider,
+      week = as.integer(week),
+      rows_captured = as.integer(n),
+      status = if (n > 0) "ok" else "unavailable",
+      message = message
+    )
+  }
+
+  sleeper <- bench31_fetch_sleeper_week(season, week)
+  sr <- bench31_sleeper_rows(sleeper, identity, model_rows, captured_at)
+  if (nrow(sr)) {
+    sr$capture_mode <- "historical_backfill"
+    rows[[length(rows) + 1]] <- sr
+  }
+  se <- attr(sleeper, "errors")
+  add_status(
+    "sleeper", nrow(sr),
+    if (nrow(sr)) "Historical week-addressed Sleeper projection backfill"
+    else if (length(se)) paste(se, collapse = " | ")
+    else "No historical Sleeper rows matched"
+  )
+
+  espn <- bench31_fetch_espn_week(season, week)
+  er <- bench31_espn_rows(espn, identity, model_rows, captured_at)
+  if (nrow(er)) {
+    er$capture_mode <- "historical_backfill"
+    rows[[length(rows) + 1]] <- er
+  }
+  ee <- attr(espn, "errors")
+  add_status(
+    "espn", nrow(er),
+    if (nrow(er)) "Historical week-addressed ESPN projection backfill"
+    else if (length(ee)) paste(ee, collapse = " | ")
+    else "No historical ESPN rows matched"
+  )
+
+  list(rows = dplyr::bind_rows(rows), status = dplyr::bind_rows(status))
+}
+
+bench31_append_missing_archive <- function(existing, candidates) {
+  existing <- bench31_normalize_archive_types(existing)
+  candidates <- bench31_normalize_archive_types(candidates)
+  if (!nrow(candidates)) return(existing)
+  key <- function(d) paste(d$season, d$week, d$player_id, d$provider, d$scoring_id, sep = "|")
+  existing_keys <- if (nrow(existing)) key(existing) else character()
+  candidates <- candidates[!key(candidates) %in% existing_keys, , drop = FALSE]
+  dplyr::bind_rows(existing, candidates) |>
+    dplyr::arrange(season, week, position, provider, provider_rank, player_display_name)
 }
 
 # ---------------- Provider-neutral scoring --------------------------------
@@ -779,6 +957,11 @@ bench31_score_archive <- function(archive, season = CURRENT_SEASON) {
   actual <- bench31_actual_points(season)
   if (!nrow(actual)) return(invisible(NULL))
 
+  if (!"capture_mode" %in% names(archive)) archive$capture_mode <- ""
+  archive$capture_mode <- bench31_chr(archive$capture_mode)
+  archive$capture_mode[!nzchar(archive$capture_mode) & archive$provider == "fantasy_model"] <- "live_pregame"
+  archive$capture_mode[!nzchar(archive$capture_mode)] <- "unknown"
+
   scored <- archive |>
     dplyr::inner_join(actual, by = c("week", "player_id")) |>
     dplyr::mutate(
@@ -788,7 +971,7 @@ bench31_score_archive <- function(archive, season = CURRENT_SEASON) {
       abs_error = abs(error),
       sq_error = error^2
     ) |>
-    dplyr::group_by(week, provider, scoring_id, position) |>
+    dplyr::group_by(week, provider, scoring_id, capture_mode, position) |>
     dplyr::mutate(
       effective_rank = dplyr::if_else(
         is.finite(provider_rank),
@@ -800,7 +983,7 @@ bench31_score_archive <- function(archive, season = CURRENT_SEASON) {
     dplyr::ungroup()
 
   metrics <- scored |>
-    dplyr::group_by(week, provider, scoring_id, position) |>
+    dplyr::group_by(week, provider, scoring_id, capture_mode, position) |>
     dplyr::group_modify(~bench31_metric_group(.x), .keep = TRUE) |>
     dplyr::ungroup() |>
     dplyr::arrange(week, position, provider, scoring_id)
@@ -816,7 +999,7 @@ bench31_score_archive <- function(archive, season = CURRENT_SEASON) {
   external <- scored |>
     dplyr::filter(provider != "fantasy_model") |>
     dplyr::select(
-      week, player_id, position, provider, scoring_id,
+      week, player_id, position, provider, scoring_id, capture_mode,
       external_projection = projection,
       external_provider_rank = effective_rank
     )
@@ -826,7 +1009,7 @@ bench31_score_archive <- function(archive, season = CURRENT_SEASON) {
 
   pairwise <- if (nrow(paired_players)) {
     paired_players |>
-      dplyr::group_by(week, provider, scoring_id, position) |>
+      dplyr::group_by(week, provider, scoring_id, capture_mode, position) |>
       dplyr::group_modify(~bench31_pairwise_group(.x), .keep = TRUE) |>
       dplyr::ungroup() |>
       dplyr::arrange(week, position, provider, scoring_id)
