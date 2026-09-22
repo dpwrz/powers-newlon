@@ -820,8 +820,8 @@ bench31_cutoff <- function(position, kind = c("starter", "relevant", "topn")) {
   unname(maps[[kind]][[as.character(position)]])
 }
 
-bench31_metric_group <- function(d) {
-  pos <- d$position[[1]]
+bench31_metric_group <- function(d, pos) {
+  pos <- as.character(pos)[[1]]
   starter_cut <- bench31_cutoff(pos, "starter")
   relevant_cut <- bench31_cutoff(pos, "relevant")
   topn <- bench31_cutoff(pos, "topn")
@@ -862,8 +862,8 @@ bench31_metric_group <- function(d) {
   )
 }
 
-bench31_pairwise_group <- function(d) {
-  pos <- d$position[[1]]
+bench31_pairwise_group <- function(d, pos) {
+  pos <- as.character(pos)[[1]]
   starter_cut <- bench31_cutoff(pos, "starter")
   relevant_cut <- bench31_cutoff(pos, "relevant")
   topn <- bench31_cutoff(pos, "topn")
@@ -989,7 +989,7 @@ bench31_score_archive <- function(archive, season = CURRENT_SEASON) {
 
   metrics <- scored |>
     dplyr::group_by(week, provider, scoring_id, capture_mode, position) |>
-    dplyr::group_modify(~bench31_metric_group(.x), .keep = TRUE) |>
+    dplyr::group_modify(~bench31_metric_group(.x, .y$position[[1]])) |>
     dplyr::ungroup() |>
     dplyr::arrange(week, position, provider, scoring_id)
 
@@ -1015,7 +1015,7 @@ bench31_score_archive <- function(archive, season = CURRENT_SEASON) {
   pairwise <- if (nrow(paired_players)) {
     paired_players |>
       dplyr::group_by(week, provider, scoring_id, capture_mode, position) |>
-      dplyr::group_modify(~bench31_pairwise_group(.x), .keep = TRUE) |>
+      dplyr::group_modify(~bench31_pairwise_group(.x, .y$position[[1]])) |>
       dplyr::ungroup() |>
       dplyr::arrange(week, position, provider, scoring_id)
   } else tibble::tibble()
