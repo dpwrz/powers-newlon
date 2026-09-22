@@ -1013,8 +1013,17 @@ bench31_score_archive <- function(archive, season = CURRENT_SEASON) {
     scored,
     metric_keys,
     bench31_metric_group
-  ) |>
-    dplyr::arrange(week, position, provider, scoring_id)
+  )
+  if (nrow(scored) && (!nrow(metrics) || !all(metric_keys %in% names(metrics)))) {
+    stop(
+      "Benchmark metric mapper returned an invalid schema. Columns: ",
+      paste(names(metrics), collapse = ", ")
+    )
+  }
+  if (nrow(metrics)) {
+    metrics <- metrics |>
+      dplyr::arrange(week, position, provider, scoring_id)
+  }
 
   model <- scored |>
     dplyr::filter(provider == "fantasy_model", scoring_id == "half_ppr") |>
@@ -1037,11 +1046,18 @@ bench31_score_archive <- function(archive, season = CURRENT_SEASON) {
 
   pairwise <- if (nrow(paired_players)) {
     pair_keys <- c("week", "provider", "scoring_id", "capture_mode", "position")
-    bench31_map_metric_groups(
+    out <- bench31_map_metric_groups(
       paired_players,
       pair_keys,
       bench31_pairwise_group
-    ) |>
+    )
+    if (!nrow(out) || !all(pair_keys %in% names(out))) {
+      stop(
+        "Benchmark pairwise mapper returned an invalid schema. Columns: ",
+        paste(names(out), collapse = ", ")
+      )
+    }
+    out |>
       dplyr::arrange(week, position, provider, scoring_id)
   } else tibble::tibble()
 
