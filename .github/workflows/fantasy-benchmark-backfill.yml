@@ -2,6 +2,17 @@ name: Fantasy Model 3.1 benchmark provider backfill
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'R/benchmark_providers_31.R'
+      - 'R/benchmark_archive_31.R'
+      - 'pipeline/29_capture_pregame_benchmarks_3_1.R'
+      - 'pipeline/30_backfill_benchmark_providers_3_1.R'
+      - 'runners/RUN_3_1_BENCHMARK_BACKFILL.R'
+      - 'tests/TEST_3_1_BENCHMARK_ARCHIVE.R'
+      - '.github/workflows/fantasy-benchmark-backfill.yml'
   push:
     branches:
       - main
