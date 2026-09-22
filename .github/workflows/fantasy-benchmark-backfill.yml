@@ -30,8 +30,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: fantasy-model-production-state
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('fantasy-benchmark-pr-{0}', github.event.pull_request.number) || 'fantasy-model-production-state' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   backfill:
