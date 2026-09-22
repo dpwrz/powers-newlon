@@ -955,6 +955,27 @@ bench31_pairwise_group <- function(d, pos) {
   )
 }
 
+bench31_map_metric_groups <- function(d, keys, fn) {
+  if (!nrow(d)) return(tibble::tibble())
+  missing <- setdiff(keys, names(d))
+  if (length(missing)) stop("Benchmark grouping columns missing: ", paste(missing, collapse = ", "))
+
+  key_parts <- lapply(keys, function(k) {
+    x <- as.character(d[[k]])
+    x[is.na(x)] <- "<NA>"
+    x
+  })
+  group_id <- do.call(paste, c(key_parts, list(sep = "\u241F")))
+  groups <- split(seq_len(nrow(d)), group_id, drop = TRUE)
+
+  purrr::map_dfr(groups, function(ix) {
+    g <- d[ix, , drop = FALSE]
+    key <- g[1, keys, drop = FALSE]
+    value <- fn(g, as.character(key$position[[1]]))
+    dplyr::bind_cols(key, value)
+  })
+}
+
 # Override original scorer with provider-neutral metrics and pairwise common-cohort
 # comparisons against Fantasy Model.
 bench31_score_archive <- function(archive, season = CURRENT_SEASON) {
@@ -987,10 +1008,12 @@ bench31_score_archive <- function(archive, season = CURRENT_SEASON) {
     ) |>
     dplyr::ungroup()
 
-  metrics <- scored |>
-    dplyr::group_by(week, provider, scoring_id, capture_mode, position) |>
-    dplyr::group_modify(~bench31_metric_group(.x, .y$position[[1]])) |>
-    dplyr::ungroup() |>
+  metric_keys <- c("week", "provider", "scoring_id", "capture_mode", "position")
+  metrics <- bench31_map_metric_groups(
+    scored,
+    metric_keys,
+    bench31_metric_group
+  ) |>
     dplyr::arrange(week, position, provider, scoring_id)
 
   model <- scored |>
@@ -1013,10 +1036,12 @@ bench31_score_archive <- function(archive, season = CURRENT_SEASON) {
     dplyr::inner_join(model, by = c("week", "player_id", "position"))
 
   pairwise <- if (nrow(paired_players)) {
-    paired_players |>
-      dplyr::group_by(week, provider, scoring_id, capture_mode, position) |>
-      dplyr::group_modify(~bench31_pairwise_group(.x, .y$position[[1]])) |>
-      dplyr::ungroup() |>
+    pair_keys <- c("week", "provider", "scoring_id", "capture_mode", "position")
+    bench31_map_metric_groups(
+      paired_players,
+      pair_keys,
+      bench31_pairwise_group
+    ) |>
       dplyr::arrange(week, position, provider, scoring_id)
   } else tibble::tibble()
 
