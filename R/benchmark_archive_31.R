@@ -248,37 +248,101 @@ bench31_normalize_sleeper_payload <- function(payload, requested_position = "") 
     dplyr::distinct(sleeper_id, .keep_all = TRUE)
 }
 
+bench31_sleeper_candidate_urls <- function(season, week) {
+  season <- as.integer(season)
+  week <- as.integer(week)
+
+  explicit_url <- trimws(Sys.getenv("FM_SLEEPER_PROJECTIONS_URL", unset = ""))
+  if (nzchar(explicit_url)) {
+    explicit_url <- gsub("\\{season\\}", as.character(season), explicit_url)
+    explicit_url <- gsub("\\{week\\}", as.character(week), explicit_url)
+    return(explicit_url)
+  }
+
+  # Preserve support for the older base override, but no longer depend on it.
+  # The previous default placed /regular/ before the season on api.sleeper.com,
+  # which now returns 404. Current Sleeper feeds have appeared under both the
+  # /v1/projections/.../regular/{season}/{week} and the older non-v1 route, so
+  # try the current app route first and retain fallbacks for resilience.
+  override_base <- trimws(Sys.getenv("FM_SLEEPER_PROJECTIONS_BASE", unset = ""))
+  override_url <- character()
+  if (nzchar(override_base)) {
+    override_url <- paste0(sub("/+$", "", override_base), "/", season, "/", week)
+  }
+
+  unique(c(
+    override_url,
+    paste0("https://api.sleeper.app/v1/projections/nfl/regular/", season, "/", week),
+    paste0("https://api.sleeper.app/projections/nfl/", season, "/", week),
+    paste0("https://api.sleeper.com/projections/nfl/", season, "/", week)
+  ))
+}
+
 bench31_fetch_sleeper_week <- function(season, week, positions = POSITIONS) {
-  base <- Sys.getenv(
-    "FM_SLEEPER_PROJECTIONS_BASE",
-    unset = "https://api.sleeper.com/projections/nfl/regular"
-  )
+  candidate_urls <- bench31_sleeper_candidate_urls(season, week)
   all_rows <- list()
   errors <- character()
+  used_endpoints <- character()
 
   for (pos in positions) {
-    url <- paste0(base, "/", season, "/", week)
-    one <- tryCatch({
-      req <- httr2::request(url) |>
-        httr2::req_user_agent("FantasyModel/3.1 pregame-benchmark") |>
-        httr2::req_url_query(position = pos, order_by = "pts_half_ppr") |>
-        httr2::req_timeout(30) |>
-        httr2::req_retry(max_tries = 3)
-      resp <- httr2::req_perform(req)
-      if (httr2::resp_status(resp) >= 300) stop("HTTP ", httr2::resp_status(resp))
-      payload <- httr2::resp_body_json(resp, simplifyVector = FALSE)
-      bench31_normalize_sleeper_payload(payload, requested_position = pos)
-    }, error = function(e) {
-      errors <<- c(errors, paste0(pos, ": ", conditionMessage(e)))
-      tibble::tibble()
-    })
-    if (nrow(one)) all_rows[[length(all_rows) + 1]] <- one
+    one <- tibble::tibble()
+    attempts <- character()
+
+    for (url in candidate_urls) {
+      result <- tryCatch({
+        req <- httr2::request(url) |>
+          httr2::req_user_agent("FantasyModel/3.1 pregame-benchmark") |>
+          httr2::req_url_query(
+            season_type = "regular",
+            `position[]` = pos,
+            order_by = "pts_half_ppr"
+          ) |>
+          httr2::req_timeout(30) |>
+          httr2::req_retry(max_tries = 3)
+
+        resp <- httr2::req_perform(req)
+        status <- httr2::resp_status(resp)
+        if (status >= 300) stop("HTTP ", status)
+
+        payload <- httr2::resp_body_json(resp, simplifyVector = FALSE)
+        parsed <- bench31_normalize_sleeper_payload(payload, requested_position = pos)
+        list(data = parsed, error = "")
+      }, error = function(e) {
+        list(data = tibble::tibble(), error = conditionMessage(e))
+      })
+
+      if (nrow(result$data)) {
+        one <- result$data
+        used_endpoints <- c(used_endpoints, url)
+        break
+      }
+
+      if (nzchar(result$error)) {
+        attempts <- c(attempts, paste0(url, " -> ", result$error))
+      } else {
+        attempts <- c(attempts, paste0(url, " -> empty projection payload"))
+      }
+    }
+
+    if (nrow(one)) {
+      all_rows[[length(all_rows) + 1]] <- one
+    } else {
+      errors <- c(
+        errors,
+        paste0(pos, ": all Sleeper projection routes failed [", paste(attempts, collapse = " ; "), "]")
+      )
+    }
   }
 
   out <- dplyr::bind_rows(all_rows)
   if (nrow(out)) out <- out |> dplyr::distinct(sleeper_id, .keep_all = TRUE)
+
   attr(out, "errors") <- errors
-  attr(out, "source_endpoint") <- paste0(base, "/", season, "/", week)
+  attr(out, "source_endpoint") <- if (length(used_endpoints)) {
+    paste(unique(used_endpoints), collapse = " | ")
+  } else {
+    paste(candidate_urls, collapse = " | ")
+  }
   out
 }
 
