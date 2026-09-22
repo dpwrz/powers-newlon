@@ -13,6 +13,16 @@
 #   licensed API feed is configured later.
 # - Manual CSV: optional import path for licensed/authorized provider exports.
 
+`%||%` <- function(x, y) {
+  if (is.null(x) || !length(x)) y else x
+}
+
+bench31_first_nonempty_provider <- function(x) {
+  y <- trimws(as.character(x))
+  y <- y[!is.na(y) & nzchar(y)]
+  if (length(y)) y[[1]] else ""
+}
+
 bench31_norm_name <- function(x) {
   y <- iconv(tolower(trimws(as.character(x))), to = "ASCII//TRANSLIT")
   y[is.na(y)] <- ""
@@ -154,6 +164,13 @@ bench31_attach_external_identity <- function(ext, identity, model_rows, provider
   }
 
   dplyr::bind_rows(direct, fallback) |>
+    dplyr::mutate(
+      position = dplyr::if_else(
+        nzchar(bench31_chr(position)),
+        toupper(bench31_chr(position)),
+        toupper(bench31_chr(.pos))
+      )
+    ) |>
     dplyr::distinct(player_id, .keep_all = TRUE)
 }
 
@@ -391,7 +408,7 @@ bench31_fantasypros_rows <- function(fp, identity, model_rows, captured_at) {
   if (!nrow(d)) return(tibble::tibble())
 
   source_endpoint <- attr(fp, "source_endpoint") %||% "DynastyProcess FantasyPros ECR"
-  version <- bench31_first_nonempty(d$scrape_date)
+  version <- bench31_first_nonempty_provider(d$scrape_date)
   if (!nzchar(version)) version <- "weekly-open-data"
 
   tibble::tibble(
@@ -444,6 +461,9 @@ bench31_manual_rows <- function(season, week, model_rows, captured_at, dir = "da
     if (!nm %in% names(raw)) raw[[nm]] <- NA
   }
 
+  target_season <- as.integer(season)
+  target_week <- as.integer(week)
+
   raw <- raw |>
     dplyr::mutate(
       season = as.integer(bench31_num(season)),
@@ -457,14 +477,14 @@ bench31_manual_rows <- function(season, week, model_rows, captured_at, dir = "da
       provider_rank = bench31_num(provider_rank),
       source_file = bench31_chr(source_file)
     ) |>
-    dplyr::filter(season == !!as.integer(season), week == !!as.integer(week), nzchar(provider), position %in% POSITIONS)
+    dplyr::filter(season == target_season, week == target_week, nzchar(provider), position %in% POSITIONS)
 
   if (!nrow(raw)) return(tibble::tibble())
   ctx <- bench31_external_context(model_rows)
 
   direct <- raw |>
     dplyr::filter(nzchar(player_id)) |>
-    dplyr::inner_join(ctx, by = c("player_id", "position"), suffix = c("", "_ctx"))
+    dplyr::inner_join(ctx, by = c("season", "week", "player_id", "position"), suffix = c("", "_ctx"))
 
   remaining <- raw |>
     dplyr::filter(!nzchar(player_id)) |>
@@ -476,7 +496,7 @@ bench31_manual_rows <- function(season, week, model_rows, captured_at, dir = "da
     dplyr::filter(.candidate_n == 1) |>
     dplyr::select(-.candidate_n)
   fallback <- remaining |>
-    dplyr::inner_join(ctx_name, by = c("normalized_name", "position"))
+    dplyr::inner_join(ctx_name, by = c("season", "week", "normalized_name", "position"))
 
   d <- dplyr::bind_rows(direct, fallback)
   if (!nrow(d)) return(tibble::tibble())
@@ -781,7 +801,7 @@ bench31_score_archive <- function(archive, season = CURRENT_SEASON) {
 
   metrics <- scored |>
     dplyr::group_by(week, provider, scoring_id, position) |>
-    dplyr::group_modify(~bench31_metric_group(.x)) |>
+    dplyr::group_modify(~bench31_metric_group(.x), .keep = TRUE) |>
     dplyr::ungroup() |>
     dplyr::arrange(week, position, provider, scoring_id)
 
@@ -807,7 +827,7 @@ bench31_score_archive <- function(archive, season = CURRENT_SEASON) {
   pairwise <- if (nrow(paired_players)) {
     paired_players |>
       dplyr::group_by(week, provider, scoring_id, position) |>
-      dplyr::group_modify(~bench31_pairwise_group(.x)) |>
+      dplyr::group_modify(~bench31_pairwise_group(.x), .keep = TRUE) |>
       dplyr::ungroup() |>
       dplyr::arrange(week, position, provider, scoring_id)
   } else tibble::tibble()
