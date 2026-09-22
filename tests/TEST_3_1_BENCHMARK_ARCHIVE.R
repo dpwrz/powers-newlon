@@ -50,7 +50,7 @@ pair_test <- tibble::tibble(
   external_projection = c(18, 13, 12, 4),
   external_provider_rank = c(1, 2, 3, 4)
 )
-pm <- bench31_pairwise_group(pair_test)
+pm <- bench31_pairwise_group(pair_test, "RB")
 stopifnot(
   nrow(pm) == 1,
   pm$n_common[[1]] == 4,
