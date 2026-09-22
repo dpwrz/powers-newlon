@@ -14,6 +14,7 @@ source("config.R")
 ensure_packages(c("dplyr", "readr", "tibble", "tidyr", "purrr", "httr2", "jsonlite", "nflreadr"))
 source("R/weekly_engine.R")
 source("R/benchmark_archive_31.R")
+source("R/benchmark_providers_31.R")
 
 dir.create("output", recursive = TRUE, showWarnings = FALSE)
 
@@ -216,11 +217,18 @@ if (!is.finite(active_week)) {
 
   model_rows <- bench31_model_rows(weekly, schedule_team, active_week, captured_at)
   identity <- bench31_identity_map()
-  sleeper <- bench31_fetch_sleeper_week(season, active_week)
-  sleeper_errors <- attr(sleeper, "errors")
-  sleeper_rows <- bench31_sleeper_rows(sleeper, identity, model_rows, captured_at)
 
-  candidates <- dplyr::bind_rows(model_rows, sleeper_rows)
+  external <- bench31_capture_external_providers(
+    season = season,
+    week = active_week,
+    identity = identity,
+    model_rows = model_rows,
+    captured_at = captured_at
+  )
+  external_rows <- external$rows
+  external_status <- external$status
+
+  candidates <- dplyr::bind_rows(model_rows, external_rows)
   candidates <- bench31_add_capture_context(
     candidates, weekly, schedule_team, active_week, season, weekly_path
   )
@@ -231,35 +239,34 @@ if (!is.finite(active_week)) {
 
   fatal_model_capture <- eligible_model_rows > 0 && nrow(model_rows) == 0
   now_txt <- format(captured_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-  status <- tibble::tibble(
-    captured_at_utc = now_txt,
-    season = season,
-    week = active_week,
-    provider = c("fantasy_model", "sleeper"),
-    eligible_pregame_rows = c(eligible_model_rows, nrow(model_rows)),
-    rows_captured = c(nrow(model_rows), nrow(sleeper_rows)),
-    archive_rows_after_capture = nrow(archive),
-    status = c(
-      if (fatal_model_capture) "error_no_rows" else if (nrow(model_rows)) "ok" else "no_pregame_rows",
-      if (nrow(sleeper_rows)) "ok" else "unavailable"
-    ),
-    message = c(
-      if (fatal_model_capture) {
-        paste0("Expected ", eligible_model_rows, " eligible Fantasy Model rows but captured 0")
-      } else if (nrow(model_rows)) {
-        paste0("Captured current production projections from ", weekly_path)
-      } else {
-        "No still-pregame Fantasy Model rows at this capture time"
-      },
-      if (length(sleeper_errors)) {
-        paste(sleeper_errors, collapse = " | ")
-      } else if (nrow(sleeper_rows)) {
-        "Captured Sleeper app projection feed"
-      } else {
-        "Sleeper feed returned no matched rows; Fantasy Model archive remains valid"
-      }
-    )
+
+  model_status <- tibble::tibble(
+    provider = "fantasy_model",
+    eligible_pregame_rows = eligible_model_rows,
+    rows_captured = nrow(model_rows),
+    status = if (fatal_model_capture) "error_no_rows" else if (nrow(model_rows)) "ok" else "no_pregame_rows",
+    message = if (fatal_model_capture) {
+      paste0("Expected ", eligible_model_rows, " eligible Fantasy Model rows but captured 0")
+    } else if (nrow(model_rows)) {
+      paste0("Captured current production projections from ", weekly_path)
+    } else {
+      "No still-pregame Fantasy Model rows at this capture time"
+    }
   )
+
+  status <- dplyr::bind_rows(model_status, external_status) |>
+    dplyr::mutate(
+      captured_at_utc = now_txt,
+      season = season,
+      week = active_week,
+      archive_rows_after_capture = nrow(archive)
+    ) |>
+    dplyr::select(
+      captured_at_utc, season, week, provider,
+      eligible_pregame_rows, rows_captured,
+      archive_rows_after_capture, status, message
+    )
+
   bench31_atomic_write_csv(status, status_path)
 
   manifest_old <- bench31_read_csv(manifest_path)
@@ -283,13 +290,26 @@ if (!is.finite(active_week)) {
 
   bench31_score_archive(archive, season)
 
+  provider_counts <- if (nrow(external_status)) {
+    paste0(external_status$provider, "=", external_status$rows_captured, collapse = ", ")
+  } else {
+    "none"
+  }
+
   cat("[3.1 BENCHMARK] Week ", active_week,
       " capture complete: eligible_model=", eligible_model_rows,
       ", model=", nrow(model_rows),
-      ", sleeper=", nrow(sleeper_rows),
+      ", external={", provider_counts, "}",
       ", archive=", nrow(archive), " rows.\n", sep = "")
-  if (length(sleeper_errors)) {
-    cat("[3.1 BENCHMARK] Sleeper warnings: ", paste(sleeper_errors, collapse = " | "), "\n", sep = "")
+
+  warnings <- external_status |>
+    dplyr::filter(status == "unavailable")
+  if (nrow(warnings)) {
+    cat(
+      "[3.1 BENCHMARK] Provider warnings: ",
+      paste0(warnings$provider, ": ", warnings$message, collapse = " | "),
+      "\n", sep = ""
+    )
   }
 
   if (fatal_model_capture) {
