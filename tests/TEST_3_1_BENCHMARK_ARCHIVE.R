@@ -19,6 +19,13 @@ payload <- list(
 sp <- bench31_normalize_sleeper_payload(payload, "WR")
 stopifnot(nrow(sp) == 1, sp$sleeper_id[[1]] == "1234", abs(sp$sleeper_projection[[1]] - 12.5) < 1e-8)
 
+urls <- bench31_sleeper_candidate_urls(2026, 3)
+stopifnot(
+  any(grepl("https://api.sleeper.app/v1/projections/nfl/regular/2026/3", urls, fixed = TRUE)),
+  any(grepl("https://api.sleeper.app/projections/nfl/2026/3", urls, fixed = TRUE)),
+  any(grepl("https://api.sleeper.com/projections/nfl/2026/3", urls, fixed = TRUE))
+)
+
 now <- Sys.time()
 weekly <- tibble::tibble(
   week = c(3, 3),
