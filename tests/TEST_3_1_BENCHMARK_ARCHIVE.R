@@ -5,6 +5,7 @@
 source("config.R")
 ensure_packages(c("dplyr", "readr", "tibble", "tidyr", "purrr", "httr2", "jsonlite", "nflreadr"))
 source("R/benchmark_archive_31.R")
+source("R/benchmark_providers_31.R")
 
 stopifnot(abs(bench31_half_ppr_from_stats(list(pass_yd = 250, pass_td = 2, pass_int = 1, rush_yd = 20)) - 18) < 1e-8)
 
@@ -18,6 +19,46 @@ payload <- list(
 )
 sp <- bench31_normalize_sleeper_payload(payload, "WR")
 stopifnot(nrow(sp) == 1, sp$sleeper_id[[1]] == "1234", abs(sp$sleeper_projection[[1]] - 12.5) < 1e-8)
+
+espn_payload_a <- list(players = list(list(
+  id = 999,
+  player = list(fullName = "Example Receiver", defaultPositionId = 3),
+  playerPoolEntry = list(stats = list(
+    list(scoringPeriodId = 3, statTypeId = 2, appliedTotal = 10)
+  ))
+)))
+espn_payload_b <- list(players = list(list(
+  id = 999,
+  player = list(fullName = "Example Receiver", defaultPositionId = 3),
+  playerPoolEntry = list(stats = list(
+    list(scoringPeriodId = 3, statTypeId = 2, appliedTotal = 14)
+  ))
+)))
+ea <- bench31_parse_espn_payload(espn_payload_a, 3)
+eb <- bench31_parse_espn_payload(espn_payload_b, 3)
+eh <- bench31_merge_espn_defaults(ea, eb)
+stopifnot(
+  nrow(eh) == 1,
+  eh$espn_position[[1]] == "WR",
+  abs(eh$espn_projection[[1]] - 12) < 1e-8
+)
+
+pair_test <- tibble::tibble(
+  position = rep("RB", 4),
+  actual_points = c(20, 15, 10, 5),
+  model_projection = c(19, 14, 9, 6),
+  external_projection = c(18, 13, 12, 4),
+  external_provider_rank = c(1, 2, 3, 4)
+)
+pm <- bench31_pairwise_group(pair_test)
+stopifnot(
+  nrow(pm) == 1,
+  pm$n_common[[1]] == 4,
+  is.finite(pm$model_MAE[[1]]),
+  is.finite(pm$provider_MAE[[1]]),
+  is.finite(pm$model_rank_correlation[[1]]),
+  is.finite(pm$provider_rank_correlation[[1]])
+)
 
 urls <- bench31_sleeper_candidate_urls(2026, 3)
 stopifnot(
