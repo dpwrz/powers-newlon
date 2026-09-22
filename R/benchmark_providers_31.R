@@ -163,7 +163,12 @@ bench31_attach_external_identity <- function(ext, identity, model_rows, provider
       dplyr::inner_join(ctx_name, by = c(".norm" = "normalized_name", ".pos" = "position"))
   }
 
-  dplyr::bind_rows(direct, fallback) |>
+  out <- dplyr::bind_rows(direct, fallback)
+  if (!nrow(out)) return(out)
+  if (!"position" %in% names(out)) out$position <- ""
+  if (!".pos" %in% names(out)) out$.pos <- ""
+
+  out |>
     dplyr::mutate(
       position = dplyr::if_else(
         nzchar(bench31_chr(position)),
