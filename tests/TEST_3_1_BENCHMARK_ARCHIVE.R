@@ -60,6 +60,30 @@ stopifnot(
   is.finite(pm$provider_rank_correlation[[1]])
 )
 
+metric_map_test <- tibble::tibble(
+  week = rep(2L, 4),
+  provider = rep("fantasy_model", 4),
+  scoring_id = rep("half_ppr", 4),
+  capture_mode = rep("live_pregame", 4),
+  position = rep("RB", 4),
+  projection = c(19, 14, 9, 6),
+  provider_rank = c(1, 2, 3, 4),
+  actual_points = c(20, 15, 10, 5),
+  effective_rank = c(1, 2, 3, 4),
+  actual_rank = c(1, 2, 3, 4)
+)
+mg <- bench31_map_metric_groups(
+  metric_map_test,
+  c("week", "provider", "scoring_id", "capture_mode", "position"),
+  bench31_metric_group
+)
+stopifnot(
+  nrow(mg) == 1,
+  all(c("week", "provider", "scoring_id", "capture_mode", "position", "MAE") %in% names(mg)),
+  mg$week[[1]] == 2L,
+  mg$position[[1]] == "RB"
+)
+
 urls <- bench31_sleeper_candidate_urls(2026, 3)
 stopifnot(
   any(grepl("https://api.sleeper.app/v1/projections/nfl/regular/2026/3", urls, fixed = TRUE)),
