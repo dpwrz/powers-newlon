@@ -1,3 +1,3 @@
 captured_at_utc,season,week,provider,eligible_pregame_rows,rows_captured,archive_rows_after_capture,status,message
-2026-09-25T10:41:43Z,2026,3,fantasy_model,553,553,1148,ok,Captured current production projections from output/weekly_2026_projections.csv
-2026-09-25T10:41:43Z,2026,3,sleeper,553,0,1148,unavailable,Sleeper feed returned no matched rows; Fantasy Model archive remains valid
+2026-09-25T16:05:11Z,2026,3,fantasy_model,553,553,1148,ok,Captured current production projections from output/weekly_2026_projections.csv
+2026-09-25T16:05:11Z,2026,3,sleeper,553,0,1148,unavailable,Sleeper feed returned no matched rows; Fantasy Model archive remains valid
