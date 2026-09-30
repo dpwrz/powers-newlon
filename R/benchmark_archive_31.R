@@ -473,7 +473,7 @@ bench31_normalize_archive_types <- function(d) {
   if (!nrow(d)) return(tibble::as_tibble(d))
   char_cols <- c("player_id", "sleeper_id", "player_display_name", "position", "team", "opponent",
                  "kickoff_utc", "provider", "provider_version", "scoring_id", "projection_confidence",
-                 "captured_at_utc", "source_endpoint")
+                 "captured_at_utc", "source_endpoint", "capture_mode")
   num_cols <- c("season", "week", "projection", "provider_rank", "floor", "ceiling", "expected_abs_error",
                 "minutes_to_kickoff", "production_base_31", "sleeper_pts_std", "sleeper_pts_half_ppr",
                 "sleeper_pts_ppr", "pass_yd", "pass_td", "pass_int", "rush_att", "rush_yd", "rush_td",

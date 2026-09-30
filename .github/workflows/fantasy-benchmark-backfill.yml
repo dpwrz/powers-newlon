@@ -1,0 +1,96 @@
+name: Fantasy Model 3.1 benchmark provider backfill
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'R/benchmark_providers_31.R'
+      - 'R/benchmark_archive_31.R'
+      - 'pipeline/29_capture_pregame_benchmarks_3_1.R'
+      - 'pipeline/30_backfill_benchmark_providers_3_1.R'
+      - 'runners/RUN_3_1_BENCHMARK_BACKFILL.R'
+      - 'tests/TEST_3_1_BENCHMARK_ARCHIVE.R'
+      - '.github/workflows/fantasy-benchmark-backfill.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'R/benchmark_providers_31.R'
+      - 'R/benchmark_archive_31.R'
+      - 'pipeline/30_backfill_benchmark_providers_3_1.R'
+      - 'runners/RUN_3_1_BENCHMARK_BACKFILL.R'
+      - '.github/workflows/fantasy-benchmark-backfill.yml'
+  schedule:
+    # Tuesday after the NFL week is complete. 12:00 UTC is 8 AM EDT / 7 AM EST.
+    - cron: '0 12 * * 2'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('fantasy-benchmark-pr-{0}', github.event.pull_request.number) || 'fantasy-model-production-state' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Fantasy Model
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Install benchmark dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::dplyr
+            any::readr
+            any::tidyr
+            any::tibble
+            any::purrr
+            any::jsonlite
+            any::nflreadr
+            any::httr2
+          cache-version: 1
+
+      - name: Check benchmark integrity
+        run: Rscript tests/TEST_3_1_BENCHMARK_ARCHIVE.R
+
+      - name: Backfill completed-week providers
+        run: Rscript runners/RUN_3_1_BENCHMARK_BACKFILL.R
+
+      - name: Commit benchmark backfill state
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          find output -maxdepth 1 -type f -name 'benchmark_*.csv' -print0 \
+            | xargs -0 -r git add -f --
+
+          if git diff --cached --quiet; then
+            echo "No benchmark backfill changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Backfill completed-week benchmark providers"
+
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git stash push --include-untracked -m "benchmark-backfill-runtime-leftovers"
+          fi
+
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

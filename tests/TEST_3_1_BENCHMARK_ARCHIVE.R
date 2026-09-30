@@ -5,6 +5,7 @@
 source("config.R")
 ensure_packages(c("dplyr", "readr", "tibble", "tidyr", "purrr", "httr2", "jsonlite", "nflreadr"))
 source("R/benchmark_archive_31.R")
+source("R/benchmark_providers_31.R")
 
 stopifnot(abs(bench31_half_ppr_from_stats(list(pass_yd = 250, pass_td = 2, pass_int = 1, rush_yd = 20)) - 18) < 1e-8)
 
@@ -18,6 +19,70 @@ payload <- list(
 )
 sp <- bench31_normalize_sleeper_payload(payload, "WR")
 stopifnot(nrow(sp) == 1, sp$sleeper_id[[1]] == "1234", abs(sp$sleeper_projection[[1]] - 12.5) < 1e-8)
+
+espn_payload_a <- list(players = list(list(
+  id = 999,
+  player = list(fullName = "Example Receiver", defaultPositionId = 3),
+  playerPoolEntry = list(stats = list(
+    list(scoringPeriodId = 3, statTypeId = 2, appliedTotal = 10)
+  ))
+)))
+espn_payload_b <- list(players = list(list(
+  id = 999,
+  player = list(fullName = "Example Receiver", defaultPositionId = 3),
+  playerPoolEntry = list(stats = list(
+    list(scoringPeriodId = 3, statTypeId = 2, appliedTotal = 14)
+  ))
+)))
+ea <- bench31_parse_espn_payload(espn_payload_a, 3)
+eb <- bench31_parse_espn_payload(espn_payload_b, 3)
+eh <- bench31_merge_espn_defaults(ea, eb)
+stopifnot(
+  nrow(eh) == 1,
+  eh$espn_position[[1]] == "WR",
+  abs(eh$espn_projection[[1]] - 12) < 1e-8
+)
+
+pair_test <- tibble::tibble(
+  position = rep("RB", 4),
+  actual_points = c(20, 15, 10, 5),
+  model_projection = c(19, 14, 9, 6),
+  external_projection = c(18, 13, 12, 4),
+  external_provider_rank = c(1, 2, 3, 4)
+)
+pm <- bench31_pairwise_group(pair_test, "RB")
+stopifnot(
+  nrow(pm) == 1,
+  pm$n_common[[1]] == 4,
+  is.finite(pm$model_MAE[[1]]),
+  is.finite(pm$provider_MAE[[1]]),
+  is.finite(pm$model_rank_correlation[[1]]),
+  is.finite(pm$provider_rank_correlation[[1]])
+)
+
+metric_map_test <- tibble::tibble(
+  week = rep(2L, 4),
+  provider = rep("fantasy_model", 4),
+  scoring_id = rep("half_ppr", 4),
+  capture_mode = rep("live_pregame", 4),
+  position = rep("RB", 4),
+  projection = c(19, 14, 9, 6),
+  provider_rank = c(1, 2, 3, 4),
+  actual_points = c(20, 15, 10, 5),
+  effective_rank = c(1, 2, 3, 4),
+  actual_rank = c(1, 2, 3, 4)
+)
+mg <- bench31_map_metric_groups(
+  metric_map_test,
+  c("week", "provider", "scoring_id", "capture_mode", "position"),
+  bench31_metric_group
+)
+stopifnot(
+  nrow(mg) == 1,
+  all(c("week", "provider", "scoring_id", "capture_mode", "position", "MAE") %in% names(mg)),
+  mg$week[[1]] == 2L,
+  mg$position[[1]] == "RB"
+)
 
 urls <- bench31_sleeper_candidate_urls(2026, 3)
 stopifnot(
