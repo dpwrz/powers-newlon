@@ -1,0 +1,83 @@
+name: Fantasy competitor benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      week:
+        description: NFL week to benchmark (blank = latest completed week)
+        required: false
+        default: ''
+  schedule:
+    # Tuesday morning after the NFL week is complete.
+    - cron: '30 11 * * 2'
+  push:
+    branches:
+      - benchmark/week4-provider-backfill
+    paths:
+      - tools/benchmark_competitors.py
+      - R/benchmark_archive_31.R
+      - .github/workflows/fantasy-competitor-benchmark.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fantasy-competitor-benchmark
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BENCHMARK_SEASON: '2026'
+    steps:
+      - name: Checkout Fantasy Model
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve completed NFL week
+        shell: bash
+        run: |
+          set -euo pipefail
+          REQUESTED="${{ inputs.week }}"
+          if [[ -n "${REQUESTED}" ]]; then
+            WEEK="${REQUESTED}"
+          else
+            WEEK="$(python - <<'PY'
+          import csv
+          weeks=[]
+          with open("output/live_accuracy_weekly_summary_2026.csv", newline="", encoding="utf-8-sig") as f:
+              for r in csv.DictReader(f):
+                  try: weeks.append(int(float(r["week"])))
+                  except Exception: pass
+          if not weeks:
+              raise SystemExit("No completed week found in live accuracy output")
+          print(max(weeks))
+          PY
+          )"
+          fi
+          echo "BENCHMARK_WEEK=${WEEK}" >> "${GITHUB_ENV}"
+          echo "Benchmarking completed NFL Week ${WEEK}"
+
+      - name: Run common-cohort competitor benchmark
+        run: python tools/benchmark_competitors.py
+
+      - name: Commit benchmark outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for kind in status metrics matched_players; do
+            path="output/competitor_benchmark_week_${BENCHMARK_WEEK}_2026_${kind}.csv"
+            [[ -f "${path}" ]] && git add -f "${path}"
+          done
+          if git diff --cached --quiet; then
+            echo "No benchmark output changes."
+            exit 0
+          fi
+          git commit -m "Benchmark Week ${BENCHMARK_WEEK} against fantasy competitors"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
