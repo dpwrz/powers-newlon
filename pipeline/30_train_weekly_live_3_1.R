@@ -99,7 +99,11 @@ team_kickoff <- dplyr::bind_rows(
 old_env <- Sys.getenv(c("FM_WEEKLY_DATA_END","FM_WEEKLY_LEARNING_MODE","FM_WEEKLY_DATA_OUTPUT"), unset = NA_character_)
 on.exit({
   for (nm in names(old_env)) {
-    if (is.na(old_env[[nm]])) Sys.unsetenv(nm) else Sys.setenv(structure(old_env[[nm]], names = nm))
+    if (is.na(old_env[[nm]])) {
+      Sys.unsetenv(nm)
+    } else {
+      do.call(Sys.setenv, stats::setNames(list(old_env[[nm]]), nm))
+    }
   }
 }, add = TRUE)
 
@@ -405,8 +409,11 @@ for (pos in POSITIONS) {
       file.copy(alias_model, file.path(archive_dir, basename(alias_model)), overwrite = FALSE)
       file.copy(alias_meta, file.path(archive_dir, basename(alias_meta)), overwrite = FALSE)
     }
-    file.copy(final_fit_rows[[pos]]$model, alias_model, overwrite = TRUE)
-    file.copy(final_fit_rows[[pos]]$meta, alias_meta, overwrite = TRUE)
+    ok_model <- file.copy(final_fit_rows[[pos]]$model, alias_model, overwrite = TRUE)
+    ok_meta <- file.copy(final_fit_rows[[pos]]$meta, alias_meta, overwrite = TRUE)
+    if (!isTRUE(ok_model) || !isTRUE(ok_meta)) {
+      stop("Could not atomically promote weekly live model artifacts for ", pos)
+    }
     unlink(final_fit_rows[[pos]]$model)
     unlink(final_fit_rows[[pos]]$meta)
     deployed_week <- completed_through
