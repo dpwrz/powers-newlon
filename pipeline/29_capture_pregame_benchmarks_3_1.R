@@ -14,6 +14,8 @@ source("config.R")
 ensure_packages(c("dplyr", "readr", "tibble", "tidyr", "purrr", "httr2", "jsonlite", "nflreadr"))
 source("R/weekly_engine.R")
 source("R/benchmark_archive_31.R")
+source("R/weekly_engine_31.R")
+source("R/weekly_learning_31.R")
 
 dir.create("output", recursive = TRUE, showWarnings = FALSE)
 
@@ -185,6 +187,19 @@ captured_at <- Sys.time()
 schedule_team <- bench31_schedule(season)
 if (!nrow(schedule_team)) stop("Could not load a kickoff schedule for benchmark protection.")
 active_week <- bench31_active_week(weekly, schedule_team, captured_at)
+
+# Freeze the exact pre-kickoff feature vector used by the production projection.
+# This archive is independent of third-party benchmark availability and becomes
+# the only current-season feature source eligible for weekly retraining.
+tryCatch(
+  wl31_capture_features(
+    weekly = weekly,
+    schedule_team = schedule_team,
+    captured_at = captured_at,
+    season = season
+  ),
+  error = function(e) warning("[3.1 LEARNING] Feature capture skipped: ", conditionMessage(e))
+)
 
 if (!is.finite(active_week)) {
   cat("[3.1 BENCHMARK] No future kickoff remains. Nothing to archive.\n")
