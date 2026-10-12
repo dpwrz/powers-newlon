@@ -55,7 +55,8 @@ wl31_capture_features(make_weekly(15), schedule, t2, 2026, feature_path, status_
 b <- readr::read_csv(feature_path, show_col_types = FALSE)
 stopifnot(nrow(b) == 2)
 stopifnot(all(b$roll3_fppg == 15))
-stopifnot(all(b$captured_at_utc == "2026-10-18T16:00:00Z"))
+cap_txt <- format(as.POSIXct(b$captured_at_utc, tz = "UTC"), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+stopifnot(all(cap_txt == "2026-10-18T16:00:00Z"))
 
 # After kickoff: archive must remain frozen.
 t3 <- as.POSIXct("2026-10-18 18:00:00", tz = "UTC")
