@@ -107,23 +107,17 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add -f \
-            data/state/ \
-            data/processed/weekly_learning_*.csv \
-            output/weekly_learning_capture_status_*.csv \
-            output/weekly_learning_backfill_status_*.csv \
-            output/weekly_3_1_online_*.csv \
-            output/live_accuracy_*.csv \
-            output/pregame_projection_archive_*.csv \
-            output/benchmark_*.csv \
-            output/model_snapshot.json \
-            models/weekly_3_1_incremental/ \
-            models/weekly_3_1_production_history/ \
-            models/weekly_3_1_direct_*.json \
-            models/weekly_3_1_direct_*_meta.rds \
-            web/public/data/model_snapshot.json \
-            web/public/data/snapshot_version.json \
-            2>/dev/null || true
+          git add -f data/state/ output/ web/public/data/ 2>/dev/null || true
+
+          find data/processed -maxdepth 1 -type f -name 'weekly_learning_*.csv' -print0 \
+            | xargs -0 -r git add -f --
+          find models/weekly_3_1_incremental -type f -print0 2>/dev/null \
+            | xargs -0 -r git add -f --
+          find models/weekly_3_1_production_history -type f -print0 2>/dev/null \
+            | xargs -0 -r git add -f --
+          find models -maxdepth 1 -type f \
+            \( -name 'weekly_3_1_direct_*.json' -o -name 'weekly_3_1_direct_*_meta.rds' \) \
+            -print0 | xargs -0 -r git add -f --
 
           if git diff --cached --quiet; then
             echo "No weekly learning state changes to commit."
