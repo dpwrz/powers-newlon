@@ -441,9 +441,17 @@ wl31_add_cohorts <- function(d) {
   } else {
     REPLACEMENT_RANK
   }
+  rank_projection <- if ("production_projection" %in% names(d)) {
+    wl31_num(d$production_projection, NA_real_)
+  } else if ("incumbent_projection" %in% names(d)) {
+    wl31_num(d$incumbent_projection, NA_real_)
+  } else {
+    rep(NA_real_, nrow(d))
+  }
+  d$.wl31_rank_projection <- rank_projection
   d |>
     dplyr::group_by(week, position) |>
-    dplyr::arrange(dplyr::desc(production_projection), .by_group = TRUE) |>
+    dplyr::arrange(dplyr::desc(.wl31_rank_projection), .by_group = TRUE) |>
     dplyr::mutate(projected_position_rank = dplyr::row_number()) |>
     dplyr::ungroup() |>
     dplyr::mutate(
@@ -451,7 +459,8 @@ wl31_add_cohorts <- function(d) {
       starter_cohort = projected_position_rank <= starter_cutoff,
       relevant_cohort = projected_position_rank <=
         pmax(starter_cutoff * 2, starter_cutoff + 6)
-    )
+    ) |>
+    dplyr::select(-.wl31_rank_projection)
 }
 
 wl31_position_metrics <- function(d) {
