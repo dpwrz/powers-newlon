@@ -7,7 +7,7 @@ on:
     - cron: '30 12 * * 2'
   push:
     branches:
-      - fm-3-1-weekly-learning-preserve-history
+      - main
     paths:
       - 'R/weekly_engine_31.R'
       - 'R/weekly_training_history_31.R'
@@ -22,8 +22,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: fantasy-model-weekly-learning-staging
-  cancel-in-progress: true
+  group: fantasy-model-production-state
+  cancel-in-progress: false
 
 jobs:
   weekly-learning:
@@ -120,23 +120,23 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add -f \
-            data/processed/weekly_training_live_*.csv \
-            models/weekly_3_1_live_*.json \
-            models/weekly_3_1_live_*_meta.rds \
-            models/archive/weekly_3_1_live/ \
-            output/weekly_3_1_live_*.csv \
-            output/weekly_3_1_live_quality_report.txt \
-            output/pregame_feature_history_*.csv \
-            output/weekly_*_projections.csv \
-            output/week_*_rankings.csv \
-            output/rest_of_season_*.csv \
-            output/live_accuracy_*.csv \
-            output/model_snapshot.json \
-            data/state/ \
-            web/public/data/model_snapshot.json \
-            web/public/data/snapshot_version.json \
-            2>/dev/null || true
+          # Add each optional artifact family independently. One unmatched
+          # glob must never abort staging of every other generated file.
+          git add -f data/processed/weekly_training_live_*.csv 2>/dev/null || true
+          git add -f models/weekly_3_1_live_*.json 2>/dev/null || true
+          git add -f models/weekly_3_1_live_*_meta.rds 2>/dev/null || true
+          find models/archive/weekly_3_1_live -type f -print0 2>/dev/null | xargs -0 -r git add -f --
+          git add -f output/weekly_3_1_live_*.csv 2>/dev/null || true
+          git add -f output/weekly_3_1_live_quality_report.txt 2>/dev/null || true
+          git add -f output/pregame_feature_history_*.csv 2>/dev/null || true
+          git add -f output/weekly_*_projections.csv 2>/dev/null || true
+          git add -f output/week_*_rankings.csv 2>/dev/null || true
+          git add -f output/rest_of_season_*.csv 2>/dev/null || true
+          git add -f output/live_accuracy_*.csv 2>/dev/null || true
+          git add -f output/model_snapshot.json 2>/dev/null || true
+          find data/state -type f -print0 2>/dev/null | xargs -0 -r git add -f --
+          git add -f web/public/data/model_snapshot.json 2>/dev/null || true
+          git add -f web/public/data/snapshot_version.json 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No weekly learning state changes to commit."
