@@ -69,7 +69,7 @@ if (!length(git_ok)) {
 log_lines <- tryCatch(
   system2(
     "git",
-    c("log","--reverse","--format=%H__FMSEP__%cI","--","output/weekly_2026_projections.csv"),
+    c("log","--all","--full-history","--reverse","--format=%H__FMSEP__%cI","--","output/weekly_2026_projections.csv"),
     stdout = TRUE, stderr = TRUE
   ),
   error = function(e) character()
