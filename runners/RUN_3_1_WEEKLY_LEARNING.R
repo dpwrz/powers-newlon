@@ -71,9 +71,18 @@ current <- wl31_update_ledger(
 accuracy <- wl31_read_csv(accuracy_path)
 coverage <- wl31_coverage_by_week(current, accuracy)
 if (nrow(coverage)) wl31_atomic_write_csv(coverage, coverage_path)
-eligible_weeks <- wl31_eligible_weeks(coverage)
+coverage_weeks <- wl31_eligible_weeks(coverage)
 
-cat("[3.1 LEARNING] Fully captured eligible weeks: ",
+schedule_path <- paste0("data/raw/schedules_live_", season, ".csv")
+schedule_now <- wl31_read_csv(schedule_path)
+final_weeks <- wl31_completed_schedule_weeks(schedule_now)
+eligible_weeks <- intersect(coverage_weeks, final_weeks)
+
+cat("[3.1 LEARNING] Coverage-qualified weeks: ",
+    if (length(coverage_weeks)) paste(coverage_weeks, collapse = ",") else "none",
+    " | fully-final weeks: ",
+    if (length(final_weeks)) paste(final_weeks, collapse = ",") else "none",
+    " | eligible for fitting: ",
     if (length(eligible_weeks)) paste(eligible_weeks, collapse = ",") else "none",
     "\n", sep = "")
 
@@ -106,19 +115,24 @@ if (any(historical$season > TRAIN_END, na.rm = TRUE)) {
   stop("Immutable historical table unexpectedly contains rows after TRAIN_END=", TRAIN_END)
 }
 
-required_hist <- c("season","week","player_id","position","weekly_fppg",MODEL31_SAFE_FEATURES)
-missing_hist <- setdiff(required_hist, names(historical))
-missing_current <- setdiff(required_hist, names(current))
-if (length(missing_hist)) stop("Historical table missing required 3.1 column(s): ", paste(missing_hist, collapse = ", "))
-if (length(missing_current)) stop("Current learning table missing required 3.1 column(s): ", paste(missing_current, collapse = ", "))
+# The immutable 2.3 historical store predates the 3.1 derived columns.
+# wk31_fit()/wk31_predict() recompute those derived features from safe lagged
+# source columns, so requiring them physically in the historical CSV would be
+# both unnecessary and brittle.
+training_source_features <- setdiff(MODEL31_SAFE_FEATURES, MODEL31_DERIVED_FEATURES)
+required_train <- c("season","week","player_id","position","weekly_fppg",training_source_features)
+missing_hist <- setdiff(required_train, names(historical))
+missing_current <- setdiff(required_train, names(current))
+if (length(missing_hist)) stop("Historical table missing required safe source column(s): ", paste(missing_hist, collapse = ", "))
+if (length(missing_current)) stop("Current learning table missing required safe source column(s): ", paste(missing_current, collapse = ", "))
 
 hist_train <- historical |>
-  dplyr::select(dplyr::all_of(required_hist)) |>
+  dplyr::select(dplyr::all_of(required_train)) |>
   dplyr::mutate(online_recency_weight_31 = 1)
 
 cur_train <- current |>
   dplyr::filter(week %in% eligible_weeks) |>
-  dplyr::select(dplyr::all_of(required_hist), dplyr::any_of("online_recency_weight_31")) |>
+  dplyr::select(dplyr::all_of(required_train), dplyr::any_of("online_recency_weight_31")) |>
   dplyr::mutate(online_recency_weight_31 = current_weight)
 
 promotion_hist <- wl31_read_csv("output/weekly_3_1_promotion.csv")
