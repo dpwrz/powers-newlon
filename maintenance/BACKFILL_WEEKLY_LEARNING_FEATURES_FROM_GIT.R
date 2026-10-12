@@ -26,9 +26,22 @@ if (!nrow(accuracy)) {
 
 existing <- wl31_read_csv(feature_path)
 coverage_before <- wl31_coverage_by_week(existing, accuracy)
-eligible_before <- wl31_eligible_weeks(coverage_before)
+coverage_eligible_before <- wl31_eligible_weeks(coverage_before)
+
+schedule_team <- bench31_schedule(season)
+if (!nrow(schedule_team)) {
+  warning("[3.1 LEARNING BACKFILL] No kickoff schedule available.")
+  quit(save = "no", status = 0)
+}
+schedule_raw <- wl31_read_csv(paste0("data/raw/schedules_live_", season, ".csv"))
+if (!nrow(schedule_raw)) {
+  schedule_raw <- tryCatch(nflreadr::load_schedules(seasons = season), error = function(e) data.frame())
+}
+final_weeks <- wl31_completed_schedule_weeks(schedule_raw)
+eligible_before <- intersect(coverage_eligible_before, final_weeks)
+
 completed_weeks <- sort(unique(suppressWarnings(as.integer(accuracy$week))))
-completed_weeks <- completed_weeks[is.finite(completed_weeks)]
+completed_weeks <- intersect(completed_weeks[is.finite(completed_weeks)], final_weeks)
 need_weeks <- setdiff(completed_weeks, eligible_before)
 
 if (!length(need_weeks)) {
@@ -44,12 +57,6 @@ if (!length(need_weeks)) {
   )
   wl31_atomic_write_csv(status, status_path)
   cat("[3.1 LEARNING BACKFILL] Existing archive already covers finalized weeks.\n")
-  quit(save = "no", status = 0)
-}
-
-schedule_team <- bench31_schedule(season)
-if (!nrow(schedule_team)) {
-  warning("[3.1 LEARNING BACKFILL] No kickoff schedule available.")
   quit(save = "no", status = 0)
 }
 
@@ -181,7 +188,7 @@ if (nrow(backfilled)) {
 
 final_features <- wl31_read_csv(feature_path)
 coverage_after <- wl31_coverage_by_week(final_features, accuracy)
-eligible_after <- wl31_eligible_weeks(coverage_after)
+eligible_after <- intersect(wl31_eligible_weeks(coverage_after), final_weeks)
 recovered <- if (nrow(backfilled)) nrow(backfilled) else 0L
 
 status <- data.frame(
