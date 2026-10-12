@@ -117,6 +117,29 @@ def load_model_rows():
         })
     return out
 
+def archived_provider(provider):
+    path=f"output/benchmark_pregame_archive_{SEASON}.csv"
+    if not os.path.exists(path):
+        return []
+    rows=[]
+    for r in read_csv(path):
+        if int(num(r.get("week"),-1))!=WEEK or r.get("provider")!=provider:
+            continue
+        proj=num(r.get("projection"))
+        if not math.isfinite(proj):
+            continue
+        rows.append({
+            "provider":provider,
+            "provider_id":r.get("sleeper_id",""),
+            "player_id":r.get("player_id",""),
+            "name":r.get("player_display_name",""),
+            "position":r.get("position",""),
+            "team":r.get("team",""),
+            "projection":proj,
+            "source":path
+        })
+    return rows
+
 def sleeper_players(position):
     try:
         url="https://api.sleeper.app/v1/players/nfl?"+urllib.parse.urlencode({"position":position,"active":"true"})
@@ -212,18 +235,23 @@ def espn_fetch():
         return [], f"{type(e).__name__}: {e}"
 
 def match_provider(provider_rows, model_rows):
+    byid={r["player_id"]:r for r in model_rows if r["player_id"]}
     bykey=defaultdict(list)
     for r in model_rows: bykey[(norm_name(r["name"]),r["position"])].append(r)
     matches=[]
     for p in provider_rows:
-        cand=bykey.get((norm_name(p["name"]),p["position"]),[])
-        if len(cand)==1:
-            m=cand[0]
-        elif len(cand)>1:
-            team=[x for x in cand if x["team"] and p["team"] and x["team"]==p["team"]]
-            if len(team)!=1: continue
-            m=team[0]
-        else: continue
+        direct=byid.get(p.get("player_id",""))
+        if direct is not None:
+            m=direct
+        else:
+            cand=bykey.get((norm_name(p["name"]),p["position"]),[])
+            if len(cand)==1:
+                m=cand[0]
+            elif len(cand)>1:
+                team=[x for x in cand if x["team"] and p["team"] and x["team"]==p["team"]]
+                if len(team)!=1: continue
+                m=team[0]
+            else: continue
         matches.append({**m,"provider":p["provider"],"provider_projection":p["projection"],
                         "provider_id":p["provider_id"],"provider_name":p["name"],"source":p["source"]})
     # one row per model player
@@ -279,22 +307,35 @@ def main():
     for r in model: counts[r["position"]]+=1
 
     providers=[]
-    for name,fetcher in (("sleeper",sleeper_fetch),("espn",espn_fetch)):
-        raw,msg=fetcher()
+
+    # Prefer a true pre-kickoff Sleeper snapshot when the production archive has
+    # one. Historical endpoint backfill is only the fallback for older weeks.
+    archived_sleeper=archived_provider("sleeper")
+    if archived_sleeper:
+        sleeper_raw=archived_sleeper
+        sleeper_msg=f"{len(sleeper_raw)} frozen pregame rows from benchmark archive"
+        sleeper_quality="frozen_pregame_archive"
+    else:
+        sleeper_raw,sleeper_msg=sleeper_fetch()
+        sleeper_quality="historical_endpoint_backfill_not_contemporaneous_capture"
+
+    for name,raw,msg,quality in (
+        ("sleeper",sleeper_raw,sleeper_msg,sleeper_quality),
+        ("espn",*espn_fetch(),"historical_endpoint_backfill_not_contemporaneous_capture"),
+    ):
         matched=match_provider(raw,model)
         status.append({
           "season":SEASON,"week":WEEK,"provider":name,
           "status":"ok" if matched else "unavailable",
           "provider_rows":len(raw),"matched_rows":len(matched),
           "model_rows":len(model),
-          "data_quality":"historical_endpoint_backfill_not_contemporaneous_capture",
+          "data_quality":quality,
           "message":msg,
           "fetched_at_utc":datetime.now(timezone.utc).isoformat()
         })
         if matched:
             providers.append(name)
-            for r in matched:
-                matched_long.append(r)
+            matched_long.extend(matched)
             for pos in POSITIONS:
                 d=[r for r in matched if r["position"]==pos]
                 if d: metrics.append(position_metrics(name,pos,d,counts[pos]))
