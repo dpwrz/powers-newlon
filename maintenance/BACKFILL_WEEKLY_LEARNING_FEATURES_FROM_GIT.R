@@ -93,6 +93,56 @@ parse_git_time <- function(x) {
 commits$time <- parse_git_time(commits$timestamp)
 commits <- commits[is.finite(as.numeric(commits$time)), , drop = FALSE]
 
+# Some Actions checkouts simplify this large generated file's path history even
+# with --full-history. Fall back to GitHub's public commit listing strictly for
+# enumeration; snapshot contents still come from the immutable commit object and
+# still must predate kickoff.
+if (nrow(commits) < 5 && requireNamespace("httr2", quietly = TRUE)) {
+  api_repo <- Sys.getenv("GITHUB_REPOSITORY", unset = "dpwrz/powers-newlon")
+  api_rows <- list()
+  for (page in 1:5) {
+    body <- tryCatch({
+      req <- httr2::request(paste0("https://api.github.com/repos/", api_repo, "/commits")) |>
+        httr2::req_headers(`User-Agent` = "Fantasy-Model-Weekly-Learning") |>
+        httr2::req_url_query(
+          path = "output/weekly_2026_projections.csv",
+          per_page = 100,
+          page = page
+        )
+      resp <- httr2::req_perform(req)
+      httr2::resp_body_json(resp, simplifyVector = FALSE)
+    }, error = function(e) {
+      message("[3.1 LEARNING BACKFILL] GitHub commit API fallback failed: ", conditionMessage(e))
+      list()
+    })
+    if (!length(body)) break
+    page_rows <- lapply(body, function(z) {
+      sha <- if (!is.null(z$sha)) as.character(z$sha) else ""
+      dt <- tryCatch(as.character(z$commit$committer$date), error = function(e) "")
+      data.frame(sha = sha, timestamp = dt, stringsAsFactors = FALSE)
+    })
+    api_rows[[length(api_rows) + 1]] <- dplyr::bind_rows(page_rows)
+    if (length(body) < 100) break
+  }
+  api_commits <- dplyr::bind_rows(api_rows)
+  if (nrow(api_commits)) {
+    api_commits$time <- suppressWarnings(as.POSIXct(
+      api_commits$timestamp,
+      format = "%Y-%m-%dT%H:%M:%SZ",
+      tz = "UTC"
+    ))
+    api_commits <- api_commits[
+      nzchar(api_commits$sha) & is.finite(as.numeric(api_commits$time)),
+      , drop = FALSE
+    ]
+    commits <- dplyr::bind_rows(commits, api_commits) |>
+      dplyr::arrange(time) |>
+      dplyr::distinct(sha, .keep_all = TRUE)
+    cat("[3.1 LEARNING BACKFILL] GitHub API commit fallback rows: ",
+        nrow(api_commits), "\n", sep = "")
+  }
+}
+
 # Ignore commits after now and obviously pre-season commits.
 season_floor <- as.POSIXct(paste0(season, "-08-01 00:00:00"), tz = "UTC")
 commits <- commits[
@@ -132,6 +182,19 @@ for (i in seq_len(nrow(commits))) {
     dplyr::filter(week == aw)
   if (!nrow(requested_schedule) ||
       !any(as.numeric(requested_schedule$kickoff) > as.numeric(ct), na.rm = TRUE)) next
+
+  # API-enumerated commits should already be ancestors in a fetch-depth=0
+  # checkout. If an object is absent, fetch just that immutable commit.
+  have_obj <- suppressWarnings(system2(
+    "git", c("cat-file", "-e", paste0(sha, "^{commit}")),
+    stdout = FALSE, stderr = FALSE
+  ))
+  if (!identical(as.integer(have_obj), 0L)) {
+    suppressWarnings(system2(
+      "git", c("fetch", "--no-tags", "origin", sha),
+      stdout = FALSE, stderr = FALSE
+    ))
+  }
 
   tf <- tempfile(fileext = ".csv")
   spec <- paste0(sha, ":output/weekly_2026_projections.csv")
