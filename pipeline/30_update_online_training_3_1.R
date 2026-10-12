@@ -53,8 +53,7 @@ week_status <- schedule |>
   )
 full_weeks <- week_status$week[week_status$fully_completed %in% TRUE]
 if (!length(full_weeks)) {
-  cat("[3.1 ONLINE STORE] No fully completed regular-season week yet.\n")
-  return(invisible(NULL))
+  stop("[3.1 ONLINE STORE] No fully completed regular-season week yet.")
 }
 cutoff_week <- max(full_weeks, na.rm = TRUE)
 
@@ -72,8 +71,8 @@ if (length(missing_ledger)) {
 }
 
 required_accuracy <- c(
-  "week", "player_id", "projection", "actual_fppg",
-  "starter_cohort", "relevant_cohort", "captured_at"
+  "week", "player_id", "position", "projection", "actual_fppg",
+  "starter_cohort", "relevant_cohort", "captured_at", "model_version"
 )
 missing_accuracy <- setdiff(required_accuracy, names(accuracy))
 if (length(missing_accuracy)) {
