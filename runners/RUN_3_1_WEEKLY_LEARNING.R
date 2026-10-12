@@ -192,7 +192,7 @@ for (eval_week in eligible_weeks[!eligible_weeks %in% done_weeks]) {
 
     fit <- wk31_fit(
       tr, pos, cfg,
-      seed = SEED + 31000L + eval_week * 100L + match(pos, POSITIONS)
+      seed = SEED + 3140L + 100L * match(pos, POSITIONS)
     )
     direct <- wk31_predict(fit, te)
     base <- wl31_num(te$production_base_31, 0)
@@ -282,7 +282,7 @@ for (pos in POSITIONS) {
 
   fit <- wk31_fit(
     tr, pos, cfg,
-    seed = SEED + 32000L + latest_week * 100L + match(pos, POSITIONS)
+    seed = SEED + 3140L + 100L * match(pos, POSITIONS)
   )
 
   cand_model <- file.path(version_dir, paste0("weekly_3_1_direct_", pos, ".json"))
