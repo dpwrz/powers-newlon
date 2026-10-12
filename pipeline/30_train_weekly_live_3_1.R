@@ -264,9 +264,12 @@ base_archive <- base_archive |>
   dplyr::ungroup() |>
   dplyr::select(week, player_id, position, production_base_31 = projection)
 
-# Historical 3.1 config/blend strength remains the guardrail; weekly learning
-# changes fitted weights, not the validated blend architecture.
-hist_manifest <- readr::read_csv("output/weekly_3_1_champion_manifest.csv", show_col_types = FALSE, progress = FALSE)
+# Weekly model configuration is selected from immutable historical seasons only.
+# Cache the selected row because the historical corpus does not change week to week.
+config_cache_path <- "output/weekly_3_1_live_config.csv"
+config_cache <- if (file.exists(config_cache_path)) {
+  tryCatch(readr::read_csv(config_cache_path, show_col_types = FALSE, progress = FALSE), error = function(e) data.frame())
+} else data.frame()
 
 starter_cut <- c(QB = 16, RB = 10, WR = 10, TE = 8)
 relevant_cut <- c(QB = 12, RB = 6, WR = 6, TE = 4.5)
@@ -276,18 +279,38 @@ gate_rows <- list()
 final_fit_rows <- list()
 
 for (pos in POSITIONS) {
-  meta_path <- paste0("models/weekly_3_1_direct_", pos, "_meta.rds")
-  if (!file.exists(meta_path)) stop("Missing validated 3.1 model metadata for ", pos)
-  meta <- readRDS(meta_path)
-  config_row <- meta$config
-  if (is.null(config_row) || !nrow(config_row)) {
-    config_row <- wk31_param_grid(pos)[1, , drop = FALSE]
-  }
+  cached <- if (nrow(config_cache) && "position" %in% names(config_cache)) {
+    config_cache[as.character(config_cache$position) == pos, , drop = FALSE]
+  } else data.frame()
 
-  mf <- hist_manifest[hist_manifest$position == pos, , drop = FALSE]
-  alpha <- if (nrow(mf)) suppressWarnings(as.numeric(mf$final_alpha_2026[1])) else 0
-  if (!is.finite(alpha)) alpha <- 0
-  alpha <- min(alpha, as.numeric(MODEL31_FINAL_ALPHA_CAP[[pos]]))
+  if (nrow(cached) && "config_id" %in% names(cached)) {
+    grid <- wk31_param_grid(pos)
+    config_row <- grid[grid$config_id == as.character(cached$config_id[1]), , drop = FALSE]
+  } else {
+    tune <- wk31_select_config(
+      historical |> dplyr::filter(position == pos),
+      pos,
+      seed = SEED + 31800L + match(pos, POSITIONS)
+    )
+    config_row <- tune[tune$selected %in% TRUE, , drop = FALSE]
+    if (!nrow(config_row)) config_row <- tune[1, , drop = FALSE]
+    config_cache <- dplyr::bind_rows(
+      config_cache |> dplyr::filter(!("position" %in% names(config_cache)) | as.character(position) != pos),
+      data.frame(
+        position = pos,
+        config_id = as.character(config_row$config_id[1]),
+        selected_from = paste0(min(historical$season, na.rm = TRUE), "-", max(historical$season, na.rm = TRUE)),
+        selected_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+        stringsAsFactors = FALSE
+      )
+    )
+  }
+  if (!nrow(config_row)) stop("Could not resolve weekly learner config for ", pos)
+
+  alpha <- min(
+    as.numeric(MODEL31_WEEKLY_ALPHA[[pos]]),
+    as.numeric(MODEL31_FINAL_ALPHA_CAP[[pos]])
+  )
 
   live_pos <- live_history |>
     dplyr::filter(position == pos, week <= completed_through) |>
@@ -379,6 +402,7 @@ for (pos in POSITIONS) {
 }
 
 live_oof <- dplyr::bind_rows(oof_rows)
+if (nrow(config_cache)) readr::write_csv(config_cache, config_cache_path)
 gates <- dplyr::bind_rows(gate_rows)
 if (nrow(live_oof)) readr::write_csv(live_oof, oof_path)
 readr::write_csv(gates, "output/weekly_3_1_live_promotion.csv")
