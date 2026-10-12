@@ -1,0 +1,50 @@
+name: Week 4 competitor benchmark backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      week:
+        description: NFL week to benchmark
+        required: true
+        default: '4'
+  push:
+    branches:
+      - benchmark/week4-provider-backfill
+    paths:
+      - tools/benchmark_competitors.py
+      - .github/workflows/week4-competitor-benchmark.yml
+
+permissions:
+  contents: write
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BENCHMARK_SEASON: '2026'
+      BENCHMARK_WEEK: ${{ inputs.week || '4' }}
+    steps:
+      - name: Checkout benchmark branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run competitor benchmark
+        run: python tools/benchmark_competitors.py
+
+      - name: Commit benchmark outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f "output/competitor_benchmark_week_${BENCHMARK_WEEK}_2026_status.csv"
+          git add -f "output/competitor_benchmark_week_${BENCHMARK_WEEK}_2026_metrics.csv"
+          git add -f "output/competitor_benchmark_week_${BENCHMARK_WEEK}_2026_matched_players.csv"
+          if git diff --cached --quiet; then
+            echo "No benchmark output changes."
+            exit 0
+          fi
+          git commit -m "Backfill Week ${BENCHMARK_WEEK} competitor benchmark"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
