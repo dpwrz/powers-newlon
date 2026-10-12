@@ -130,6 +130,14 @@ wk31_fit <- function(d, pos, config_row, target_col = "weekly_fppg",
 
   X <- wk25_prepare_matrix(d[keep, , drop = FALSE], features)
   w <- wk31_training_weight(d[keep, , drop = FALSE], pos)
+  # Online weekly learning may up-weight recent completed-season rows without
+  # deleting or down-sampling historical observations. Historical validation
+  # behavior is unchanged because this column is absent there.
+  if ("online_recency_weight_31" %in% names(d)) {
+    rw <- wk31_num(d$online_recency_weight_31[keep], 1)
+    rw <- pmin(3, pmax(0.5, rw))
+    w <- w * rw
+  }
   dm <- xgboost::xgb.DMatrix(X, label = y[keep], weight = w)
   nrounds <- as.integer(config_row$nrounds[[1]])
 
