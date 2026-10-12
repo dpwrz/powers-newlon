@@ -1,0 +1,41 @@
+name: Weekly learning fast check
+
+on:
+  push:
+    branches: [weekly-learning-31]
+    paths:
+      - '.github/workflows/weekly-learning-fast-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-learning-fast-check
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::dplyr
+            any::readr
+            any::xgboost
+            any::nflreadr
+            any::jsonlite
+          cache-version: 1
+      - name: Run learning tests
+        run: Rscript tests/TEST_3_1_WEEKLY_LEARNING.R
+      - name: Dry-run honest Git backfill
+        run: Rscript maintenance/BACKFILL_WEEKLY_LEARNING_FEATURES_FROM_GIT.R
