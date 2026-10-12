@@ -1,0 +1,16 @@
+FANTASY MODEL 3.1 - PERFORMANCE / ACCURACY TOURNAMENT
+Generated: 2026-10-12 15:44:47 +0000
+
+CHANGES
+- Decision-weighted training uses only pre-kickoff relevance proxies.
+- XGBoost hyperparameters are selected independently by position.
+- Inner tuning uses only seasons earlier than each outer OOF target season.
+- Adaptive prior features accelerate/decelerate preseason-prior decay from lagged role evidence.
+- Promotion compares against the exact deployed 2.5 + validated feedback baseline.
+- 2026 outcomes are not used for fitting or hyperparameter selection.
+
+PROMOTION SUMMARY
+QB: KEEP 2.5 | alpha 0.15 | starter MAE 6.5741 -> 6.5674 | starter RMSE 8.2409 -> 8.2173 | config QB_08 | failed: relevant_MAE
+RB: PROMOTE | alpha 0.30 | starter MAE 5.9773 -> 5.9590 | starter RMSE 7.7104 -> 7.7205 | config RB_04 | all gates passed
+WR: PROMOTE | alpha 0.40 | starter MAE 5.7601 -> 5.7327 | starter RMSE 7.3653 -> 7.3720 | config WR_04 | all gates passed
+TE: PROMOTE | alpha 0.30 | starter MAE 4.8183 -> 4.7686 | starter RMSE 6.3528 -> 6.3501 | config TE_06 | all gates passed
