@@ -130,6 +130,11 @@ wk31_fit <- function(d, pos, config_row, target_col = "weekly_fppg",
 
   X <- wk25_prepare_matrix(d[keep, , drop = FALSE], features)
   w <- wk31_training_weight(d[keep, , drop = FALSE], pos)
+  if ("training_weight_multiplier_31" %in% names(d)) {
+    mult <- wk31_num(d$training_weight_multiplier_31[keep], 1)
+    mult <- pmin(5, pmax(0.25, mult))
+    w <- w * mult
+  }
   dm <- xgboost::xgb.DMatrix(X, label = y[keep], weight = w)
   nrounds <- as.integer(config_row$nrounds[[1]])
 
