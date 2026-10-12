@@ -14,7 +14,13 @@ if (!file.exists("data/raw/weekly_defense_context_raw.csv")) {
   stop("Missing weekly PBP defense store. Run source(\"pipeline/BUILD_WEEKLY_DEFENSE_CONTEXT.R\") once first.")
 }
 
-hist_seasons <- WEEKLY_TRAIN_START:TRAIN_END
+weekly_data_end <- suppressWarnings(as.integer(Sys.getenv("FM_WEEKLY_DATA_END", unset = as.character(TRAIN_END))))
+if (!is.finite(weekly_data_end)) weekly_data_end <- TRAIN_END
+weekly_data_end <- max(WEEKLY_TRAIN_START, min(CURRENT_SEASON, weekly_data_end))
+weekly_model_table_out <- Sys.getenv("FM_WEEKLY_MODEL_TABLE_OUT", unset = "")
+isolated_weekly_build <- nzchar(weekly_model_table_out)
+
+hist_seasons <- WEEKLY_TRAIN_START:weekly_data_end
 cat("[2.3 WEEKLY DATA] Loading player-week stats: ", min(hist_seasons), "-", max(hist_seasons), "\n", sep = "")
 weekly_raw <- nflreadr::load_player_stats(seasons = hist_seasons, summary_level = "week")
 readr::write_csv(weekly_raw, "data/raw/player_weekly_stats.csv")
@@ -49,7 +55,7 @@ cat("[2.3 WEEKLY DATA] Loading historical injury reports where available...\n")
 # signal rather than allowing a failed 2025/2026 request to erase all injury data.
 injuries <- data.frame()
 if (isTRUE(WEEKLY_USE_INJURIES)) {
-  injury_end <- min(2024L, TRAIN_END)
+  injury_end <- min(2024L, weekly_data_end)
   if (injury_end >= WEEKLY_TRAIN_START) {
     injuries <- tryCatch(
       nflreadr::load_injuries(seasons = WEEKLY_TRAIN_START:injury_end),
@@ -512,10 +518,16 @@ weekly <- weekly |>
   dplyr::filter(position %in% POSITIONS, is.finite(weekly_fppg), !is.na(opponent), opponent != "") |>
   dplyr::arrange(season, week, position, player_display_name)
 
-readr::write_csv(weekly, "data/processed/weekly_model_table_2_2.csv")
-readr::write_csv(weekly, "data/processed/weekly_model_table_2_3.csv")
-# Backward-compatible copy for the 2.1 app/research scripts.
-readr::write_csv(weekly, "data/processed/weekly_model_table_2_1.csv")
-readr::write_csv(def_pos_week, "data/processed/weekly_defense_position_results.csv")
+if (isolated_weekly_build) {
+  dir.create(dirname(weekly_model_table_out), recursive = TRUE, showWarnings = FALSE)
+  readr::write_csv(weekly, weekly_model_table_out)
+  cat("[2.3 WEEKLY DATA] Isolated training feature table written: ", weekly_model_table_out, "\n", sep = "")
+} else {
+  readr::write_csv(weekly, "data/processed/weekly_model_table_2_2.csv")
+  readr::write_csv(weekly, "data/processed/weekly_model_table_2_3.csv")
+  # Backward-compatible copy for the 2.1 app/research scripts.
+  readr::write_csv(weekly, "data/processed/weekly_model_table_2_1.csv")
+  readr::write_csv(def_pos_week, "data/processed/weekly_defense_position_results.csv")
+}
 cat("[2.3 WEEKLY DATA] 2.3-compatible feature table complete: ", nrow(weekly), " player-weeks.\n", sep = "")
 cat("[2.3 WEEKLY DATA] Seasons: ", min(weekly$season), "-", max(weekly$season), ".\n", sep = "")
