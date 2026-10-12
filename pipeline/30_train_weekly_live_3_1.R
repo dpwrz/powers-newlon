@@ -72,17 +72,48 @@ week_state <- schedule |>
   dplyr::summarise(games = dplyr::n(), all_final = all(.completed %in% TRUE), .groups = "drop") |>
   dplyr::arrange(week)
 
-completed_through <- 0L
+completed_through_schedule <- 0L
 for (w in seq_len(max(week_state$week, na.rm = TRUE))) {
   z <- week_state[week_state$week == w, , drop = FALSE]
   if (!nrow(z) || !isTRUE(z$all_final[1])) break
-  completed_through <- w
+  completed_through_schedule <- w
 }
+
+# nflreadr's schedule artifact can temporarily expose current/future fixtures
+# without final score fields even though the production refresh already observed
+# finalized games. Cross-check the persisted production state against the
+# schedule's cumulative number of regular-season games. This proves whole weeks
+# are complete without treating a partial next week (e.g. TNF only) as final.
+completed_through_state <- 0L
+state_path31 <- file.path("data","state",paste0("live_refresh_state_3_1_", CURRENT_SEASON, ".json"))
+state31 <- if (file.exists(state_path31)) live25_read_json(state_path31) else list()
+state_completed <- suppressWarnings(as.integer(state31$completed_games))
+state_latest_week <- suppressWarnings(as.integer(state31$latest_actual_week))
+if (length(state_completed) && is.finite(state_completed) &&
+    length(state_latest_week) && is.finite(state_latest_week)) {
+  cumulative <- week_state |>
+    dplyr::arrange(week) |>
+    dplyr::mutate(cumulative_games = cumsum(games))
+  eligible <- cumulative$week <= state_latest_week &
+    cumulative$cumulative_games <= state_completed
+  if (any(eligible, na.rm = TRUE)) {
+    completed_through_state <- max(cumulative$week[eligible], na.rm = TRUE)
+  }
+}
+
+completed_through <- max(completed_through_schedule, completed_through_state, na.rm = TRUE)
+if (!is.finite(completed_through)) completed_through <- 0L
+completed_through <- as.integer(completed_through)
+
 if (completed_through < 1L) {
   cat("[3.1 WEEKLY LEARN] No fully completed regular-season week yet; nothing to train.\n")
   quit(save = "no", status = 0)
 }
-cat("[3.1 WEEKLY LEARN] Fully completed through Week ", completed_through, ".\n", sep = "")
+cat(
+  "[3.1 WEEKLY LEARN] Fully completed through Week ", completed_through,
+  " | schedule=", completed_through_schedule,
+  " | production-state=", completed_through_state, ".\n", sep = ""
+)
 
 parse_kickoff31 <- function(gameday, gametime) {
   gd <- as.character(gameday)
