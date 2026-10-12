@@ -126,7 +126,10 @@ if (any(!file.exists(req31))) {
       du <- wk31_add_features(d[unplayed, , drop = FALSE])
       direct_raw <- wk31_predict(obj_live, du)
       avail <- if ("availability_factor" %in% names(du)) wk31_num(du$availability_factor, 1) else rep(1, nrow(du))
-      direct_final <- direct_raw * pmax(0, avail)
+      # The direct learner is trained against realized weekly fantasy points and
+      # already consumes pregame availability features. Match the validated 3.1
+      # blend: do not multiply the direct prediction by availability a second time.
+      direct_final <- direct_raw
       base_final <- wk31_num(du$projected_weekly_fppg)
       candidate_final <- pmax(0, base_final + alpha_live * (direct_final - base_final))
       candidate_final[avail <= 0] <- 0
