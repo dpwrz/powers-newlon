@@ -64,6 +64,33 @@ wl31_schema_hash <- function(features = MODEL31_SAFE_FEATURES) {
   unname(as.character(tools::md5sum(tf)))
 }
 
+wl31_completed_schedule_weeks <- function(schedule) {
+  if (is.null(schedule) || !nrow(schedule) || !"week" %in% names(schedule)) {
+    return(integer())
+  }
+  s <- schedule
+  s$week <- suppressWarnings(as.integer(s$week))
+  if (!"result" %in% names(s)) {
+    # Do not infer "final" from live scores. A non-final game can have finite
+    # home/away scores, which would leak a partial NFL week into training.
+    return(integer())
+  }
+  result <- suppressWarnings(as.numeric(s$result))
+  if (!any(is.finite(result))) return(integer())
+  s$.completed <- is.finite(result)
+  z <- s |>
+    dplyr::filter(is.finite(week)) |>
+    dplyr::group_by(week) |>
+    dplyr::summarise(
+      game_rows = dplyr::n(),
+      completed_rows = sum(.completed, na.rm = TRUE),
+      all_final = game_rows > 0 && completed_rows == game_rows,
+      .groups = "drop"
+    ) |>
+    dplyr::filter(all_final)
+  sort(unique(as.integer(z$week)))
+}
+
 wl31_normalize_bind_types <- function(old, new) {
   char_cols <- c(
     "captured_at_utc","kickoff_utc","player_id","player_display_name",
