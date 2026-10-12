@@ -121,7 +121,8 @@ wk31_params_from_row <- function(r, seed = 42L, objective = "reg:pseudohubererro
 }
 
 wk31_fit <- function(d, pos, config_row, target_col = "weekly_fppg",
-                     features = MODEL31_SAFE_FEATURES, seed = 42L) {
+                     features = MODEL31_SAFE_FEATURES, seed = 42L,
+                     extra_weight = NULL) {
   if (!requireNamespace("xgboost", quietly = TRUE)) stop("xgboost is required for Model 3.1.")
   d <- wk31_add_features(d)
   y <- wk31_num(d[[target_col]], NA_real_)
@@ -130,6 +131,11 @@ wk31_fit <- function(d, pos, config_row, target_col = "weekly_fppg",
 
   X <- wk25_prepare_matrix(d[keep, , drop = FALSE], features)
   w <- wk31_training_weight(d[keep, , drop = FALSE], pos)
+  if (!is.null(extra_weight)) {
+    ew <- wk31_num(extra_weight, 1)
+    if (length(ew) != nrow(d)) stop("extra_weight must have one value per training row.")
+    w <- w * pmin(3, pmax(0.25, ew[keep]))
+  }
   dm <- xgboost::xgb.DMatrix(X, label = y[keep], weight = w)
   nrounds <- as.integer(config_row$nrounds[[1]])
 
