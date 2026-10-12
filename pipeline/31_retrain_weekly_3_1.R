@@ -14,24 +14,33 @@ source("R/weekly_engine_31.R")
 
 training_path <- "data/processed/weekly_model_table_3_1_training.csv"
 archive_path <- paste0("output/pregame_projection_archive_", CURRENT_SEASON, ".csv")
-hist_manifest_path <- "output/weekly_3_1_champion_manifest.csv"
-hist_promotion_path <- "output/weekly_3_1_promotion.csv"
-hist_residual_path <- "output/weekly_3_1_residual_pool.csv"
+production_manifest_path <- "output/weekly_3_1_champion_manifest.csv"
+production_promotion_path <- "output/weekly_3_1_promotion.csv"
+production_residual_path <- "output/weekly_3_1_residual_pool.csv"
+historical_manifest_path <- "output/weekly_3_1_historical_champion_manifest.csv"
+historical_promotion_path <- "output/weekly_3_1_historical_promotion.csv"
+historical_residual_path <- "output/weekly_3_1_historical_residual_pool.csv"
 
 if (!file.exists(training_path)) stop("Missing weekly learning table: ", training_path)
 
 # Build the historical 3.1 benchmark once if it has never been generated.
 # This always reads the immutable historical table and does not fit on 2026.
-if (!file.exists(hist_manifest_path) || !file.exists(hist_promotion_path) ||
-    !file.exists(hist_residual_path)) {
-  cat("[3.1 LEARNING] Historical 3.1 benchmark absent; building it once before live learning.\n")
-  source("pipeline/27_train_validate_accuracy_3_1.R", local = FALSE)
+if (!file.exists(historical_manifest_path) || !file.exists(historical_promotion_path) ||
+    !file.exists(historical_residual_path)) {
+  if (!file.exists(production_manifest_path) || !file.exists(production_promotion_path) ||
+      !file.exists(production_residual_path)) {
+    cat("[3.1 LEARNING] Historical 3.1 benchmark absent; building it once before live learning.\n")
+    source("pipeline/27_train_validate_accuracy_3_1.R", local = FALSE)
+  }
+  file.copy(production_manifest_path, historical_manifest_path, overwrite = FALSE)
+  file.copy(production_promotion_path, historical_promotion_path, overwrite = FALSE)
+  file.copy(production_residual_path, historical_residual_path, overwrite = FALSE)
 }
 
 training <- readr::read_csv(training_path, show_col_types = FALSE, progress = FALSE)
-manifest_hist <- readr::read_csv(hist_manifest_path, show_col_types = FALSE, progress = FALSE)
-promotion_hist <- readr::read_csv(hist_promotion_path, show_col_types = FALSE, progress = FALSE)
-residual_hist <- readr::read_csv(hist_residual_path, show_col_types = FALSE, progress = FALSE)
+manifest_hist <- readr::read_csv(historical_manifest_path, show_col_types = FALSE, progress = FALSE)
+promotion_hist <- readr::read_csv(historical_promotion_path, show_col_types = FALSE, progress = FALSE)
+residual_hist <- readr::read_csv(historical_residual_path, show_col_types = FALSE, progress = FALSE)
 
 training$season <- as.integer(training$season)
 training$week <- as.integer(training$week)
@@ -303,7 +312,7 @@ readr::write_csv(
   live_gate,
   paste0("output/weekly_3_1_live_learning_gate_", CURRENT_SEASON, ".csv")
 )
-readr::write_csv(live_gate, "output/weekly_3_1_promotion.csv")
+readr::write_csv(live_gate, production_promotion_path)
 
 # Preserve historical manifest metrics while surfacing the live weekly gate.
 manifest_live <- manifest_hist |>
@@ -330,7 +339,7 @@ manifest_live <- manifest_hist |>
       ),
     by = "position"
   )
-readr::write_csv(manifest_live, hist_manifest_path)
+readr::write_csv(manifest_live, production_manifest_path)
 
 # Historical residuals remain; current-season honest rolling residuals are
 # appended to the derived residual pool for interval estimation.
@@ -356,7 +365,7 @@ if (nrow(live_validation)) {
     live_residual
   ) |>
     dplyr::arrange(season, week, position, player_id)
-  readr::write_csv(residual_combined, hist_residual_path)
+  readr::write_csv(residual_combined, production_residual_path)
 }
 
 run_path <- paste0("output/weekly_3_1_learning_runs_", CURRENT_SEASON, ".csv")
