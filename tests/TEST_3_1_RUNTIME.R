@@ -49,4 +49,10 @@ mask_done <- live25_completed_mask(sched_done)
 stopifnot(identical(mask_done, c(TRUE, FALSE, FALSE)))
 stopifnot(live25_completed_games(sched_done) == 1L)
 
+old_weight <- Sys.getenv("FM_31_CURRENT_SEASON_WEIGHT", unset = NA_character_)
+Sys.setenv(FM_31_CURRENT_SEASON_WEIGHT = "1.5")
+rw <- wk31_recency_weight(data.frame(season = c(TRAIN_END, CURRENT_SEASON)))
+stopifnot(identical(as.numeric(rw), c(1, 1.5)))
+if (is.na(old_weight)) Sys.unsetenv("FM_31_CURRENT_SEASON_WEIGHT") else Sys.setenv(FM_31_CURRENT_SEASON_WEIGHT = old_weight)
+
 cat("Model 3.1 runtime checks passed.\n")
