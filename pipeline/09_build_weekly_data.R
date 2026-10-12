@@ -18,6 +18,19 @@ weekly_learning_output <- Sys.getenv(
   "FM_WEEKLY_DATA_OUTPUT",
   unset = file.path("data","processed",paste0("weekly_model_table_3_1_through_", weekly_build_end, ".csv"))
 )
+weekly_raw_suffix <- if (weekly_learning_mode) paste0("_learning_through_", weekly_build_end) else ""
+weekly_player_raw_path <- if (weekly_learning_mode) {
+  file.path("data","raw",paste0("player_weekly_stats", weekly_raw_suffix, ".csv"))
+} else "data/raw/player_weekly_stats.csv"
+weekly_schedule_raw_path <- if (weekly_learning_mode) {
+  file.path("data","raw",paste0("schedules_weekly_model", weekly_raw_suffix, ".csv"))
+} else "data/raw/schedules_weekly_model.csv"
+weekly_snap_raw_path <- if (weekly_learning_mode) {
+  file.path("data","raw",paste0("snap_counts_weekly_model", weekly_raw_suffix, ".csv"))
+} else "data/raw/snap_counts_weekly_model.csv"
+weekly_ngs_raw_path <- if (weekly_learning_mode) {
+  file.path("data","raw",paste0("ngs_weekly_model_2_2", weekly_raw_suffix, ".csv"))
+} else "data/raw/ngs_weekly_model_2_2.csv"
 
 if (!file.exists("data/raw/weekly_defense_context_raw.csv")) {
   stop("Missing weekly PBP defense store. Run source(\"pipeline/BUILD_WEEKLY_DEFENSE_CONTEXT.R\") once first.")
@@ -26,7 +39,7 @@ if (!file.exists("data/raw/weekly_defense_context_raw.csv")) {
 hist_seasons <- WEEKLY_TRAIN_START:weekly_build_end
 cat("[2.3 WEEKLY DATA] Loading player-week stats: ", min(hist_seasons), "-", max(hist_seasons), "\n", sep = "")
 weekly_raw <- nflreadr::load_player_stats(seasons = hist_seasons, summary_level = "week")
-readr::write_csv(weekly_raw, "data/raw/player_weekly_stats.csv")
+readr::write_csv(weekly_raw, weekly_player_raw_path)
 weekly <- normalize_weekly_stats21(weekly_raw)
 # Standardized fields used by 2.2 rate shrinkage. nflverse names QB interceptions
 # passing_interceptions in current player-week files.
@@ -50,7 +63,7 @@ if (nrow(weekly) == 0) stop("No historical weekly player stats were loaded.")
 
 cat("[2.3 WEEKLY DATA] Loading schedules through ", CURRENT_SEASON, "...\n", sep = "")
 schedules <- nflreadr::load_schedules(seasons = WEEKLY_TRAIN_START:CURRENT_SEASON)
-readr::write_csv(schedules, "data/raw/schedules_weekly_model.csv")
+readr::write_csv(schedules, weekly_schedule_raw_path)
 team_schedule <- schedule_team_rows21(schedules)
 
 cat("[2.3 WEEKLY DATA] Loading historical injury reports where available...\n")
@@ -95,7 +108,7 @@ if (nrow(snap_raw) > 0) {
     # PFR usually stores pct as 0-1, but normalize defensively if a source version uses 0-100.
     snap_week$offense_pct <- ifelse(snap_week$offense_pct > 1.5, snap_week$offense_pct / 100, snap_week$offense_pct)
     weekly <- weekly |> dplyr::left_join(snap_week, by = c("season", "week", "player_id"))
-    readr::write_csv(snap_week, "data/raw/snap_counts_weekly_model.csv")
+    readr::write_csv(snap_week, weekly_snap_raw_path)
     rm(player_ids, id_map, snap_week)
   } else {
     weekly$offense_snaps <- NA_real_; weekly$offense_pct <- NA_real_
@@ -188,7 +201,7 @@ if (isTRUE(WEEKLY_22_USE_NGS)) {
     )
     ngs_week <- ngs_week |> dplyr::distinct(season, week, player_id, .keep_all = TRUE)
     weekly <- weekly |> dplyr::left_join(ngs_week, by = c("season", "week", "player_id"))
-    readr::write_csv(ngs_week, "data/raw/ngs_weekly_model_2_2.csv")
+    readr::write_csv(ngs_week, weekly_ngs_raw_path)
     cat("[2.2.2 NGS] Joined ", nrow(ngs_week), " normalized player-week NGS rows.\n", sep = "")
     rm(ngs_week, ngs_parts); invisible(gc(full = TRUE))
   } else {
