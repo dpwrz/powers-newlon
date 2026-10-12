@@ -23,7 +23,7 @@ stopifnot(grepl("op\\$week < target_week", train_code))
 stopifnot(grepl("Alpha for Week K is selected ONLY from Weeks < K", train_code, fixed = TRUE))
 
 # A past cutoff model/snapshot is never overwritten.
-stopifnot(grepl("if (!file.exists(snapshot_path))", store_code, fixed = TRUE))
+stopifnot(grepl("if (file.exists(snapshot_path))", store_code, fixed = TRUE))
 stopifnot(grepl("if (!file.exists(archive_model))", train_code, fixed = TRUE))
 stopifnot(grepl("if (!file.exists(archive_meta))", train_code, fixed = TRUE))
 
