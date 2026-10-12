@@ -1,0 +1,154 @@
+name: Fantasy Model 3.1 weekly learning
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Tuesday morning after MNF is finalized and data feeds have settled.
+    - cron: '30 12 * * 2'
+  push:
+    branches:
+      - fm-3-1-weekly-learning-preserve-history
+    paths:
+      - 'R/weekly_engine_31.R'
+      - 'R/weekly_training_history_31.R'
+      - 'pipeline/09_build_weekly_data.R'
+      - 'pipeline/28_project_weekly_2026_3_1.R'
+      - 'pipeline/30_train_weekly_live_3_1.R'
+      - 'runners/RUN_3_1_WEEKLY_LEARN.R'
+      - 'tests/TEST_3_1_WEEKLY_LEARNING.R'
+      - '.github/workflows/fantasy-weekly-learning.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fantasy-model-production-state
+  cancel-in-progress: false
+
+jobs:
+  weekly-learning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout Fantasy Model
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Install R dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::dplyr
+            any::readr
+            any::tidyr
+            any::tibble
+            any::purrr
+            any::janitor
+            any::jsonlite
+            any::nflreadr
+            any::rpart
+            any::xgboost
+            any::ranger
+            any::slider
+            any::httr2
+          cache-version: 7
+
+      - name: Parse weekly learning code
+        shell: bash
+        run: |
+          set -euo pipefail
+          Rscript -e 'files <- c(
+            "R/weekly_engine_31.R",
+            "R/weekly_training_history_31.R",
+            "pipeline/09_build_weekly_data.R",
+            "pipeline/28_project_weekly_2026_3_1.R",
+            "pipeline/30_train_weekly_live_3_1.R",
+            "runners/RUN_3_1_WEEKLY_LEARN.R",
+            "tests/TEST_3_1_WEEKLY_LEARNING.R"
+          ); for (f in files) { parse(file=f); cat("parsed ", f, "\n", sep="") }'
+
+      - name: Run weekly learning safety tests
+        run: Rscript tests/TEST_3_1_WEEKLY_LEARNING.R
+
+      - name: Train guarded weekly challengers and refresh production
+        env:
+          FM_RELEASE_VERSION: '3.1'
+        run: Rscript runners/RUN_3_1_WEEKLY_LEARN.R
+
+      - name: Verify weekly learning artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f data/processed/weekly_training_live_2026.csv
+          test -f output/weekly_3_1_live_promotion.csv
+          test -f output/weekly_3_1_live_manifest.csv
+          test -f output/weekly_3_1_live_evaluation_history.csv
+          test -f output/model_snapshot.json
+
+      - name: Sync production snapshot into web app
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p web/public/data
+          cp output/model_snapshot.json web/public/data/model_snapshot.json
+          SNAPSHOT="web/public/data/model_snapshot.json"
+          VERSION="$(sha256sum "$SNAPSHOT" | awk '{print $1}')"
+          PUBLISHED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          printf '{"version":"%s","snapshot":"model_snapshot.json","published_at":"%s","contract":"web-1.1-versioned-snapshot"}\n' \
+            "$VERSION" "$PUBLISHED_AT" > web/public/data/snapshot_version.json
+
+      - name: Remove ephemeral rebuild tables
+        shell: bash
+        run: |
+          rm -f data/processed/weekly_model_table_3_1_learning_*.csv
+          rm -f data/raw/player_weekly_stats_learning_through_*.csv
+          rm -f data/raw/schedules_weekly_model_learning_through_*.csv
+          rm -f data/raw/snap_counts_weekly_model_learning_through_*.csv
+          rm -f data/raw/ngs_weekly_model_2_2_learning_through_*.csv
+
+      - name: Commit weekly learning state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -f \
+            data/processed/weekly_training_live_*.csv \
+            models/weekly_3_1_live_*.json \
+            models/weekly_3_1_live_*_meta.rds \
+            models/archive/weekly_3_1_live/ \
+            output/weekly_3_1_live_*.csv \
+            output/weekly_3_1_live_quality_report.txt \
+            output/pregame_feature_history_*.csv \
+            output/weekly_*_projections.csv \
+            output/week_*_rankings.csv \
+            output/rest_of_season_*.csv \
+            output/live_accuracy_*.csv \
+            output/model_snapshot.json \
+            data/state/ \
+            web/public/data/model_snapshot.json \
+            web/public/data/snapshot_version.json \
+            2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No weekly learning state changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Weekly-learn Fantasy Model 3.1"
+
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git stash push --include-untracked -m "weekly-learning-runtime-leftovers"
+          fi
+
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
