@@ -38,11 +38,21 @@ if (!file.exists(historical_path)) stop("Missing immutable historical weekly tab
 # 1) Resolve the last CONSECUTIVE fully completed regular-season week.
 # -------------------------------------------------------------------------
 schedule_path <- paste0("data/raw/schedules_live_", CURRENT_SEASON, ".csv")
-schedule <- if (file.exists(schedule_path)) {
-  tryCatch(readr::read_csv(schedule_path, show_col_types = FALSE, progress = FALSE), error = function(e) data.frame())
-} else data.frame()
-if (!nrow(schedule)) {
-  schedule <- tryCatch(nflreadr::load_schedules(seasons = CURRENT_SEASON), error = function(e) data.frame())
+# Training must know which games are actually final. The repository cache can
+# intentionally contain schedule/context rows without committed live scores, so
+# poll nflverse first and use the cache only as an outage fallback.
+schedule <- tryCatch(
+  nflreadr::load_schedules(seasons = CURRENT_SEASON),
+  error = function(e) {
+    warning("Fresh schedule poll failed; attempting local cache. ", conditionMessage(e))
+    data.frame()
+  }
+)
+if (!nrow(schedule) && file.exists(schedule_path)) {
+  schedule <- tryCatch(
+    readr::read_csv(schedule_path, show_col_types = FALSE, progress = FALSE),
+    error = function(e) data.frame()
+  )
 }
 if (!nrow(schedule)) stop("Weekly learning requires the current-season schedule.")
 
