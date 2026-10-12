@@ -230,7 +230,14 @@ for (eval_week in eligible_weeks[!eligible_weeks %in% done_weeks]) {
       production_base_31 = base,
       blend_alpha_31 = alpha,
       candidate_projection = cand,
-      incumbent_projection = wl31_num(te$production_projection, NA_real_),
+      incumbent_projection = if ("frozen_incumbent_projection" %in% names(te)) {
+        dplyr::coalesce(
+          wl31_num(te$frozen_incumbent_projection, NA_real_),
+          wl31_num(te$production_projection, NA_real_)
+        )
+      } else {
+        wl31_num(te$production_projection, NA_real_)
+      },
       actual_fppg_at_evaluation = wl31_num(te$actual_fppg, NA_real_),
       feature_schema_hash = as.character(te$feature_schema_hash),
       stringsAsFactors = FALSE
