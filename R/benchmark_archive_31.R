@@ -149,25 +149,52 @@ bench31_active_week <- function(weekly, schedule_team = NULL, captured_at = Sys.
 }
 
 bench31_identity_map <- function() {
-  p <- tryCatch(nflreadr::load_players(), error = function(e) tibble::tibble())
-  if (!nrow(p)) return(tibble::tibble())
-  p <- tibble::as_tibble(p)
-  n <- nrow(p)
-  sleeper_id <- bench31_first(p, c("sleeper_id", "sleeper_player_id"), "")
-  gsis_id <- bench31_first(p, c("gsis_id", "player_id", "nflverse_id"), "")
-  display_name <- bench31_first(p, c("display_name", "full_name", "player_name"), "")
-  position <- bench31_first(p, c("position", "position_group"), "")
-  team <- bench31_first(p, c("team_abbr", "team", "latest_team"), "")
+  # Sleeper IDs are not part of nflreadr::load_players(); they live in the
+  # fantasy-platform crosswalk returned by load_ff_playerids(). Using
+  # load_players() alone silently produced an empty Sleeper identity map and
+  # caused every external Sleeper capture to match zero model players.
+  ids <- tryCatch(nflreadr::load_ff_playerids(), error = function(e) tibble::tibble())
+  if (!nrow(ids)) return(tibble::tibble())
 
-  tibble::tibble(
+  ids <- tibble::as_tibble(ids)
+  sleeper_id <- bench31_first(ids, c("sleeper_id"), "")
+  gsis_id <- bench31_first(ids, c("gsis_id", "player_id"), "")
+  display_name <- bench31_first(ids, c("name", "player_name", "full_name"), "")
+
+  out <- tibble::tibble(
     sleeper_id = bench31_chr(sleeper_id),
     player_id = bench31_chr(gsis_id),
-    identity_name = bench31_chr(display_name),
-    identity_position = bench31_chr(position),
-    identity_team = bench31_chr(team)
+    identity_name = bench31_chr(display_name)
   ) |>
     dplyr::filter(nzchar(sleeper_id), nzchar(player_id)) |>
     dplyr::distinct(sleeper_id, .keep_all = TRUE)
+
+  p <- tryCatch(nflreadr::load_players(), error = function(e) tibble::tibble())
+  if (nrow(p)) {
+    p <- tibble::as_tibble(p)
+    meta <- tibble::tibble(
+      player_id = bench31_chr(bench31_first(p, c("gsis_id", "player_id", "nflverse_id"), "")),
+      meta_name = bench31_chr(bench31_first(p, c("display_name", "full_name", "player_name"), "")),
+      identity_position = toupper(bench31_chr(bench31_first(p, c("position", "position_group"), ""))),
+      identity_team = toupper(bench31_chr(bench31_first(p, c("latest_team", "team_abbr", "team"), "")))
+    ) |>
+      dplyr::filter(nzchar(player_id)) |>
+      dplyr::distinct(player_id, .keep_all = TRUE)
+
+    out <- out |>
+      dplyr::left_join(meta, by = "player_id") |>
+      dplyr::mutate(
+        identity_name = dplyr::if_else(
+          nzchar(identity_name), identity_name, dplyr::coalesce(meta_name, "")
+        )
+      ) |>
+      dplyr::select(-meta_name)
+  } else {
+    out$identity_position <- ""
+    out$identity_team <- ""
+  }
+
+  out
 }
 
 bench31_half_ppr_from_stats <- function(stats) {
@@ -272,9 +299,12 @@ bench31_sleeper_candidate_urls <- function(season, week) {
 
   unique(c(
     override_url,
-    paste0("https://api.sleeper.app/v1/projections/nfl/regular/", season, "/", week),
+    # This is the documented projection route used by Sleeper clients.
+    paste0("https://api.sleeper.com/projections/nfl/", season, "/", week),
+    # Keep app-host fallbacks because Sleeper's internal routes have changed
+    # over time; a failure on one route should not kill the benchmark.
     paste0("https://api.sleeper.app/projections/nfl/", season, "/", week),
-    paste0("https://api.sleeper.com/projections/nfl/", season, "/", week)
+    paste0("https://api.sleeper.app/v1/projections/nfl/regular/", season, "/", week)
   ))
 }
 
@@ -294,7 +324,7 @@ bench31_fetch_sleeper_week <- function(season, week, positions = POSITIONS) {
           httr2::req_user_agent("FantasyModel/3.1 pregame-benchmark") |>
           httr2::req_url_query(
             season_type = "regular",
-            `position[]` = pos,
+            position = pos,
             order_by = "pts_half_ppr"
           ) |>
           httr2::req_timeout(30) |>
