@@ -378,8 +378,8 @@ wl31_coverage_by_week <- function(current_rows, accuracy_rows) {
     dplyr::arrange(week, factor(position, levels = POSITIONS))
 }
 
-wl31_eligible_weeks <- function(coverage, min_position_coverage = 0.70,
-                                min_overall_coverage = 0.80) {
+wl31_eligible_weeks <- function(coverage, position_threshold = 0.70,
+                                overall_threshold = 0.80) {
   if (!nrow(coverage)) return(integer())
   by_week <- coverage |>
     dplyr::group_by(week) |>
@@ -392,8 +392,8 @@ wl31_eligible_weeks <- function(coverage, min_position_coverage = 0.70,
     dplyr::filter(
       positions_present == length(POSITIONS),
       is.finite(min_position_coverage),
-      min_position_coverage >= !!min_position_coverage,
-      overall_coverage >= !!min_overall_coverage
+      min_position_coverage >= position_threshold,
+      overall_coverage >= overall_threshold
     )
   sort(unique(as.integer(by_week$week)))
 }
