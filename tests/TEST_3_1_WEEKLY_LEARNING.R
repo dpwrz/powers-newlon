@@ -69,6 +69,7 @@ acc <- data.frame(
   week = c(7L,7L),
   player_id = c("p1","p2"),
   position = c("QB","WR"),
+  projection = c(20,12),
   actual_fppg = c(25,8),
   stringsAsFactors = FALSE
 )
