@@ -119,4 +119,16 @@ good_metric <- data.frame(
 stopifnot(isTRUE(wl31_online_gate(good_metric, TRUE)$promote))
 stopifnot(!isTRUE(wl31_online_gate(good_metric, FALSE)$promote))
 
+# Never train on a partially completed NFL week.
+sched_weeks <- data.frame(
+  week = c(5L,5L,6L,6L),
+  result = c(7, -3, 10, NA_real_)
+)
+stopifnot(identical(wl31_completed_schedule_weeks(sched_weeks), 5L))
+sched_weeks$result[4] <- 1
+stopifnot(identical(wl31_completed_schedule_weeks(sched_weeks), c(5L,6L)))
+stopifnot(length(wl31_completed_schedule_weeks(
+  data.frame(week = 6L, home_score = 20, away_score = 17)
+)) == 0)
+
 cat("Model 3.1 weekly learning integrity tests passed.\n")
