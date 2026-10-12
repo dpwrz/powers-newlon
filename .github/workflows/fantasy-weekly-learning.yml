@@ -10,6 +10,7 @@ on:
       - 'R/weekly_engine_31.R'
       - 'runners/RUN_3_1_WEEKLY.R'
       - 'runners/RUN_3_1_WEEKLY_LEARNING.R'
+      - 'maintenance/BACKFILL_WEEKLY_LEARNING_FEATURES_FROM_GIT.R'
       - 'tests/TEST_3_1_WEEKLY_LEARNING.R'
       - '.github/workflows/fantasy-weekly-learning.yml'
   schedule:
@@ -110,6 +111,7 @@ jobs:
             data/state/ \
             data/processed/weekly_learning_*.csv \
             output/weekly_learning_capture_status_*.csv \
+            output/weekly_learning_backfill_status_*.csv \
             output/weekly_3_1_online_*.csv \
             output/live_accuracy_*.csv \
             output/pregame_projection_archive_*.csv \
