@@ -171,7 +171,12 @@ def espn_fetch():
                      "filterStatsForSourceIds":{"value":[1]},"filterStatsForSplitTypeIds":{"value":[0]}}}
     try:
         payload=http_json(url,{"X-Fantasy-Filter":json.dumps(filt,separators=(",",":")),"X-Fantasy-Source":"kona"},60)
-        entries=payload.get("players",payload if isinstance(payload,list) else [])
+        if isinstance(payload, dict):
+            entries=payload.get("players",[])
+        elif isinstance(payload, list):
+            entries=payload
+        else:
+            entries=[]
         rows=[]
         for z in entries:
             if not isinstance(z,dict): continue
