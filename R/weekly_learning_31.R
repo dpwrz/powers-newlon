@@ -98,6 +98,9 @@ wl31_capture_features <- function(
                             paste0("weekly_learning_capture_status_", season, ".csv"))) {
 
   if (is.null(weekly) || !nrow(weekly)) return(invisible(data.frame()))
+  # Recompute the three 3.1 derived inputs from their lagged source columns so
+  # older honest snapshots remain usable even if they did not persist them.
+  weekly <- wk31_add_features(weekly)
   req <- c("week","player_id","position","team","projected_weekly_fppg")
   miss <- setdiff(req, names(weekly))
   if (length(miss)) stop("Weekly learning capture missing required column(s): ",
