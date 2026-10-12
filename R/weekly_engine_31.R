@@ -67,6 +67,15 @@ wk31_expected_fppg <- function(d) {
   )
 }
 
+wk31_recency_weight <- function(d) {
+  if (!nrow(d) || !"season" %in% names(d)) return(rep(1, nrow(d)))
+  mult <- suppressWarnings(as.numeric(Sys.getenv("FM_31_CURRENT_SEASON_WEIGHT", unset = "1.5")))
+  if (!is.finite(mult)) mult <- 1.5
+  mult <- pmin(2.0, pmax(1.0, mult))
+  ss <- suppressWarnings(as.integer(d$season))
+  ifelse(is.finite(ss) & ss == CURRENT_SEASON, mult, 1)
+}
+
 wk31_training_weight <- function(d, pos = NULL) {
   if (!nrow(d)) return(numeric())
   if (is.null(pos) || !length(pos)) pos <- as.character(d$position[1])
@@ -81,9 +90,13 @@ wk31_training_weight <- function(d, pos = NULL) {
   if (is.null(cc)) return(rep(1, nrow(d)))
   w <- ifelse(exp_fppg >= cc[["starter"]], 3,
               ifelse(exp_fppg >= cc[["relevant"]], 2, 1))
+  # Current-season rows receive a conservative recency multiplier. Historical
+  # data remains the majority anchor; recent finalized games are allowed to
+  # influence weights without overwhelming prior seasons.
+  w <- w * wk31_recency_weight(d)
   # Keep weights bounded so depth observations still inform variance and role
   # transitions while fantasy-relevant rows dominate the objective.
-  as.numeric(pmin(3, pmax(1, w)))
+  as.numeric(pmin(6, pmax(1, w)))
 }
 
 wk31_param_grid <- function(pos) {
