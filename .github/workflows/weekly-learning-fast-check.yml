@@ -4,6 +4,10 @@ on:
   push:
     branches: [weekly-learning-31]
     paths:
+      - 'R/weekly_learning_31.R'
+      - 'R/weekly_engine_31.R'
+      - 'maintenance/BACKFILL_WEEKLY_LEARNING_FEATURES_FROM_GIT.R'
+      - 'tests/TEST_3_1_WEEKLY_LEARNING.R'
       - '.github/workflows/weekly-learning-fast-check.yml'
   workflow_dispatch:
 
