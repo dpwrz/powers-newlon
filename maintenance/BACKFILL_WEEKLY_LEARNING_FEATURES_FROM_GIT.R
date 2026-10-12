@@ -102,9 +102,13 @@ for (i in seq_len(nrow(commits))) {
   sha <- commits$sha[[i]]
   ct <- commits$time[[i]]
 
-  # Skip timestamps for which none of the requested weeks had a future kickoff.
+  # Skip commits whose active NFL week is not one we need. Do this before
+  # reading the large historical projection CSV so normal weekly reruns stay fast.
+  aw <- wl31_active_week(schedule_team, ct)
+  if (!is.finite(aw) || !aw %in% need_weeks) next
+
   requested_schedule <- schedule_team |>
-    dplyr::filter(week %in% need_weeks)
+    dplyr::filter(week == aw)
   if (!nrow(requested_schedule) ||
       !any(as.numeric(requested_schedule$kickoff) > as.numeric(ct), na.rm = TRUE)) next
 
@@ -122,10 +126,6 @@ for (i in seq_len(nrow(commits))) {
   )
   unlink(tf)
   if (!nrow(weekly)) next
-
-  # Only replay commits whose active week is one we are trying to recover.
-  aw <- wl31_active_week(schedule_team, ct)
-  if (!is.finite(aw) || !aw %in% need_weeks) next
 
   ok <- tryCatch({
     wl31_capture_features(
