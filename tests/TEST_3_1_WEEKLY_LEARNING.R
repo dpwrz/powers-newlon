@@ -132,4 +132,16 @@ stopifnot(length(wl31_completed_schedule_weeks(
   data.frame(week = 6L, home_score = 20, away_score = 17)
 )) == 0)
 
+# Schedule-only fallback: not eligible until six hours after the latest kickoff.
+sched_time <- data.frame(
+  week = c(6L,6L),
+  gameday = c("2026-10-12","2026-10-12"),
+  gametime = c("13:00:00","20:15:00"),
+  result = c(NA_real_, NA_real_)
+)
+before_safe <- as.POSIXct("2026-10-13 01:00:00", tz = "America/New_York")
+after_safe <- as.POSIXct("2026-10-13 03:00:00", tz = "America/New_York")
+stopifnot(length(wl31_completed_schedule_weeks(sched_time, before_safe)) == 0)
+stopifnot(identical(wl31_completed_schedule_weeks(sched_time, after_safe), 6L))
+
 cat("Model 3.1 weekly learning integrity tests passed.\n")
