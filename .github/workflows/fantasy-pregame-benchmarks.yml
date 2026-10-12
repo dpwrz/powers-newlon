@@ -85,6 +85,8 @@ jobs:
 
           find output -maxdepth 1 -type f -name 'benchmark_*.csv' -print0 \
             | xargs -0 -r git add -f --
+          git add -f data/processed/weekly_learning_features_*.csv \
+            output/weekly_learning_capture_status_*.csv 2>/dev/null || true
 
           if git diff --cached --quiet; then
             echo "No benchmark changes to commit."
