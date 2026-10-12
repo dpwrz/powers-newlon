@@ -22,8 +22,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: fantasy-model-production-state
-  cancel-in-progress: false
+  group: fantasy-model-weekly-learning-staging
+  cancel-in-progress: true
 
 jobs:
   weekly-learning:
