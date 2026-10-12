@@ -1,0 +1,136 @@
+name: Fantasy Model 3.1 weekly retrain
+
+on:
+  push:
+    branches:
+      - fm-3-1-weekly-online-learning
+    paths:
+      - 'R/weekly_engine_31.R'
+      - 'pipeline/28_project_weekly_2026_3_1.R'
+      - 'pipeline/30_update_online_training_3_1.R'
+      - 'pipeline/31_train_weekly_online_3_1.R'
+      - 'runners/RUN_3_1_WEEKLY.R'
+      - 'tests/TEST_3_1_WEEKLY_ONLINE.R'
+      - '.github/workflows/fantasy-weekly-retrain.yml'
+  workflow_dispatch:
+  schedule:
+    # Tuesday morning after MNF and the nflverse weekly stat refresh.
+    - cron: '30 12 * * 2'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fantasy-model-weekly-retrain-staging
+  cancel-in-progress: false
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout Fantasy Model
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Install model dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::dplyr
+            any::readr
+            any::tidyr
+            any::tibble
+            any::purrr
+            any::janitor
+            any::jsonlite
+            any::nflreadr
+            any::rpart
+            any::xgboost
+            any::ranger
+            any::slider
+            any::httr2
+          cache-version: 7
+
+      - name: Check weekly-learning safety
+        run: |
+          Rscript tests/TEST_3_0_PRODUCTION.R
+          Rscript tests/TEST_3_1_RUNTIME.R
+          Rscript tests/TEST_3_1_WEEKLY_ONLINE.R
+
+      - name: Learn from completed weeks and republish
+        env:
+          FM_RELEASE_VERSION: '3.1'
+        run: Rscript runners/RUN_3_1_WEEKLY.R
+
+      - name: Verify preserved history and online artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f data/processed/weekly_model_table_2_3.csv
+          test -f data/online/weekly_training_2026_manifest.csv
+          test -f data/online/weekly_training_2026_latest.csv
+          test -f output/weekly_3_1_online_promotion.csv
+          test -f output/weekly_3_1_online_manifest.csv
+          test -f output/model_snapshot.json
+          test -f web/public/data/model_snapshot.json || cp output/model_snapshot.json web/public/data/model_snapshot.json
+
+      - name: Publish version manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p web/public/data
+          cp output/model_snapshot.json web/public/data/model_snapshot.json
+          SNAPSHOT="web/public/data/model_snapshot.json"
+          VERSION="$(sha256sum "$SNAPSHOT" | awk '{print $1}')"
+          PUBLISHED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          printf '{"version":"%s","snapshot":"model_snapshot.json","published_at":"%s","contract":"web-1.1-versioned-snapshot"}\n' \
+            "$VERSION" "$PUBLISHED_AT" > web/public/data/snapshot_version.json
+
+      - name: Commit weekly learning state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -f \
+            data/online/ \
+            models/weekly_3_1_online_*.json \
+            models/weekly_3_1_online_*_meta.rds \
+            models/online_archive/ \
+            output/weekly_3_1_online_*.csv \
+            output/weekly_3_1_online_report.txt \
+            output/weekly_2026_projections.csv \
+            output/rest_of_season_2026.csv \
+            output/week_*_rankings.csv \
+            output/projection_history_2026.csv \
+            output/live_accuracy_*.csv \
+            output/pregame_projection_archive_2026.csv \
+            output/model_snapshot.json \
+            data/state/ \
+            web/public/data/model_snapshot.json \
+            web/public/data/snapshot_version.json \
+            2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No weekly learning changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Weekly retrain Fantasy Model 3.1 through completed games"
+
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git stash push --include-untracked -m "weekly-retrain-runtime-leftovers"
+          fi
+
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
