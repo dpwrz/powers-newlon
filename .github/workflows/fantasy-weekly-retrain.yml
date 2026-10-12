@@ -103,10 +103,13 @@ jobs:
 
           git add -f \
             data/online/ \
+            models/weekly_3_1_direct_*.json \
+            models/weekly_3_1_direct_*_meta.rds \
             models/weekly_3_1_online_*.json \
             models/weekly_3_1_online_*_meta.rds \
             models/online_archive/ \
-            output/weekly_3_1_online_*.csv \
+            output/weekly_3_1_*.csv \
+            output/weekly_3_1_model_quality_report.txt \
             output/weekly_3_1_online_report.txt \
             output/weekly_2026_projections.csv \
             output/rest_of_season_2026.csv \
