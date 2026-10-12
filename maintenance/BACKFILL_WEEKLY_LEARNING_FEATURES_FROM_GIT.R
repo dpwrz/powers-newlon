@@ -101,6 +101,20 @@ commits <- commits[
   , drop = FALSE
 ]
 
+active_at_commit <- vapply(
+  commits$time,
+  function(tt) {
+    z <- wl31_active_week(schedule_team, tt)
+    if (is.finite(z)) as.integer(z) else NA_integer_
+  },
+  integer(1)
+)
+active_tab <- table(active_at_commit[active_at_commit %in% need_weeks], useNA = "no")
+cat("[3.1 LEARNING BACKFILL] Projection commits found: ", nrow(commits),
+    " | requested active-week commit counts: ",
+    if (length(active_tab)) paste(names(active_tab), as.integer(active_tab), sep = "=", collapse = ",") else "none",
+    "\n", sep = "")
+
 tmp_archive <- tempfile(fileext = ".csv")
 tmp_status <- tempfile(fileext = ".csv")
 replayed <- 0L
