@@ -10,11 +10,20 @@ dir.create("data/raw", recursive = TRUE, showWarnings = FALSE)
 dir.create("data/processed", recursive = TRUE, showWarnings = FALSE)
 dir.create("output", recursive = TRUE, showWarnings = FALSE)
 
+weekly_build_end <- suppressWarnings(as.integer(Sys.getenv("FM_WEEKLY_DATA_END", unset = as.character(TRAIN_END))))
+if (!is.finite(weekly_build_end)) weekly_build_end <- TRAIN_END
+weekly_build_end <- min(CURRENT_SEASON, max(WEEKLY_TRAIN_START, weekly_build_end))
+weekly_learning_mode <- tolower(Sys.getenv("FM_WEEKLY_LEARNING_MODE", unset = "false")) %in% c("1","true","t","yes","y")
+weekly_learning_output <- Sys.getenv(
+  "FM_WEEKLY_DATA_OUTPUT",
+  unset = file.path("data","processed",paste0("weekly_model_table_3_1_through_", weekly_build_end, ".csv"))
+)
+
 if (!file.exists("data/raw/weekly_defense_context_raw.csv")) {
   stop("Missing weekly PBP defense store. Run source(\"pipeline/BUILD_WEEKLY_DEFENSE_CONTEXT.R\") once first.")
 }
 
-hist_seasons <- WEEKLY_TRAIN_START:TRAIN_END
+hist_seasons <- WEEKLY_TRAIN_START:weekly_build_end
 cat("[2.3 WEEKLY DATA] Loading player-week stats: ", min(hist_seasons), "-", max(hist_seasons), "\n", sep = "")
 weekly_raw <- nflreadr::load_player_stats(seasons = hist_seasons, summary_level = "week")
 readr::write_csv(weekly_raw, "data/raw/player_weekly_stats.csv")
@@ -241,6 +250,50 @@ prior_map <- season_features |>
     prior_interception_rate = wk_num(first_existing_col21(season_features, c("prior_interception_rate", "prior_int_rate"), 0.025))
   ) |>
   dplyr::distinct(player_id, season, .keep_all = TRUE)
+
+# Weekly-learning builds can extend into CURRENT_SEASON without touching the
+# historical season store. For the live season, use the season model projection
+# that existed before weekly outcomes, rather than reconstructing a prior from
+# current-week production.
+if (weekly_build_end >= CURRENT_SEASON) {
+  current_prior_path <- paste0("output/", CURRENT_SEASON, "_projections.csv")
+  if (file.exists(current_prior_path)) {
+    current_prior_raw <- tryCatch(
+      readr::read_csv(current_prior_path, show_col_types = FALSE, progress = FALSE),
+      error = function(e) data.frame()
+    )
+    if (nrow(current_prior_raw) && all(c("player_id","projected_fppg") %in% names(current_prior_raw))) {
+      for (nm in c(
+        "rec_prior_deep_target_rate","rec_prior_middle_target_rate","rec_prior_redzone_target_rate",
+        "prior_catch_rate","prior_yards_per_target","prior_yards_per_carry","prior_yards_per_attempt",
+        "prior_pass_td_rate","prior_rush_td_rate","prior_rec_td_rate","prior_interception_rate",
+        "is_rookie","age","experience"
+      )) current_prior_raw <- ensure_weekly_col21(current_prior_raw, nm, NA_real_)
+      cur_prior <- current_prior_raw |>
+        dplyr::transmute(
+          player_id = wk_chr(player_id), season = CURRENT_SEASON,
+          preseason_prior_fppg = pmax(0, wk_num(projected_fppg)),
+          weekly_is_rookie = wk_num(is_rookie), weekly_age = wk_num(age), weekly_experience = wk_num(experience),
+          preseason_deep_target_rate = wk_num(rec_prior_deep_target_rate),
+          preseason_middle_target_rate = wk_num(rec_prior_middle_target_rate),
+          preseason_redzone_target_rate = wk_num(rec_prior_redzone_target_rate),
+          prior_catch_rate = wk_num(prior_catch_rate),
+          prior_yards_per_target = wk_num(prior_yards_per_target),
+          prior_yards_per_carry = wk_num(prior_yards_per_carry),
+          prior_yards_per_attempt = wk_num(prior_yards_per_attempt),
+          prior_pass_td_rate = wk_num(prior_pass_td_rate),
+          prior_rush_td_rate = wk_num(prior_rush_td_rate),
+          prior_rec_td_rate = wk_num(prior_rec_td_rate),
+          prior_interception_rate = wk_num(prior_interception_rate)
+        ) |>
+        dplyr::filter(nzchar(player_id)) |>
+        dplyr::distinct(player_id, season, .keep_all = TRUE)
+      prior_map <- prior_map |>
+        dplyr::filter(season != CURRENT_SEASON) |>
+        dplyr::bind_rows(cur_prior)
+    }
+  }
+}
 # When available, use the season model's own honest OOF projection as the
 # historical preseason prior. This makes weekly backtests mirror the real 2.0 ->
 # 2.1 handoff rather than substituting last season's FPPG.
@@ -512,10 +565,17 @@ weekly <- weekly |>
   dplyr::filter(position %in% POSITIONS, is.finite(weekly_fppg), !is.na(opponent), opponent != "") |>
   dplyr::arrange(season, week, position, player_display_name)
 
-readr::write_csv(weekly, "data/processed/weekly_model_table_2_2.csv")
-readr::write_csv(weekly, "data/processed/weekly_model_table_2_3.csv")
-# Backward-compatible copy for the 2.1 app/research scripts.
-readr::write_csv(weekly, "data/processed/weekly_model_table_2_1.csv")
-readr::write_csv(def_pos_week, "data/processed/weekly_defense_position_results.csv")
+if (weekly_learning_mode) {
+  dir.create(dirname(weekly_learning_output), recursive = TRUE, showWarnings = FALSE)
+  readr::write_csv(weekly, weekly_learning_output)
+  cat("[3.1 WEEKLY LEARNING] Strict feature table written without replacing canonical history: ",
+      weekly_learning_output, "\n", sep = "")
+} else {
+  readr::write_csv(weekly, "data/processed/weekly_model_table_2_2.csv")
+  readr::write_csv(weekly, "data/processed/weekly_model_table_2_3.csv")
+  # Backward-compatible copy for the 2.1 app/research scripts.
+  readr::write_csv(weekly, "data/processed/weekly_model_table_2_1.csv")
+  readr::write_csv(def_pos_week, "data/processed/weekly_defense_position_results.csv")
+}
 cat("[2.3 WEEKLY DATA] 2.3-compatible feature table complete: ", nrow(weekly), " player-weeks.\n", sep = "")
 cat("[2.3 WEEKLY DATA] Seasons: ", min(weekly$season), "-", max(weekly$season), ".\n", sep = "")
