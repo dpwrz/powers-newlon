@@ -38,7 +38,8 @@ jobs:
             any::xgboost
             any::nflreadr
             any::jsonlite
-          cache-version: 1
+            any::httr2
+          cache-version: 2
       - name: Run learning tests
         run: Rscript tests/TEST_3_1_WEEKLY_LEARNING.R
       - name: Dry-run honest Git backfill
