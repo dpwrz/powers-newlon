@@ -166,9 +166,12 @@ def espn_half_ppr(stats):
     return .04*g(3)+4*g(4)-2*g(20)+2*g(19)+.10*g(24)+6*g(25)+2*g(26)+.50*g(53)+.10*g(42)+6*g(43)+2*g(44)-2*g(72)
 
 def espn_fetch():
-    url=f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{SEASON}/players?scoringPeriodId={WEEK}&view=kona_player_info"
-    filt={"players":{"limit":2000,"sortPercOwned":{"sortPriority":1,"sortAsc":False},
-                     "filterStatsForSourceIds":{"value":[1]},"filterStatsForSplitTypeIds":{"value":[0]}}}
+    # ESPN's public league-default player pool preserves per-week projected raw
+    # stat lines. Request the broad player card at scoringPeriodId=0, then select
+    # the historical WEEK entry locally; filtering on WEEK itself can omit the
+    # projection split after the week is complete.
+    url=f"https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{SEASON}/segments/0/leaguedefaults/3?view=kona_player_info&scoringPeriodId=0"
+    filt={"players":{"limit":2000,"sortPercOwned":{"sortPriority":1,"sortAsc":False}}}
     try:
         payload=http_json(url,{"X-Fantasy-Filter":json.dumps(filt,separators=(",",":")),"X-Fantasy-Source":"kona"},60)
         if isinstance(payload, dict):
@@ -180,14 +183,15 @@ def espn_fetch():
         rows=[]
         for z in entries:
             if not isinstance(z,dict): continue
-            player=z.get("player") if isinstance(z.get("player"),dict) else z.get("playerPoolEntry",{}).get("player",{})
+            pool=z.get("playerPoolEntry") if isinstance(z.get("playerPoolEntry"),dict) else {}
+            player=z.get("player") if isinstance(z.get("player"),dict) else pool.get("player",{})
             if not isinstance(player,dict): continue
             pos=ESPN_POS.get(int(num(player.get("defaultPositionId"),-1)),"")
             if pos not in POSITIONS: continue
             name=player.get("fullName") or player.get("displayName") or ""
             pid=str(player.get("id") or z.get("id") or "")
             team=str(player.get("proTeamId") or "")
-            stat_entries=player.get("stats") or z.get("stats") or []
+            stat_entries=player.get("stats") or pool.get("stats") or z.get("stats") or []
             chosen=None
             for st in stat_entries:
                 if not isinstance(st,dict): continue
