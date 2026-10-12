@@ -294,8 +294,11 @@ for (pos in POSITIONS) {
     )
     config_row <- tune[tune$selected %in% TRUE, , drop = FALSE]
     if (!nrow(config_row)) config_row <- tune[1, , drop = FALSE]
+    cache_keep <- if (nrow(config_cache) && "position" %in% names(config_cache)) {
+      config_cache[as.character(config_cache$position) != pos, , drop = FALSE]
+    } else config_cache
     config_cache <- dplyr::bind_rows(
-      config_cache |> dplyr::filter(!("position" %in% names(config_cache)) | as.character(position) != pos),
+      cache_keep,
       data.frame(
         position = pos,
         config_id = as.character(config_row$config_id[1]),
