@@ -62,21 +62,21 @@ if (!length(git_ok)) {
 log_lines <- tryCatch(
   system2(
     "git",
-    c("log","--reverse","--format=%H|%cI","--","output/weekly_2026_projections.csv"),
+    c("log","--reverse","--format=%H__FMSEP__%cI","--","output/weekly_2026_projections.csv"),
     stdout = TRUE, stderr = TRUE
   ),
   error = function(e) character()
 )
-log_lines <- log_lines[grepl("^[0-9a-f]{40}\\|", log_lines)]
+log_lines <- log_lines[grepl("^[0-9a-f]{40}__FMSEP__", log_lines)]
 if (!length(log_lines)) {
   warning("[3.1 LEARNING BACKFILL] No projection commits found.")
   quit(save = "no", status = 0)
 }
 
-parts <- strsplit(log_lines, "\\|", fixed = FALSE)
+parts <- strsplit(log_lines, "__FMSEP__", fixed = TRUE)
 commits <- data.frame(
   sha = vapply(parts, function(x) x[[1]], character(1)),
-  timestamp = vapply(parts, function(x) paste(x[-1], collapse = "|"), character(1)),
+  timestamp = vapply(parts, function(x) paste(x[-1], collapse = "__FMSEP__"), character(1)),
   stringsAsFactors = FALSE
 )
 parse_git_time <- function(x) {
