@@ -1,2 +1,2 @@
 generated_at_utc,season,requested_weeks,commits_replayed,recovered_rows,archive_rows_after,eligible_weeks_after,status
-2026-10-12T17:20:04Z,2026,"2,3,4,5",1,0,0,,partial
+2026-10-12T17:45:40Z,2026,"2,3,4",38,0,34,,partial
