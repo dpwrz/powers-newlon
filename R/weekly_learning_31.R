@@ -306,12 +306,18 @@ wl31_update_ledger <- function(
       weekly_fppg = actual_fppg,
       online_recency_weight_31 = as.numeric(current_season_weight),
       ledgered_at_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+      .actual_revision_value = vapply(
+        actual_fppg,
+        function(x) if (is.finite(x)) sprintf("%.12g", x) else "NA",
+        character(1)
+      ),
       revision_id = paste(
         season, week, player_id, captured_at_utc,
-        format(actual_fppg, digits = 15, scientific = FALSE),
+        .actual_revision_value,
         feature_schema_hash, sep = "::"
       )
-    )
+    ) |>
+    dplyr::select(-.actual_revision_value)
 
   if (nrow(old) && "revision_id" %in% names(old)) {
     cand <- cand[!cand$revision_id %in% old$revision_id, , drop = FALSE]
