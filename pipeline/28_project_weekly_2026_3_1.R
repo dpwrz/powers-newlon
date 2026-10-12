@@ -20,6 +20,10 @@ if (any(!file.exists(req31))) {
   promotion31 <- readr::read_csv(req31[1], show_col_types = FALSE, progress = FALSE)
   manifest31 <- readr::read_csv(req31[2], show_col_types = FALSE, progress = FALSE)
   res31 <- readr::read_csv(req31[3], show_col_types = FALSE, progress = FALSE)
+  online31_path <- "output/weekly_3_1_online_promotion.csv"
+  online31 <- if (file.exists(online31_path)) {
+    tryCatch(readr::read_csv(online31_path, show_col_types = FALSE, progress = FALSE), error = function(e) data.frame())
+  } else data.frame()
 
   rows31 <- list()
   for (pos in POSITIONS) {
@@ -37,6 +41,11 @@ if (any(!file.exists(req31))) {
     d$blend_alpha_31 <- alpha
     d$model31_promoted <- promote
     d$direct_gap_31 <- NA_real_
+    d$online_production_base_31 <- NA_real_
+    d$online_direct_fppg_31 <- NA_real_
+    d$online_blend_alpha_31 <- 0
+    d$model31_online_promoted <- FALSE
+    d$online_trained_through_week_31 <- NA_real_
     for (nm in MODEL31_DERIVED_FEATURES) {
       if (!nm %in% names(d)) d[[nm]] <- NA_real_
     }
@@ -80,6 +89,52 @@ if (any(!file.exists(req31))) {
       cat("[3.1 LIVE] ", pos, " challenger applied to ", sum(unplayed),
           " unplayed rows; alpha=", alpha, ".\n", sep = "")
     }
+
+    # Weekly online learner is a second guarded layer. Its baseline is the exact
+    # production forecast after the historical 3.1 gate, matching the forecast
+    # archived by the live accuracy scorer.
+    d$online_production_base_31 <- wk31_num(d$projected_weekly_fppg)
+    opr <- if (nrow(online31)) online31[as.character(online31$position) == pos, , drop = FALSE] else data.frame()
+    online_promote <- nrow(opr) > 0 && isTRUE(wk25_bool(opr$promoted_for_production[1]))
+    online_alpha <- if (nrow(opr)) suppressWarnings(as.numeric(opr$final_alpha[1])) else 0
+    if (!is.finite(online_alpha)) online_alpha <- 0
+
+    online_model_path <- paste0("models/weekly_3_1_online_", pos, ".json")
+    online_meta_path <- paste0("models/weekly_3_1_online_", pos, "_meta.rds")
+    if (online_promote && file.exists(online_model_path) && file.exists(online_meta_path)) {
+      ometa <- readRDS(online_meta_path)
+      trained_through <- suppressWarnings(as.integer(ometa$trained_through_week))
+      if (!is.finite(trained_through)) trained_through <- -Inf
+      eligible_online <- unplayed & wk31_num(d$week, 0) > trained_through
+
+      if (any(eligible_online)) {
+        oobj <- list(model = xgboost::xgb.load(online_model_path), features = ometa$features)
+        od <- wk31_add_features(d[eligible_online, , drop = FALSE])
+        odirect <- wk31_predict(oobj, od)
+        obase <- wk31_num(od$projected_weekly_fppg)
+        ocand <- pmax(0, obase + online_alpha * (odirect - obase))
+        oavail <- if ("availability_factor" %in% names(od)) wk31_num(od$availability_factor, 1) else rep(1, nrow(od))
+        ocand[oavail <= 0] <- 0
+
+        d$online_direct_fppg_31[eligible_online] <- odirect
+        d$online_blend_alpha_31[eligible_online] <- online_alpha
+        d$model31_online_promoted[eligible_online] <- TRUE
+        d$online_trained_through_week_31[eligible_online] <- trained_through
+        d$projected_weekly_fppg[eligible_online] <- ocand
+
+        if ("projected_weekly_fppg_pre_availability" %in% names(d)) {
+          aa <- pmax(oavail, 1e-6)
+          opre <- ocand / aa
+          opre[oavail <= 0] <- 0
+          d$projected_weekly_fppg_pre_availability[eligible_online] <- opre
+        }
+
+        cat("[3.1 ONLINE LIVE] ", pos, " online challenger applied to ",
+            sum(eligible_online), " rows; trained through Week ", trained_through,
+            "; alpha=", online_alpha, ".\n", sep = "")
+      }
+    }
+
     rows31[[length(rows31) + 1]] <- d
   }
 
@@ -131,6 +186,8 @@ if (any(!file.exists(req31))) {
         week, player_id, player_display_name, position, team, opponent,
         projected_weekly_fppg, production_base_31, direct_fppg_31,
         blend_alpha_31, direct_gap_31, model31_promoted,
+        online_production_base_31, online_direct_fppg_31, online_blend_alpha_31,
+        model31_online_promoted, online_trained_through_week_31,
         adaptive_prior_weight_31, adaptive_prior_fppg_31, role_change_score_31,
         weekly_floor, weekly_ceiling, projection_confidence, expected_abs_error
       )
