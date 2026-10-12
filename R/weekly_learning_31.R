@@ -64,30 +64,65 @@ wl31_schema_hash <- function(features = MODEL31_SAFE_FEATURES) {
   unname(as.character(tools::md5sum(tf)))
 }
 
-wl31_completed_schedule_weeks <- function(schedule) {
+wl31_completed_schedule_weeks <- function(schedule, now = Sys.time(),
+                                            post_kickoff_hours = 6) {
   if (is.null(schedule) || !nrow(schedule) || !"week" %in% names(schedule)) {
     return(integer())
   }
   s <- schedule
   s$week <- suppressWarnings(as.integer(s$week))
-  if (!"result" %in% names(s)) {
-    # Do not infer "final" from live scores. A non-final game can have finite
-    # home/away scores, which would leak a partial NFL week into training.
-    return(integer())
+
+  # Preferred proof: an explicit finalized result for every game in the week.
+  result <- if ("result" %in% names(s)) {
+    suppressWarnings(as.numeric(s$result))
+  } else {
+    rep(NA_real_, nrow(s))
   }
-  result <- suppressWarnings(as.numeric(s$result))
-  if (!any(is.finite(result))) return(integer())
-  s$.completed <- is.finite(result)
+  s$.result_final <- is.finite(result)
+
+  # Fallback for schedule feeds that never populate result/score fields.
+  # nflverse gametime is Eastern. Six hours after the latest kickoff is a
+  # deliberately conservative completion boundary for the weekly Tuesday job.
+  if ("kickoff" %in% names(s)) {
+    kick <- suppressWarnings(as.POSIXct(s$kickoff, tz = "America/New_York"))
+  } else if (all(c("gameday","gametime") %in% names(s))) {
+    gd <- wl31_chr(s$gameday)
+    gt <- wl31_chr(s$gametime, "00:00:00")
+    gt[!nzchar(gt)] <- "00:00:00"
+    short <- grepl("^\\d{1,2}:\\d{2}$", gt)
+    gt[short] <- paste0(gt[short], ":00")
+    kick <- suppressWarnings(as.POSIXct(
+      paste(gd, gt),
+      format = "%Y-%m-%d %H:%M:%S",
+      tz = "America/New_York"
+    ))
+  } else {
+    kick <- as.POSIXct(rep(NA_character_, nrow(s)), tz = "America/New_York")
+  }
+  s$.kickoff <- kick
+
+  now_num <- as.numeric(as.POSIXct(now, tz = "UTC"))
+  buffer_sec <- max(0, suppressWarnings(as.numeric(post_kickoff_hours))) * 3600
+  if (!is.finite(buffer_sec)) buffer_sec <- 6 * 3600
+
   z <- s |>
     dplyr::filter(is.finite(week)) |>
     dplyr::group_by(week) |>
     dplyr::summarise(
       game_rows = dplyr::n(),
-      completed_rows = sum(.completed, na.rm = TRUE),
-      all_final = game_rows > 0 && completed_rows == game_rows,
+      result_all_final = game_rows > 0 && all(.result_final),
+      kickoff_rows = sum(is.finite(as.numeric(.kickoff))),
+      latest_kickoff = if (kickoff_rows == game_rows && game_rows > 0) {
+        max(as.numeric(.kickoff), na.rm = TRUE)
+      } else {
+        NA_real_
+      },
+      time_safely_complete = is.finite(latest_kickoff) &&
+        now_num >= latest_kickoff + buffer_sec,
       .groups = "drop"
     ) |>
-    dplyr::filter(all_final)
+    dplyr::filter(result_all_final | time_safely_complete)
+
   sort(unique(as.integer(z$week)))
 }
 
