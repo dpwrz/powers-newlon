@@ -17,6 +17,10 @@ MODEL31_DERIVED_FEATURES <- c(
 MODEL31_SAFE_FEATURES <- unique(c(MODEL25_SAFE_FEATURES, MODEL31_DERIVED_FEATURES))
 MODEL31_ALPHA_GRID <- c(0, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40)
 MODEL31_FINAL_ALPHA_CAP <- c(QB = 0.25, RB = 0.35, WR = 0.40, TE = 0.30)
+# Weekly learning starts deliberately below the validated maximum caps. Model
+# weights may learn every week, while blend strength remains conservative until
+# live OOF evidence supports a future architecture change.
+MODEL31_WEEKLY_ALPHA <- c(QB = 0.15, RB = 0.20, WR = 0.25, TE = 0.15)
 MODEL31_BOOTSTRAP_REPS <- 1000L
 
 wk31_num <- function(x, default = 0) {
