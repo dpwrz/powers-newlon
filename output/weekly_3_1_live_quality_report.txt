@@ -1,0 +1,11 @@
+FANTASY MODEL 3.1 - GUARDED WEEKLY LEARNING
+Generated: 2026-10-12 19:46:42 +0000
+Completed through Week: 4
+Immutable historical rows: 34919
+Append-only current-season rows: 1436
+
+POSITION GATES
+QB | KEEP INCUMBENT | live OOF n=109 weeks=3 | all MAE gain 0.13% | starter MAE gain -0.28% | week win 66.7% | bootstrap 0.144 | starter_MAE;paired_confidence
+RB | PROMOTE | live OOF n=254 weeks=3 | all MAE gain 1.34% | starter MAE gain 0.67% | week win 100.0% | bootstrap 0.977 | all gates passed
+WR | KEEP INCUMBENT | live OOF n=416 weeks=3 | all MAE gain 0.70% | starter MAE gain -0.16% | week win 100.0% | bootstrap 0.262 | starter_MAE;paired_confidence
+TE | PROMOTE | live OOF n=226 weeks=3 | all MAE gain 0.79% | starter MAE gain 0.27% | week win 100.0% | bootstrap 0.585 | all gates passed

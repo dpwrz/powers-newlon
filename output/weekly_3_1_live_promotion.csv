@@ -1,0 +1,5 @@
+position,promoted,n,weeks,starter_n,all_mae_gain_pct,starter_mae_gain_pct,week_win_rate,bootstrap_p_improves,failed_checks,evaluated_through_week,historical_rows,live_rows,deployed_alpha
+QB,FALSE,109,3,43,0.13283170597921243,-0.283341358499348,0.6666666666666666,0.144,starter_MAE;paired_confidence,4,3901,146,0.15
+RB,TRUE,254,3,73,1.3419194761273512,0.6746923664140108,1,0.977,,4,9159,365,0.2
+WR,FALSE,416,3,31,0.7011843484275003,-0.16436739868886668,1,0.262,starter_MAE;paired_confidence,4,14603,608,0.25
+TE,TRUE,226,3,35,0.7928139797437184,0.26727775554509664,1,0.585,,4,7256,317,0.15
