@@ -307,7 +307,7 @@ wl31_update_ledger <- function(
   reqf <- c("season","week","player_id","position","production_projection",
             "production_base_31","captured_at_utc","feature_schema_hash",
             MODEL31_SAFE_FEATURES)
-  missa <- setdiff(c("week","player_id","actual_fppg"), names(actual))
+  missa <- setdiff(c("week","player_id","actual_fppg","projection"), names(actual))
   missf <- setdiff(reqf, names(features))
   if (length(missf)) stop("Feature archive missing: ", paste(missf, collapse = ", "))
   if (length(missa)) stop("Accuracy file missing: ", paste(missa, collapse = ", "))
@@ -316,9 +316,14 @@ wl31_update_ledger <- function(
     dplyr::transmute(
       week = suppressWarnings(as.integer(week)),
       player_id = wl31_chr(player_id),
-      actual_fppg = wl31_num(actual_fppg, NA_real_)
+      actual_fppg = wl31_num(actual_fppg, NA_real_),
+      frozen_incumbent_projection = wl31_num(projection, NA_real_)
     ) |>
-    dplyr::filter(is.finite(actual_fppg), nzchar(player_id)) |>
+    dplyr::filter(
+      is.finite(actual_fppg),
+      is.finite(frozen_incumbent_projection),
+      nzchar(player_id)
+    ) |>
     dplyr::distinct(week, player_id, .keep_all = TRUE)
 
   cand <- features |>
