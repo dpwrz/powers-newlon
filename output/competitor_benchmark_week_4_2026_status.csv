@@ -1,5 +1,5 @@
 season,week,provider,status,provider_rows,matched_rows,model_rows,data_quality,message,fetched_at_utc
-2026,4,sleeper,ok,3045,323,328,historical_endpoint_backfill_not_contemporaneous_capture,QB: 354 rows | RB: 684 rows | WR: 1364 rows | TE: 641 rows,2026-10-12T14:41:34.641673+00:00
-2026,4,espn,unavailable,0,0,328,historical_endpoint_backfill_not_contemporaneous_capture,AttributeError: 'list' object has no attribute 'get',2026-10-12T14:41:35.925830+00:00
-2026,4,fantasypros,not_run_requires_api_key_or_authorized_snapshot,0,0,328,not_available,No FantasyPros API key/authorized Week snapshot configured; no values inferred.,2026-10-12T14:41:35.925849+00:00
-2026,4,walterpicks,not_run_no_supported_feed,0,0,328,not_available,No supported authorized projection feed configured; no values inferred.,2026-10-12T14:41:35.925852+00:00
+2026,4,sleeper,ok,3045,323,328,historical_endpoint_backfill_not_contemporaneous_capture,QB: 354 rows | RB: 684 rows | WR: 1364 rows | TE: 641 rows,2026-10-12T14:42:35.436755+00:00
+2026,4,espn,unavailable,0,0,328,historical_endpoint_backfill_not_contemporaneous_capture,0 projected rows,2026-10-12T14:42:36.843506+00:00
+2026,4,fantasypros,not_run_requires_api_key_or_authorized_snapshot,0,0,328,not_available,No FantasyPros API key/authorized Week snapshot configured; no values inferred.,2026-10-12T14:42:36.843525+00:00
+2026,4,walterpicks,not_run_no_supported_feed,0,0,328,not_available,No supported authorized projection feed configured; no values inferred.,2026-10-12T14:42:36.843528+00:00
