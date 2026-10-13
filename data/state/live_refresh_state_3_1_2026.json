@@ -1,15 +1,15 @@
 {
-  "generated_at": "2026-10-12 20:21:04 UTC",
+  "generated_at": "2026-10-13 13:00:35 UTC",
   "model_version": "3.1",
   "status": "refreshed",
-  "refresh_reason": "future_context",
-  "stats_fingerprint": "f38d90cd8a02ec47835d8d5d8ed35691",
-  "schedule_fingerprint": "801c81ed24717894ef67f78f71b5e733",
-  "future_context_fingerprint": "5f124c176cbaeb28beb0c86a7f7e6a36",
-  "public_fingerprint": "59ef6ff3c0184ff396a11e2db2d19efc",
-  "completed_games": 78,
+  "refresh_reason": "completed_game",
+  "stats_fingerprint": "a13519cc0403bde32c67917c5c63924a",
+  "schedule_fingerprint": "78fdeeeb4fdb849f5b1fe3be878e5bb1",
+  "future_context_fingerprint": "16d58048696d82c4807cce57e4667258",
+  "public_fingerprint": "6689b555ff1aa6d4da5c1622fb7bbf05",
+  "completed_games": 79,
   "latest_actual_week": 5,
   "projection_week": 1,
-  "current_stat_rows": 5430,
+  "current_stat_rows": 5506,
   "schedule_rows": 272
 }
