@@ -1,5 +1,5 @@
 season,week,provider,status,provider_rows,matched_rows,model_rows,data_quality,message,fetched_at_utc
-2026,5,sleeper,ok,3045,285,288,historical_endpoint_backfill_not_contemporaneous_capture,QB: 354 rows | RB: 684 rows | WR: 1364 rows | TE: 641 rows,2026-10-12T14:46:48.162734+00:00
-2026,5,espn,ok,714,284,288,historical_endpoint_backfill_not_contemporaneous_capture,714 projected rows,2026-10-12T14:46:48.168134+00:00
-2026,5,fantasypros,not_run_requires_api_key_or_authorized_snapshot,0,0,288,not_available,No FantasyPros API key/authorized Week snapshot configured; no values inferred.,2026-10-12T14:46:48.171318+00:00
-2026,5,walterpicks,not_run_no_supported_feed,0,0,288,not_available,No supported authorized projection feed configured; no values inferred.,2026-10-12T14:46:48.171323+00:00
+2026,5,sleeper,ok,32,21,309,frozen_pregame_archive,32 frozen pregame rows from benchmark archive,2026-10-13T18:27:13.891355+00:00
+2026,5,espn,ok,714,304,309,historical_endpoint_backfill_not_contemporaneous_capture,714 projected rows,2026-10-13T18:27:13.894458+00:00
+2026,5,fantasypros,not_run_requires_api_key_or_authorized_snapshot,0,0,309,not_available,No FantasyPros API key/authorized Week snapshot configured; no values inferred.,2026-10-13T18:27:13.897675+00:00
+2026,5,walterpicks,not_run_no_supported_feed,0,0,309,not_available,No supported authorized projection feed configured; no values inferred.,2026-10-13T18:27:13.897681+00:00
