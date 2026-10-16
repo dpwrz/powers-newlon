@@ -1,3 +1,3 @@
 captured_at_utc,season,week,provider,eligible_pregame_rows,rows_captured,archive_rows_after_capture,status,message
-2026-10-15T15:48:20Z,2026,6,fantasy_model,520,520,3332,ok,Captured current production projections from output/weekly_2026_projections.csv
-2026-10-15T15:48:20Z,2026,6,sleeper,520,495,3332,ok,Captured Sleeper app projection feed
+2026-10-16T01:42:52Z,2026,6,fantasy_model,482,482,3332,ok,Captured current production projections from output/weekly_2026_projections.csv
+2026-10-16T01:42:52Z,2026,6,sleeper,482,457,3332,ok,Captured Sleeper app projection feed
