@@ -523,6 +523,10 @@ eval_now <- gates |>
 eval_old <- if (file.exists(evaluation_path)) {
   tryCatch(readr::read_csv(evaluation_path, show_col_types = FALSE, progress = FALSE), error = function(e) data.frame())
 } else data.frame()
+# readr guesses ISO timestamps as POSIXct when reading older evaluations;
+# normalize before append so the immutable evaluation log never fails on type.
+if ("generated_at" %in% names(eval_old)) eval_old$generated_at <- as.character(eval_old$generated_at)
+if ("generated_at" %in% names(eval_now)) eval_now$generated_at <- as.character(eval_now$generated_at)
 readr::write_csv(dplyr::bind_rows(eval_old, eval_now), evaluation_path)
 
 if (nrow(live_oof)) {
