@@ -1,0 +1,5 @@
+season,week,provider,status,provider_rows,matched_rows,model_rows,data_quality,message,fetched_at_utc
+2026,7,sleeper,ok,496,275,278,frozen_pregame_archive,496 frozen pregame rows from benchmark archive,2026-10-27T16:49:11.954958+00:00
+2026,7,espn,ok,725,274,278,historical_endpoint_backfill_not_contemporaneous_capture,725 projected rows,2026-10-27T16:49:11.959967+00:00
+2026,7,fantasypros,not_run_requires_api_key_or_authorized_snapshot,0,0,278,not_available,No FantasyPros API key/authorized Week snapshot configured; no values inferred.,2026-10-27T16:49:11.962680+00:00
+2026,7,walterpicks,not_run_no_supported_feed,0,0,278,not_available,No supported authorized projection feed configured; no values inferred.,2026-10-27T16:49:11.962688+00:00
