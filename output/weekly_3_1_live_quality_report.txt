@@ -1,11 +1,11 @@
 FANTASY MODEL 3.1 - GUARDED WEEKLY LEARNING
-Generated: 2026-10-20 21:57:24 +0000
-Completed through Week: 6
+Generated: 2026-10-27 18:13:27 +0000
+Completed through Week: 7
 Immutable historical rows: 34919
-Append-only current-season rows: 2091
+Append-only current-season rows: 2395
 
 POSITION GATES
-QB | KEEP INCUMBENT | live OOF n=173 weeks=5 | all MAE gain -0.05% | starter MAE gain -0.32% | week win 40.0% | bootstrap 0.013 | all_MAE;starter_MAE;weekly_stability;paired_confidence
-RB | PROMOTE | live OOF n=393 weeks=5 | all MAE gain 0.99% | starter MAE gain 0.34% | week win 100.0% | bootstrap 0.853 | all gates passed
-WR | PROMOTE | live OOF n=660 weeks=5 | all MAE gain 0.68% | starter MAE gain 0.32% | week win 80.0% | bootstrap 0.703 | all gates passed
-TE | PROMOTE | live OOF n=373 weeks=5 | all MAE gain 1.07% | starter MAE gain 0.72% | week win 100.0% | bootstrap 0.911 | all gates passed
+QB | KEEP INCUMBENT | live OOF n=204 weeks=6 | all MAE gain -0.01% | starter MAE gain -0.32% | week win 50.0% | bootstrap 0.003 | all_MAE;starter_MAE;paired_confidence
+RB | PROMOTE | live OOF n=457 weeks=6 | all MAE gain 0.70% | starter MAE gain 0.17% | week win 83.3% | bootstrap 0.682 | all gates passed
+WR | PROMOTE | live OOF n=774 weeks=6 | all MAE gain 0.81% | starter MAE gain 0.32% | week win 83.3% | bootstrap 0.741 | all gates passed
+TE | PROMOTE | live OOF n=443 weeks=6 | all MAE gain 1.08% | starter MAE gain 0.74% | week win 100.0% | bootstrap 0.921 | all gates passed
