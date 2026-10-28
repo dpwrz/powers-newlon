@@ -1,5 +1,5 @@
 position,promoted,n,weeks,starter_n,all_mae_gain_pct,starter_mae_gain_pct,week_win_rate,bootstrap_p_improves,max_week_mae_degradation_pct,failed_checks,feature_set,n_features,evaluated_through_week
-QB,FALSE,204,6,84,0.059731260349569965,-0.0894869943178585,0.16666666666666666,0,0,all_MAE;starter_MAE;weekly_stability;paired_confidence,denoise,36,7
-RB,FALSE,457,6,127,0.14596561769623387,0.06364453836158233,0.16666666666666666,0.658,0,all_MAE;weekly_stability,full_context,135,7
-WR,FALSE,774,6,76,0.02746362653267563,0.03959535378898306,0.16666666666666666,0.67,0,all_MAE;weekly_stability,denoise_context,39,7
-TE,FALSE,443,6,72,0.06932403609941966,-0.16962869282034354,0.16666666666666666,0,0,all_MAE;starter_MAE;weekly_stability;paired_confidence,denoise,29,7
+QB,FALSE,204,6,84,0.07235691457904823,-0.06471493907317527,0.16666666666666666,0,0,all_MAE;starter_MAE;weekly_stability;paired_confidence,denoise,36,7
+RB,FALSE,457,6,127,0.155359122261784,0.07597790829522051,0.16666666666666666,0.658,0,all_MAE;weekly_stability,full_context,135,7
+WR,FALSE,774,6,76,0.04390303523283211,0.03129416170998823,0.16666666666666666,0.67,0,all_MAE;weekly_stability,denoise_context,39,7
+TE,FALSE,443,6,72,0.0662673692177898,-0.16201766014849692,0.16666666666666666,0,0,all_MAE;starter_MAE;weekly_stability;paired_confidence,denoise,29,7

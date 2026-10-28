@@ -1,8 +1,8 @@
 FANTASY MODEL 3.2 - DENOISE + OFFENSIVE CONTEXT
-Generated: 2026-10-28 12:54:30 +0000
+Generated: 2026-10-28 13:01:32 +0000
 
 POSITION RESULTS
-QB | KEEP INCUMBENT | set=denoise (36 features) | all MAE +0.06% | starter MAE -0.09% | week win 16.7% | bootstrap 0.000 | max bad week 0.00% | all_MAE;starter_MAE;weekly_stability;paired_confidence
-RB | KEEP INCUMBENT | set=full_context (135 features) | all MAE +0.15% | starter MAE +0.06% | week win 16.7% | bootstrap 0.658 | max bad week 0.00% | all_MAE;weekly_stability
-WR | KEEP INCUMBENT | set=denoise_context (39 features) | all MAE +0.03% | starter MAE +0.04% | week win 16.7% | bootstrap 0.670 | max bad week 0.00% | all_MAE;weekly_stability
-TE | KEEP INCUMBENT | set=denoise (29 features) | all MAE +0.07% | starter MAE -0.17% | week win 16.7% | bootstrap 0.000 | max bad week 0.00% | all_MAE;starter_MAE;weekly_stability;paired_confidence
+QB | KEEP INCUMBENT | set=denoise (36 features) | all MAE +0.07% | starter MAE -0.06% | week win 16.7% | bootstrap 0.000 | max bad week 0.00% | all_MAE;starter_MAE;weekly_stability;paired_confidence
+RB | KEEP INCUMBENT | set=full_context (135 features) | all MAE +0.16% | starter MAE +0.08% | week win 16.7% | bootstrap 0.658 | max bad week 0.00% | all_MAE;weekly_stability
+WR | KEEP INCUMBENT | set=denoise_context (39 features) | all MAE +0.04% | starter MAE +0.03% | week win 16.7% | bootstrap 0.670 | max bad week 0.00% | all_MAE;weekly_stability
+TE | KEEP INCUMBENT | set=denoise (29 features) | all MAE +0.07% | starter MAE -0.16% | week win 16.7% | bootstrap 0.000 | max bad week 0.00% | all_MAE;starter_MAE;weekly_stability;paired_confidence
