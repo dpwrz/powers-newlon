@@ -1,0 +1,117 @@
+name: Fantasy Model 3.2 denoise validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fm-3-2-denoise-signals
+    paths:
+      - 'R/weekly_engine_32.R'
+      - 'pipeline/BUILD_WEEKLY_DEFENSE_CONTEXT.R'
+      - 'pipeline/28_project_weekly_2026_3_1.R'
+      - 'pipeline/31_train_validate_denoise_signals_3_2.R'
+      - 'runners/RUN_3_1_AUTO_REFRESH.R'
+      - 'runners/RUN_3_2_OPTIMIZE.R'
+      - 'tests/TEST_3_2_DENOISE.R'
+      - '.github/workflows/fantasy-3-2-denoise-validation.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fantasy-model-3-2-validation
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout challenger branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Install R dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::dplyr
+            any::readr
+            any::tidyr
+            any::tibble
+            any::purrr
+            any::janitor
+            any::jsonlite
+            any::nflreadr
+            any::rpart
+            any::xgboost
+            any::ranger
+            any::slider
+            any::httr2
+          cache-version: 8
+
+      - name: Parse Model 3.2 code
+        shell: bash
+        run: |
+          set -euo pipefail
+          Rscript -e 'files <- c(
+            "R/weekly_engine_32.R",
+            "pipeline/BUILD_WEEKLY_DEFENSE_CONTEXT.R",
+            "pipeline/28_project_weekly_2026_3_1.R",
+            "pipeline/31_train_validate_denoise_signals_3_2.R",
+            "runners/RUN_3_1_AUTO_REFRESH.R",
+            "runners/RUN_3_2_OPTIMIZE.R",
+            "tests/TEST_3_2_DENOISE.R"
+          ); for (f in files) { parse(file=f); cat("parsed ", f, "\n", sep="") }'
+
+      - name: Run Model 3.2 safety tests
+        run: Rscript tests/TEST_3_2_DENOISE.R
+
+      - name: Run denoise and new-signal tournament
+        env:
+          FM_RELEASE_VERSION: '3.2-challenger'
+        run: Rscript runners/RUN_3_2_OPTIMIZE.R
+
+      - name: Verify challenger outputs and application path
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f output/weekly_3_2_feature_set_selection.csv
+          test -f output/weekly_3_2_live_promotion.csv
+          test -f output/weekly_3_2_live_manifest.csv
+          test -f output/weekly_3_2_signal_effects.csv
+          test -f output/weekly_3_2_quality_report.txt
+          Rscript -e 'z <- readr::read_csv("output/weekly_2026_projections.csv", n_max=10, show_col_types=FALSE); stopifnot("weekly_live_model_used_31" %in% names(z)); if (any(readr::read_csv("output/weekly_3_2_live_manifest.csv",show_col_types=FALSE)$use_live_model %in% TRUE)) stopifnot("weekly_live_model_used_32" %in% names(z)); cat("projection integration verified\n")'
+
+      - name: Commit challenger evidence to branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -f output/weekly_3_2_*.csv 2>/dev/null || true
+          git add -f output/weekly_3_2_quality_report.txt 2>/dev/null || true
+          git add -f models/weekly_3_2_live_*.json 2>/dev/null || true
+          git add -f models/weekly_3_2_live_*_meta.rds 2>/dev/null || true
+          find models/archive/weekly_3_2_live -type f -print0 2>/dev/null | xargs -0 -r git add -f --
+          git add -f data/raw/weekly_offense_context_raw.csv 2>/dev/null || true
+          git add -f output/weekly_2026_projections.csv output/rest_of_season_2026.csv 2>/dev/null || true
+          git add -f output/model_snapshot.json web/public/data/model_snapshot.json web/public/data/snapshot_version.json 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No challenger evidence changes."
+            exit 0
+          fi
+
+          git commit -m "Validate Fantasy Model 3.2 denoise challenger"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
