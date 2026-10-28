@@ -297,3 +297,55 @@ wk32_select_alpha <- function(oof, pos) {
   near <- grid[is.finite(score) & score <= best + 0.002]
   if (length(near)) min(near) else 0
 }
+
+
+wk32_promotion_gate <- function(d, pos, min_weeks = 4L, min_starters = 20L) {
+  if (!nrow(d)) {
+    return(data.frame(position=pos,promoted=FALSE,n=0L,weeks=0L,starter_n=0L,
+      all_mae_gain_pct=NA_real_,starter_mae_gain_pct=NA_real_,week_win_rate=NA_real_,
+      bootstrap_p_improves=NA_real_,max_week_mae_degradation_pct=NA_real_,
+      failed_checks="no_oof_rows", stringsAsFactors=FALSE))
+  }
+  d <- d[as.character(d$position) == pos, , drop=FALSE]
+  starter <- if ("starter_cohort" %in% names(d)) wk25_bool(d$starter_cohort) else rep(FALSE,nrow(d))
+  ae_base <- abs(wk32_num(d$actual_fppg,NA_real_) - wk32_num(d$incumbent_fppg_32,NA_real_))
+  ae_cand <- abs(wk32_num(d$actual_fppg,NA_real_) - wk32_num(d$candidate_fppg_32,NA_real_))
+  pct_gain <- function(b,c) if(is.finite(b)&&b>0&&is.finite(c)) 100*(b-c)/b else NA_real_
+  all_gain <- pct_gain(mean(ae_base,na.rm=TRUE),mean(ae_cand,na.rm=TRUE))
+  st_gain <- if(any(starter)) pct_gain(mean(ae_base[starter],na.rm=TRUE),mean(ae_cand[starter],na.rm=TRUE)) else NA_real_
+
+  weeks <- sort(unique(as.integer(d$week)))
+  wg <- vapply(weeks,function(w){
+    idx <- as.integer(d$week)==w
+    b <- mean(ae_base[idx],na.rm=TRUE); c <- mean(ae_cand[idx],na.rm=TRUE)
+    pct_gain(b,c)
+  },numeric(1))
+  win_rate <- if(length(wg)) mean(wg>0,na.rm=TRUE) else NA_real_
+  max_deg <- if(any(is.finite(wg))) abs(min(c(0,wg),na.rm=TRUE)) else NA_real_
+
+  dd <- d
+  dd$production_base_31 <- dd$incumbent_fppg_32
+  dd$candidate_fppg_31 <- dd$candidate_fppg_32
+  boot <- wk31_bootstrap_gain(dd,"Starter",reps=1000L,
+    seed=3200L+match(pos,c("QB","RB","WR","TE")))
+
+  checks <- c(
+    enough_weeks = length(weeks) >= min_weeks,
+    enough_starters = sum(starter,na.rm=TRUE) >= min_starters,
+    all_MAE = is.finite(all_gain) && all_gain >= 0.20,
+    starter_MAE = is.finite(st_gain) && st_gain > 0,
+    weekly_stability = is.finite(win_rate) && win_rate >= 0.60,
+    paired_confidence = is.finite(boot$p_improves[1]) && boot$p_improves[1] >= 0.65,
+    no_catastrophic_week = is.finite(max_deg) && max_deg <= 5
+  )
+
+  data.frame(
+    position=pos,promoted=all(checks),n=nrow(d),weeks=length(weeks),
+    starter_n=sum(starter,na.rm=TRUE),all_mae_gain_pct=all_gain,
+    starter_mae_gain_pct=st_gain,week_win_rate=win_rate,
+    bootstrap_p_improves=boot$p_improves[1],
+    max_week_mae_degradation_pct=max_deg,
+    failed_checks=paste(names(checks)[!checks],collapse=";"),
+    stringsAsFactors=FALSE
+  )
+}
