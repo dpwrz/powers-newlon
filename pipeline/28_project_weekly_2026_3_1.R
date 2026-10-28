@@ -264,6 +264,80 @@ for (pos in POSITIONS) {
 }
 future_pred <- dplyr::bind_rows(live_rows31)
 
+# -------------------------------------------------------------------------
+# Model 3.2: denoised role + offensive-context challenger.
+# Applied only where its stricter rolling OOF gate promoted the position.
+# -------------------------------------------------------------------------
+manifest32_path <- "output/weekly_3_2_live_manifest.csv"
+if (file.exists(manifest32_path) && file.exists("R/weekly_engine_32.R")) {
+  source("R/weekly_engine_32.R")
+  manifest32 <- tryCatch(
+    readr::read_csv(manifest32_path, show_col_types = FALSE, progress = FALSE),
+    error = function(e) data.frame()
+  )
+  resid32 <- if (file.exists("output/weekly_3_2_live_residual_pool.csv")) {
+    tryCatch(readr::read_csv("output/weekly_3_2_live_residual_pool.csv", show_col_types = FALSE, progress = FALSE),
+             error = function(e) data.frame())
+  } else data.frame()
+  offctx32 <- wk32_offense_context()
+  rows32 <- list()
+
+  for (pos in POSITIONS) {
+    d <- future_pred |> dplyr::filter(position == pos)
+    if (!nrow(d)) next
+    d$weekly_live_direct_fppg_32 <- NA_real_
+    d$weekly_live_alpha_32 <- 0
+    d$weekly_live_model_used_32 <- FALSE
+
+    mf32 <- if (nrow(manifest32)) manifest32[as.character(manifest32$position) == pos, , drop = FALSE] else data.frame()
+    use32 <- nrow(mf32) && "use_live_model" %in% names(mf32) && isTRUE(wk25_bool(mf32$use_live_model[1]))
+    alpha32 <- if (nrow(mf32) && "deployed_alpha" %in% names(mf32)) suppressWarnings(as.numeric(mf32$deployed_alpha[1])) else 0
+    if (!is.finite(alpha32)) alpha32 <- 0
+
+    model32_path <- paste0("models/weekly_3_2_live_", pos, ".json")
+    meta32_path <- paste0("models/weekly_3_2_live_", pos, "_meta.rds")
+    unplayed <- wk31_num(d$is_actual, 0) == 0
+
+    if (use32 && alpha32 > 0 && any(unplayed) && file.exists(model32_path) && file.exists(meta32_path)) {
+      meta32 <- readRDS(meta32_path)
+      obj32 <- list(model = xgboost::xgb.load(model32_path), features = meta32$features)
+      du <- d[unplayed, , drop = FALSE]
+      direct32 <- wk32_predict(obj32, du, offctx32)
+      avail <- if ("availability_factor" %in% names(du)) wk31_num(du$availability_factor, 1) else rep(1, nrow(du))
+      base32 <- wk31_num(du$projected_weekly_fppg)
+      cand32 <- pmax(0, base32 + alpha32 * (direct32 - base32))
+      cand32[avail <= 0] <- 0
+
+      d$weekly_live_direct_fppg_32[unplayed] <- direct32
+      d$weekly_live_alpha_32[unplayed] <- alpha32
+      d$weekly_live_model_used_32[unplayed] <- TRUE
+      d$projected_weekly_fppg[unplayed] <- cand32
+
+      if ("projected_weekly_fppg_pre_availability" %in% names(d)) {
+        pre32 <- cand32 / pmax(avail, 1e-6)
+        pre32[avail <= 0] <- 0
+        d$projected_weekly_fppg_pre_availability[unplayed] <- pre32
+      }
+
+      rr32 <- if (nrow(resid32) && all(c("position","residual") %in% names(resid32))) {
+        wk31_num(resid32$residual[as.character(resid32$position) == pos], NA_real_)
+      } else numeric()
+      rr32 <- rr32[is.finite(rr32)]
+      if (length(rr32) >= 30 && exists("empirical_distribution22", mode = "function")) {
+        dist32 <- empirical_distribution22(d$projected_weekly_fppg[unplayed], rr32, pos)
+        for (nm in names(dist32)) {
+          if (!nm %in% names(d)) d[[nm]] <- NA_real_
+          d[[nm]][unplayed] <- dist32[[nm]]
+        }
+      }
+      cat("[3.2 LIVE] ", pos, " denoised/context learner applied to ",
+          sum(unplayed), " rows; alpha=", alpha32, ".\n", sep = "")
+    }
+    rows32[[length(rows32) + 1L]] <- d
+  }
+  future_pred <- dplyr::bind_rows(rows32)
+}
+
 rerank_live31 <- function(d) {
   if (!"weekly_position_rank" %in% names(d)) d$weekly_position_rank <- NA_real_
   idx <- wk31_num(d$is_actual, 0) == 0
