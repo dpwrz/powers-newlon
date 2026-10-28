@@ -75,3 +75,4 @@ generated_at,status,reason,completed_games,latest_actual_week,projection_week,du
 2026-10-26 17:35:23 +0000,refreshed,future_context,106,7,1,537.3
 2026-10-27 11:11:32 +0000,refreshed,completed_game,107,7,1,516.2
 2026-10-27 17:02:05 +0000,refreshed,future_context,107,7,1,889.6
+2026-10-28 13:19:39 +0000,refreshed,future_context,107,7,1,884.3
