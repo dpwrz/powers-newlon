@@ -82,7 +82,7 @@ for (pos in POSITIONS) {
     train0 <- wk32_add_factors(train0)
     test0 <- wk32_add_factors(test0)
 
-    for (variant in MODEL32_VARIANTS) {
+    for (variant in c("full","compact")) {
       feats <- wk32_variant_features(train0, pos, variant)
       fit <- wk31_fit(
         train0, pos, cfg, features = feats,
@@ -177,6 +177,182 @@ for (pos in POSITIONS) {
   )
 }
 selection <- dplyr::bind_rows(selection_rows)
+
+# -------------------------------------------------------------------------
+# 1B) Screen new factors one-at-a-time on the same historical OOF folds.
+#     Noise architecture is already locked above. This prevents a bundle of
+#     weak factors from hiding one genuinely useful interaction.
+# -------------------------------------------------------------------------
+factor_screen_rows <- list()
+factor_combo_rows <- list()
+
+for (pos in POSITIONS) {
+  base_variant <- selection$selected_variant[selection$position == pos][1]
+  cfg <- config_for32(pos)
+
+  for (yy in historical_years) {
+    train0 <- wk32_add_factors(historical |> dplyr::filter(position == pos, season < yy))
+    test0 <- wk32_add_factors(historical |> dplyr::filter(position == pos, season == yy))
+    if (nrow(train0) < 100 || nrow(test0) < 25) next
+
+    base_feats <- wk32_variant_features(train0, pos, base_variant)
+    for (factor in c("NONE", MODEL32_FACTOR_FEATURES)) {
+      feats <- if (factor == "NONE") base_feats else unique(c(base_feats, factor))
+      fit <- wk31_fit(
+        train0, pos, cfg, features = feats,
+        seed = SEED + 32100L + yy * 10L + match(pos, POSITIONS) +
+          match(factor, c("NONE", MODEL32_FACTOR_FEATURES))
+      )
+      test0$.pred32_factor <- wk31_predict(fit, test0)
+      mm <- wk32_cohort_metrics(test0, ".pred32_factor", pos)
+      factor_screen_rows[[length(factor_screen_rows) + 1L]] <- data.frame(
+        position = pos, target_year = yy, factor = factor,
+        decision_score = score_metrics32(mm) + wk32_complexity_penalty(length(feats)),
+        n_features = length(feats), stringsAsFactors = FALSE
+      )
+    }
+  }
+}
+
+factor_screen <- dplyr::bind_rows(factor_screen_rows)
+factor_summary <- factor_screen |>
+  dplyr::group_by(position, factor) |>
+  dplyr::summarise(
+    mean_score = mean(decision_score),
+    max_score = max(decision_score),
+    .groups = "drop"
+  )
+
+base_factor_score <- factor_summary |>
+  dplyr::filter(factor == "NONE") |>
+  dplyr::select(position, base_factor_mean_score = mean_score)
+factor_summary <- factor_summary |>
+  dplyr::left_join(base_factor_score, by = "position") |>
+  dplyr::mutate(
+    improvement_vs_base_pct =
+      100 * (base_factor_mean_score - mean_score) / pmax(base_factor_mean_score, 1e-9)
+  )
+
+selected_factor_rows <- list()
+for (pos in POSITIONS) {
+  fs <- factor_summary[factor_summary$position == pos & factor_summary$factor != "NONE", , drop = FALSE]
+  folds <- factor_screen[factor_screen$position == pos, , drop = FALSE]
+  base_fold <- folds[folds$factor == "NONE", c("target_year","decision_score"), drop = FALSE]
+  names(base_fold)[2] <- "base_score"
+
+  stable <- vapply(seq_len(nrow(fs)), function(i) {
+    ff <- fs$factor[i]
+    z <- merge(
+      folds[folds$factor == ff, c("target_year","decision_score"), drop = FALSE],
+      base_fold, by = "target_year", all.x = TRUE
+    )
+    if (!nrow(z)) return(FALSE)
+    ratio <- z$decision_score / pmax(z$base_score, 1e-9)
+    fs$improvement_vs_base_pct[i] >= 0.05 &&
+      sum(z$decision_score < z$base_score, na.rm = TRUE) >= 1L &&
+      max(ratio, na.rm = TRUE) <= 1.0025
+  }, logical(1))
+
+  eligible <- fs[stable, , drop = FALSE] |>
+    dplyr::arrange(mean_score)
+  candidates <- list(character())
+  labels <- "NONE"
+  if (nrow(eligible)) {
+    top <- head(as.character(eligible$factor), 3L)
+    for (ff in top) {
+      candidates[[length(candidates) + 1L]] <- ff
+      labels <- c(labels, ff)
+    }
+    if (length(top) >= 2L) {
+      candidates[[length(candidates) + 1L]] <- top[1:2]
+      labels <- c(labels, paste(top[1:2], collapse = "+"))
+    }
+    if (length(top) >= 3L) {
+      candidates[[length(candidates) + 1L]] <- top[1:3]
+      labels <- c(labels, paste(top[1:3], collapse = "+"))
+    }
+  }
+
+  combo_scores <- list()
+  for (ci in seq_along(candidates)) {
+    factors <- candidates[[ci]]
+    fold_sc <- numeric()
+    feat_n <- numeric()
+    for (yy in historical_years) {
+      train0 <- wk32_add_factors(historical |> dplyr::filter(position == pos, season < yy))
+      test0 <- wk32_add_factors(historical |> dplyr::filter(position == pos, season == yy))
+      if (nrow(train0) < 100 || nrow(test0) < 25) next
+      base_feats <- wk32_variant_features(train0, pos, selection$selected_variant[selection$position == pos][1])
+      feats <- unique(c(base_feats, factors))
+      fit <- wk31_fit(
+        train0, pos, config_for32(pos), features = feats,
+        seed = SEED + 32200L + yy * 10L + match(pos, POSITIONS) + ci
+      )
+      test0$.pred_combo32 <- wk31_predict(fit, test0)
+      mm <- wk32_cohort_metrics(test0, ".pred_combo32", pos)
+      fold_sc <- c(fold_sc, score_metrics32(mm) + wk32_complexity_penalty(length(feats)))
+      feat_n <- c(feat_n, length(feats))
+      factor_combo_rows[[length(factor_combo_rows) + 1L]] <- data.frame(
+        position = pos, target_year = yy, factor_combo = labels[ci],
+        decision_score = tail(fold_sc, 1), n_features = length(feats),
+        stringsAsFactors = FALSE
+      )
+    }
+    if (length(fold_sc)) {
+      combo_scores[[length(combo_scores) + 1L]] <- data.frame(
+        factor_combo = labels[ci], mean_score = mean(fold_sc),
+        max_score = max(fold_sc), mean_features = mean(feat_n),
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+
+  cs <- dplyr::bind_rows(combo_scores)
+  base_score <- cs$mean_score[cs$factor_combo == "NONE"][1]
+  if (!is.finite(base_score)) base_score <- Inf
+  cs$improvement_vs_base_pct <- 100 * (base_score - cs$mean_score) / pmax(base_score, 1e-9)
+
+  cand <- cs[cs$factor_combo != "NONE" & cs$improvement_vs_base_pct >= 0.05, , drop = FALSE]
+  chosen_combo <- "NONE"
+  if (nrow(cand)) {
+    # Preserve fold stability: no historical OOF year may worsen >0.25%.
+    stable_combo <- vapply(seq_len(nrow(cand)), function(i) {
+      lab <- cand$factor_combo[i]
+      z <- dplyr::bind_rows(factor_combo_rows) |>
+        dplyr::filter(position == pos, factor_combo %in% c("NONE", lab)) |>
+        dplyr::select(target_year, factor_combo, decision_score) |>
+        tidyr::pivot_wider(names_from = factor_combo, values_from = decision_score)
+      if (!all(c("NONE", lab) %in% names(z))) return(FALSE)
+      max(z[[lab]] / pmax(z$NONE, 1e-9), na.rm = TRUE) <= 1.0025
+    }, logical(1))
+    cand <- cand[stable_combo, , drop = FALSE]
+    if (nrow(cand)) chosen_combo <- cand$factor_combo[which.min(cand$mean_score)]
+  }
+
+  selected_factor_rows[[length(selected_factor_rows) + 1L]] <- data.frame(
+    position = pos,
+    selected_factors = if (chosen_combo == "NONE") "" else chosen_combo,
+    factor_mean_score = cs$mean_score[cs$factor_combo == chosen_combo][1],
+    factor_gain_vs_base_pct = cs$improvement_vs_base_pct[cs$factor_combo == chosen_combo][1],
+    stringsAsFactors = FALSE
+  )
+}
+
+selected_factors <- dplyr::bind_rows(selected_factor_rows)
+selection <- selection |>
+  dplyr::left_join(selected_factors, by = "position") |>
+  dplyr::mutate(
+    selected_factors = dplyr::coalesce(selected_factors, ""),
+    historical_mean_score = dplyr::if_else(
+      is.finite(factor_mean_score), factor_mean_score, historical_mean_score
+    ),
+    historical_improvement_pct =
+      100 * (historical_full_score - historical_mean_score) / pmax(historical_full_score, 1e-9)
+  )
+
+readr::write_csv(factor_screen, "output/weekly_3_2_factor_screen_folds.csv")
+readr::write_csv(factor_summary, "output/weekly_3_2_factor_screen_summary.csv")
+readr::write_csv(dplyr::bind_rows(factor_combo_rows), "output/weekly_3_2_factor_combo_folds.csv")
 readr::write_csv(selection, "output/weekly_3_2_selection.csv")
 
 # -------------------------------------------------------------------------
@@ -188,6 +364,9 @@ for (pos in POSITIONS) {
   d <- wk32_add_factors(historical |> dplyr::filter(position == pos))
   sel <- selection$selected_variant[selection$position == pos][1]
   feats <- wk32_variant_features(d, pos, sel)
+  sf <- selection$selected_factors[selection$position == pos][1]
+  addf <- if (is.na(sf) || !nzchar(sf)) character() else strsplit(sf, "\\+", fixed = FALSE)[[1]]
+  feats <- unique(c(feats, addf))
   audit <- wk32_feature_audit(d, pos, unique(c(MODEL31_SAFE_FEATURES, MODEL32_FACTOR_FEATURES)))
   audit$position <- pos
   audit$selected_variant <- sel
@@ -207,20 +386,22 @@ readr::write_csv(dplyr::bind_rows(final_feature_rows), "output/weekly_3_2_select
 perm_rows <- list()
 for (pos in POSITIONS) {
   selected_variant <- selection$selected_variant[selection$position == pos][1]
-  if (!selected_variant %in% c("full_plus","compact_plus")) next
+  sf <- selection$selected_factors[selection$position == pos][1]
+  selected_factor_vec <- if (is.na(sf) || !nzchar(sf)) character() else strsplit(sf, "\\+", fixed = FALSE)[[1]]
+  if (!length(selected_factor_vec)) next
   cfg <- config_for32(pos)
 
   for (yy in historical_years) {
     train0 <- wk32_add_factors(historical |> dplyr::filter(position == pos, season < yy))
     test0 <- wk32_add_factors(historical |> dplyr::filter(position == pos, season == yy))
     if (nrow(train0) < 100 || nrow(test0) < 25) next
-    feats <- wk32_variant_features(train0, pos, selected_variant)
+    feats <- unique(c(wk32_variant_features(train0, pos, selected_variant), selected_factor_vec))
     fit <- wk31_fit(train0, pos, cfg, features = feats,
                     seed = SEED + 32000L + yy + match(pos, POSITIONS) * 100L)
     base_pred <- wk31_predict(fit, test0)
     base_mae <- mean(abs(wk32_num(test0$weekly_fppg, NA_real_) - base_pred), na.rm = TRUE)
 
-    for (factor in intersect(MODEL32_FACTOR_FEATURES, feats)) {
+    for (factor in intersect(selected_factor_vec, feats)) {
       tp <- test0
       set.seed(SEED + yy + match(factor, MODEL32_FACTOR_FEATURES) * 100L + match(pos, POSITIONS))
       tp[[factor]] <- sample(tp[[factor]], nrow(tp), replace = FALSE)
@@ -301,7 +482,9 @@ for (pos in POSITIONS) {
 
     train0 <- wk32_add_factors(train0)
     test0 <- wk32_add_factors(test0)
-    feats <- wk32_variant_features(train0, pos, selected_variant)
+    sf <- selection$selected_factors[selection$position == pos][1]
+    addf <- if (is.na(sf) || !nzchar(sf)) character() else strsplit(sf, "\\+", fixed = FALSE)[[1]]
+    feats <- unique(c(wk32_variant_features(train0, pos, selected_variant), addf))
 
     fit <- wk31_fit(
       train0, pos, cfg, features = feats,
@@ -335,7 +518,9 @@ for (pos in POSITIONS) {
   gate <- fm31_weekly_live_gate(pos_oof, pos)
   base_promote <- isTRUE(gate$promoted[1])
   checks32 <- c(
-    selected_new_architecture = selected_variant != "full",
+    selected_new_architecture =
+      selected_variant != "full" ||
+      nzchar(selection$selected_factors[selection$position == pos][1]),
     historical_gain = is.finite(hist_gain) && hist_gain >= 0.10,
     live_gate = base_promote,
     live_all_gain = is.finite(gate$all_mae_gain_pct[1]) && gate$all_mae_gain_pct[1] >= 0.15,
@@ -364,7 +549,9 @@ for (pos in POSITIONS) {
       historical |> dplyr::filter(position == pos),
       live |> dplyr::filter(position == pos, week <= completed_through)
     ))
-    feats <- wk32_variant_features(final_train, pos, selected_variant)
+    sf_final <- selection$selected_factors[selection$position == pos][1]
+    addf_final <- if (is.na(sf_final) || !nzchar(sf_final)) character() else strsplit(sf_final, "\\+", fixed = FALSE)[[1]]
+    feats <- unique(c(wk32_variant_features(final_train, pos, selected_variant), addf_final))
     fit <- wk31_fit(
       final_train, pos, cfg, features = feats,
       seed = SEED + 32999L + completed_through * 100L + match(pos, POSITIONS)
@@ -376,6 +563,7 @@ for (pos in POSITIONS) {
       position = pos,
       features = feats,
       selected_variant = selected_variant,
+      selected_factors = selection$selected_factors[selection$position == pos][1],
       n_features = length(feats),
       config = cfg,
       nrounds = fit$nrounds,
@@ -417,8 +605,10 @@ lines <- c(
 for (i in seq_len(nrow(selection))) {
   s <- selection[i, ]
   lines <- c(lines, sprintf(
-    "%s | %s | historical score gain %.3f%% | mean features %.1f",
-    s$position, s$selected_variant, s$historical_improvement_pct, s$mean_features
+    "%s | %s | factors=%s | historical score gain %.3f%% | mean features %.1f",
+    s$position, s$selected_variant,
+    ifelse(nzchar(s$selected_factors), s$selected_factors, "none"),
+    s$historical_improvement_pct, s$mean_features
   ))
 }
 lines <- c(lines, "", "LIVE 2026 PROMOTION")
