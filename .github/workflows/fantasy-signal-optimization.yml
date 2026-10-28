@@ -1,0 +1,90 @@
+name: Fantasy Model 3.2 signal optimization
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fm-3-2-signal-optimization
+    paths:
+      - 'R/weekly_engine_32.R'
+      - 'pipeline/31_optimize_signals_3_2.R'
+      - 'tests/TEST_3_2_SIGNAL_OPTIMIZATION.R'
+      - '.github/workflows/fantasy-signal-optimization.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fantasy-model-3-2-signal-optimization
+  cancel-in-progress: true
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout Fantasy Model
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Install R dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::dplyr
+            any::readr
+            any::tidyr
+            any::tibble
+            any::jsonlite
+            any::xgboost
+          cache-version: 1
+
+      - name: Parse Model 3.2 code
+        run: |
+          Rscript -e 'for (f in c("R/weekly_engine_32.R","pipeline/31_optimize_signals_3_2.R","tests/TEST_3_2_SIGNAL_OPTIMIZATION.R")) { parse(file=f); cat("parsed ",f,"\n",sep="") }'
+
+      - name: Run Model 3.2 safety tests
+        run: Rscript tests/TEST_3_2_SIGNAL_OPTIMIZATION.R
+
+      - name: Run signal optimization tournament
+        run: Rscript pipeline/31_optimize_signals_3_2.R
+
+      - name: Verify tournament outputs
+        run: |
+          test -f output/weekly_3_2_selection.csv
+          test -f output/weekly_3_2_historical_metrics.csv
+          test -f output/weekly_3_2_feature_audit.csv
+          test -f output/weekly_3_2_live_oof.csv
+          test -f output/weekly_3_2_promotion.csv
+          test -f output/weekly_3_2_quality_report.txt
+
+      - name: Commit experimental results
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -f \
+            output/weekly_3_2_*.csv \
+            output/weekly_3_2_quality_report.txt \
+            models/weekly_3_2_live_*.json \
+            models/weekly_3_2_live_*_meta.rds \
+            2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No Model 3.2 outputs changed."
+            exit 0
+          fi
+
+          git commit -m "Evaluate Model 3.2 signal optimization"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
