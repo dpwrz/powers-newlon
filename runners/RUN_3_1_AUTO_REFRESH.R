@@ -114,9 +114,20 @@ run_auto_refresh31 <- function() {
     "output/weekly_3_1_residual_pool.csv", paste0("models/weekly_3_1_direct_", POSITIONS, ".json"),
     paste0("models/weekly_3_1_direct_", POSITIONS, "_meta.rds")
   )))
+  live31_manifest <- "output/weekly_3_1_live_manifest.csv"
+  live31_pairs <- vapply(POSITIONS, function(pos) {
+    file.exists(paste0("models/weekly_3_1_live_", pos, ".json")) &&
+      file.exists(paste0("models/weekly_3_1_live_", pos, "_meta.rds"))
+  }, logical(1))
+  has_live31 <- file.exists(live31_manifest) && any(live31_pairs)
 
-  if (has31) source("pipeline/28_project_weekly_2026_3_1.R", local = FALSE) else {
-    cat("[3.1 AUTO] 3.1 challenger artifacts absent; using exact 2.5 production projection.\n")
+  if (has31 || has_live31) {
+    if (!has31 && has_live31) {
+      cat("[3.1 AUTO] Historical 3.1 artifacts absent; applying deployed weekly-learned 3.1 models on top of exact 2.5.\n")
+    }
+    source("pipeline/28_project_weekly_2026_3_1.R", local = FALSE)
+  } else {
+    cat("[3.1 AUTO] No deployed 3.1 artifacts; using exact 2.5 production projection.\n")
     source("pipeline/23_project_weekly_2026_2_5.R", local = FALSE)
   }
   timer <- live31_timer_mark(timer, "project_unplayed_and_ros")
