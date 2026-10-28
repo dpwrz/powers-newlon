@@ -5,6 +5,7 @@
 # 3.2 deliberately reduces the feature surface and adds a compact set of
 # strictly lagged offensive-context / opportunity composites.
 
+if (!exists("schedule_team_rows21", mode = "function")) source("R/weekly_engine.R")
 if (!exists("wk31_fit", mode = "function")) source("R/weekly_engine_31.R")
 
 MODEL32_OFFENSE_METRICS <- c(
