@@ -11,7 +11,8 @@ MODEL32_OFFENSE_METRICS <- c(
   "off_plays", "off_pass_rate", "off_neutral_pass_rate", "off_redzone_pass_rate",
   "off_pass_epa", "off_rush_epa", "off_pass_success", "off_rush_success",
   "off_sack_allowed_rate", "off_qb_hit_allowed_rate", "off_deep_pass_rate",
-  "off_explosive_pass_rate", "off_no_huddle_rate", "off_shotgun_rate"
+  "off_explosive_pass_rate", "off_redzone_pass_td_rate", "off_redzone_rush_td_rate",
+  "off_no_huddle_rate", "off_shotgun_rate"
 )
 MODEL32_OFFENSE_FEATURES <- paste0("team_", MODEL32_OFFENSE_METRICS, "_roll4")
 MODEL32_DERIVED_FEATURES <- c(
@@ -31,8 +32,65 @@ wk32_num <- function(x, default = 0) {
 }
 
 wk32_offense_context <- function(path = "data/raw/weekly_offense_context_raw.csv") {
-  if (!file.exists(path)) return(data.frame())
-  z <- tryCatch(readr::read_csv(path, show_col_types = FALSE, progress = FALSE), error = function(e) data.frame())
+  z <- if (file.exists(path)) {
+    tryCatch(readr::read_csv(path, show_col_types = FALSE, progress = FALSE), error = function(e) data.frame())
+  } else data.frame()
+
+  # Fast fallback: every defense-week row is also the opposing offense-week.
+  # Re-map the existing defense PBP summary through the schedule, avoiding a
+  # second multi-season PBP download just to recover offense efficiency/style.
+  if ((!nrow(z) || !all(c("season","week","team") %in% names(z))) &&
+      file.exists("data/raw/weekly_defense_context_raw.csv")) {
+    def <- tryCatch(
+      readr::read_csv("data/raw/weekly_defense_context_raw.csv", show_col_types = FALSE, progress = FALSE),
+      error = function(e) data.frame()
+    )
+    sched <- data.frame()
+    for (sp in c("data/raw/schedules_weekly_model.csv",
+                 paste0("data/raw/schedules_live_", CURRENT_SEASON, ".csv"))) {
+      if (!file.exists(sp)) next
+      ss <- tryCatch(readr::read_csv(sp, show_col_types = FALSE, progress = FALSE), error = function(e) data.frame())
+      if (nrow(ss)) sched <- dplyr::bind_rows(sched, ss)
+    }
+    if (!nrow(sched) && requireNamespace("nflreadr", quietly = TRUE)) {
+      sched <- tryCatch(nflreadr::load_schedules(seasons = WEEKLY_TRAIN_START:CURRENT_SEASON),
+                        error = function(e) data.frame())
+    }
+    if (nrow(def) && nrow(sched) && exists("schedule_team_rows21", mode = "function")) {
+      ts <- schedule_team_rows21(sched) |>
+        dplyr::select(season, week, defense = team, team = opponent) |>
+        dplyr::distinct(season, week, defense, .keep_all = TRUE)
+      z <- def |>
+        dplyr::left_join(ts, by = c("season","week","defense")) |>
+        dplyr::filter(!is.na(team), team != "") |>
+        dplyr::transmute(
+          season = as.integer(wk32_num(season, NA_real_)),
+          week = as.integer(wk32_num(week, NA_real_)),
+          team = as.character(team),
+          off_plays = wk32_num(def_dropbacks) + wk32_num(def_rushes),
+          off_pass_rate = wk32_num(def_dropbacks) / pmax(wk32_num(def_dropbacks) + wk32_num(def_rushes), 1),
+          off_neutral_pass_rate = off_pass_rate,
+          off_redzone_pass_rate = 0,
+          off_pass_epa = wk32_num(def_pass_epa_allowed),
+          off_rush_epa = wk32_num(def_rush_epa_allowed),
+          off_pass_success = wk32_num(def_pass_success_allowed),
+          off_rush_success = wk32_num(def_rush_success_allowed),
+          off_sack_allowed_rate = wk32_num(def_sack_rate),
+          off_qb_hit_allowed_rate = wk32_num(def_qb_hit_rate),
+          off_deep_pass_rate = wk32_num(def_deep_pass_rate),
+          off_explosive_pass_rate = wk32_num(def_explosive_pass_rate),
+          off_redzone_pass_td_rate = wk32_num(def_redzone_pass_td_rate),
+          off_redzone_rush_td_rate = wk32_num(def_redzone_rush_td_rate),
+          off_no_huddle_rate = 0,
+          off_shotgun_rate = 0
+        )
+      if (nrow(z)) {
+        tryCatch(readr::write_csv(z, path), error = function(e) NULL)
+        cat("[3.2] Built offense context from existing defense PBP summaries: ", nrow(z), " rows.\n", sep = "")
+      }
+    }
+  }
+
   if (!nrow(z) || !all(c("season","week","team") %in% names(z))) return(data.frame())
   z$season <- suppressWarnings(as.integer(z$season))
   z$week <- suppressWarnings(as.integer(z$week))
@@ -175,23 +233,23 @@ MODEL32_CORE <- list(
 
 MODEL32_CONTEXT_BY_POSITION <- list(
   QB = c(
-    "team_off_plays_roll4","team_off_neutral_pass_rate_roll4","team_off_pass_epa_roll4",
+    "team_off_plays_roll4","team_off_pass_rate_roll4","team_off_pass_epa_roll4",
     "team_off_pass_success_roll4","team_off_sack_allowed_rate_roll4",
     "team_off_qb_hit_allowed_rate_roll4","team_off_deep_pass_rate_roll4",
-    "team_off_explosive_pass_rate_roll4","team_off_no_huddle_rate_roll4"
+    "team_off_explosive_pass_rate_roll4","team_off_redzone_pass_td_rate_roll4"
   ),
   RB = c(
-    "team_off_plays_roll4","team_off_neutral_pass_rate_roll4","team_off_redzone_pass_rate_roll4",
-    "team_off_rush_epa_roll4","team_off_rush_success_roll4","team_off_no_huddle_rate_roll4"
+    "team_off_plays_roll4","team_off_pass_rate_roll4","team_off_rush_epa_roll4",
+    "team_off_rush_success_roll4","team_off_redzone_rush_td_rate_roll4"
   ),
   WR = c(
-    "team_off_plays_roll4","team_off_neutral_pass_rate_roll4","team_off_redzone_pass_rate_roll4",
-    "team_off_pass_epa_roll4","team_off_pass_success_roll4","team_off_deep_pass_rate_roll4",
-    "team_off_explosive_pass_rate_roll4","team_off_no_huddle_rate_roll4"
+    "team_off_plays_roll4","team_off_pass_rate_roll4","team_off_pass_epa_roll4",
+    "team_off_pass_success_roll4","team_off_deep_pass_rate_roll4",
+    "team_off_explosive_pass_rate_roll4","team_off_redzone_pass_td_rate_roll4"
   ),
   TE = c(
-    "team_off_plays_roll4","team_off_neutral_pass_rate_roll4","team_off_redzone_pass_rate_roll4",
-    "team_off_pass_epa_roll4","team_off_pass_success_roll4","team_off_shotgun_rate_roll4"
+    "team_off_plays_roll4","team_off_pass_rate_roll4","team_off_pass_epa_roll4",
+    "team_off_pass_success_roll4","team_off_redzone_pass_td_rate_roll4"
   )
 )
 
