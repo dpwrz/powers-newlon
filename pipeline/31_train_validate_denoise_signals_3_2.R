@@ -22,7 +22,7 @@ oof31_path <- "output/weekly_3_1_live_oof.csv"
 manifest31_path <- "output/weekly_3_1_live_manifest.csv"
 config31_path <- "output/weekly_3_1_live_config.csv"
 
-req <- c(historical_path,live_path,offense_path,oof31_path,manifest31_path,config31_path)
+req <- c(historical_path,live_path,oof31_path,manifest31_path,config31_path)
 miss <- req[!file.exists(req)]
 if(length(miss)) stop("3.2 missing prerequisite(s): ",paste(miss,collapse=", "))
 
