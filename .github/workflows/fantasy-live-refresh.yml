@@ -1,6 +1,13 @@
 name: Fantasy Model 3.1 live refresh
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'runners/RUN_3_1_AUTO_REFRESH.R'
+      - 'pipeline/28_project_weekly_2026_3_1.R'
+      - '.github/workflows/fantasy-live-refresh.yml'
   workflow_dispatch:
     inputs:
       skip_model_refresh:
