@@ -218,8 +218,27 @@ readr::write_csv(combined, "data/raw/weekly_defense_context_raw.csv")
 
 off_files <- file.path("data/raw/weekly_offense_by_season", paste0("offense_week_", combine_seasons, ".csv"))
 off_files <- off_files[file.exists(off_files)]
-off_combined <- dplyr::bind_rows(lapply(off_files, function(f) readr::read_csv(f, show_col_types = FALSE, progress = FALSE)))
-if (nrow(off_combined)) readr::write_csv(off_combined, "data/raw/weekly_offense_context_raw.csv")
+off_checkpoint_combined <- dplyr::bind_rows(lapply(off_files, function(f) readr::read_csv(f, show_col_types = FALSE, progress = FALSE)))
+
+# The 3.2 fallback can create an all-season offense store before dedicated
+# offense checkpoints exist. A current-only refresh must replace only the
+# seasons it actually rebuilt, never truncate the historical fallback rows.
+existing_off <- if (file.exists("data/raw/weekly_offense_context_raw.csv")) {
+  tryCatch(readr::read_csv("data/raw/weekly_offense_context_raw.csv", show_col_types = FALSE, progress = FALSE),
+           error = function(e) data.frame())
+} else data.frame()
+if (nrow(existing_off) && nrow(off_checkpoint_combined) &&
+    "season" %in% names(existing_off) && "season" %in% names(off_checkpoint_combined)) {
+  rebuilt_seasons <- unique(as.integer(off_checkpoint_combined$season))
+  existing_off <- existing_off[!as.integer(existing_off$season) %in% rebuilt_seasons, , drop = FALSE]
+}
+off_combined <- dplyr::bind_rows(existing_off, off_checkpoint_combined)
+if (nrow(off_combined)) {
+  off_combined <- off_combined |>
+    dplyr::arrange(season, week, team) |>
+    dplyr::distinct(season, week, team, .keep_all = TRUE)
+  readr::write_csv(off_combined, "data/raw/weekly_offense_context_raw.csv")
+}
 
 cat("\n[WEEKLY DEF] Combined weekly defense store: ", nrow(combined), " rows.\n", sep = "")
 cat("[3.2 OFFENSE] Combined weekly offense store: ", nrow(off_combined), " rows.\n", sep = "")
