@@ -74,6 +74,9 @@ jobs:
       - name: Run Model 3.2 safety tests
         run: Rscript tests/TEST_3_2_DENOISE.R
 
+      - name: Refresh current-season PBP context
+        run: Rscript maintenance/REFRESH_WEEKLY_DEFENSE_CURRENT.R
+
       - name: Run denoise and new-signal tournament
         env:
           FM_RELEASE_VERSION: '3.2-challenger'
