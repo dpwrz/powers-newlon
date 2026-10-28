@@ -72,12 +72,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add -f \
-            output/weekly_3_2_*.csv \
-            output/weekly_3_2_quality_report.txt \
-            models/weekly_3_2_live_*.json \
-            models/weekly_3_2_live_*_meta.rds \
-            2>/dev/null || true
+          git add -f output/weekly_3_2_*.csv output/weekly_3_2_quality_report.txt
+          if compgen -G "models/weekly_3_2_live_*.json" > /dev/null; then
+            git add -f models/weekly_3_2_live_*.json
+          fi
+          if compgen -G "models/weekly_3_2_live_*_meta.rds" > /dev/null; then
+            git add -f models/weekly_3_2_live_*_meta.rds
+          fi
+
+          git status --short
 
           if git diff --cached --quiet; then
             echo "No Model 3.2 outputs changed."
