@@ -112,6 +112,14 @@ jobs:
           fi
 
           git commit -m "Validate Fantasy Model 3.2 denoise challenger"
+
+          # Runtime projection refreshes intentionally touch additional state.
+          # Preserve those leftovers so they cannot block rebasing/persisting
+          # the challenger evidence selected above.
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git stash push --include-untracked -m "3.2-validation-runtime-leftovers"
+          fi
+
           git fetch origin "${GITHUB_REF_NAME}"
           git rebase "origin/${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
