@@ -13,11 +13,13 @@ ensure_packages(c("dplyr", "readr", "tidyr", "nflreadr"))
 source("R/weekly_engine.R")
 
 dir.create("data/raw/weekly_defense_by_season", recursive = TRUE, showWarnings = FALSE)
+dir.create("data/raw/weekly_offense_by_season", recursive = TRUE, showWarnings = FALSE)
 
 WEEKLY_PBP_COLUMNS_21 <- c(
   "season", "season_type", "week", "game_id", "posteam", "defteam", "qtr", "down", "wp",
   "pass_attempt", "rush_attempt", "qb_dropback", "qb_scramble", "epa", "success", "sack", "qb_hit",
-  "air_yards", "yardline_100", "pass_touchdown", "rush_touchdown", "pass_location"
+  "air_yards", "yardline_100", "pass_touchdown", "rush_touchdown", "pass_location",
+  "score_differential", "no_huddle", "shotgun"
 )
 
 load_weekly_pbp_compact21 <- function(season) {
@@ -55,6 +57,62 @@ load_weekly_pbp_compact21 <- function(season) {
   required <- c("season", "season_type", "week", "defteam")
   if (!all(required %in% keep)) stop("PBP ", season, " missing required weekly-defense fields: ", paste(setdiff(required, keep), collapse = ", "))
   as.data.frame(readr::read_csv(tmp, col_select = dplyr::all_of(keep), show_col_types = FALSE, progress = FALSE))
+}
+
+summarize_offense_week32 <- function(pbp) {
+  if (nrow(pbp) == 0) return(data.frame())
+  for (nm in WEEKLY_PBP_COLUMNS_21) pbp <- ensure_weekly_col21(pbp, nm, NA)
+
+  p <- pbp |>
+    dplyr::filter(season_type == "REG", !is.na(posteam), posteam != "") |>
+    dplyr::mutate(
+      season = as.integer(wk_num(season)),
+      week = as.integer(wk_num(week)),
+      team = wk_chr(posteam),
+      pass_attempt = dplyr::coalesce(wk_num(pass_attempt), 0),
+      rush_attempt = dplyr::coalesce(wk_num(rush_attempt), 0),
+      qb_dropback = dplyr::coalesce(wk_num(qb_dropback), 0),
+      qb_scramble = dplyr::coalesce(wk_num(qb_scramble), 0),
+      epa = wk_num(epa),
+      success = wk_num(success),
+      sack = dplyr::coalesce(wk_num(sack), 0),
+      qb_hit = dplyr::coalesce(wk_num(qb_hit), 0),
+      air_yards = wk_num(air_yards),
+      yardline_100 = wk_num(yardline_100),
+      score_differential = wk_num(score_differential),
+      no_huddle = dplyr::coalesce(wk_num(no_huddle), 0),
+      shotgun = dplyr::coalesce(wk_num(shotgun), 0),
+      is_pass = as.numeric(qb_dropback == 1 | pass_attempt == 1),
+      is_rush = as.numeric(rush_attempt == 1 & qb_scramble != 1),
+      is_play = as.numeric((qb_dropback == 1 | rush_attempt == 1) & !is.na(down)),
+      is_neutral = as.numeric(is_play == 1 & qtr <= 3 & is.finite(score_differential) & abs(score_differential) <= 7),
+      is_redzone = as.numeric(is_play == 1 & is.finite(yardline_100) & yardline_100 <= 20),
+      is_deep_pass = as.numeric(pass_attempt == 1 & is.finite(air_yards) & air_yards >= 15),
+      is_explosive_pass = as.numeric(pass_attempt == 1 & is.finite(epa) & epa >= 1.5)
+    )
+
+  p |>
+    dplyr::group_by(season, week, team) |>
+    dplyr::summarise(
+      off_games = dplyr::n_distinct(game_id),
+      off_plays = sum(is_play, na.rm = TRUE),
+      off_dropbacks = sum(is_pass, na.rm = TRUE),
+      off_rushes = sum(is_rush, na.rm = TRUE),
+      off_pass_rate = wk_rate(sum(is_pass, na.rm = TRUE), sum(is_play, na.rm = TRUE)),
+      off_neutral_pass_rate = wk_rate(sum(is_pass == 1 & is_neutral == 1, na.rm = TRUE), sum(is_neutral, na.rm = TRUE)),
+      off_redzone_pass_rate = wk_rate(sum(is_pass == 1 & is_redzone == 1, na.rm = TRUE), sum(is_redzone, na.rm = TRUE)),
+      off_pass_epa = ifelse(sum(is_pass == 1 & is.finite(epa), na.rm = TRUE) > 0, mean(epa[is_pass == 1 & is.finite(epa)], na.rm = TRUE), 0),
+      off_rush_epa = ifelse(sum(is_rush == 1 & is.finite(epa), na.rm = TRUE) > 0, mean(epa[is_rush == 1 & is.finite(epa)], na.rm = TRUE), 0),
+      off_pass_success = ifelse(sum(is_pass == 1 & is.finite(success), na.rm = TRUE) > 0, mean(success[is_pass == 1 & is.finite(success)], na.rm = TRUE), 0),
+      off_rush_success = ifelse(sum(is_rush == 1 & is.finite(success), na.rm = TRUE) > 0, mean(success[is_rush == 1 & is.finite(success)], na.rm = TRUE), 0),
+      off_sack_allowed_rate = wk_rate(sum(sack == 1, na.rm = TRUE), sum(is_pass, na.rm = TRUE)),
+      off_qb_hit_allowed_rate = wk_rate(sum(qb_hit == 1, na.rm = TRUE), sum(is_pass, na.rm = TRUE)),
+      off_deep_pass_rate = wk_rate(sum(is_deep_pass, na.rm = TRUE), sum(pass_attempt == 1, na.rm = TRUE)),
+      off_explosive_pass_rate = wk_rate(sum(is_explosive_pass, na.rm = TRUE), sum(pass_attempt == 1, na.rm = TRUE)),
+      off_no_huddle_rate = wk_rate(sum(no_huddle == 1 & is_play == 1, na.rm = TRUE), sum(is_play, na.rm = TRUE)),
+      off_shotgun_rate = wk_rate(sum(shotgun == 1 & is_play == 1, na.rm = TRUE), sum(is_play, na.rm = TRUE)),
+      .groups = "drop"
+    )
 }
 
 summarize_defense_week21 <- function(pbp) {
@@ -108,31 +166,46 @@ cat("[WEEKLY DEF] Processing seasons: ", min(seasons), "-", max(seasons),
     " (training still stops at ", TRAIN_END, ")\n", sep = "")
 
 for (yr in seasons) {
-  checkpoint <- file.path("data/raw/weekly_defense_by_season", paste0("defense_week_", yr, ".csv"))
-  if (file.exists(checkpoint) && yr != CURRENT_SEASON) {
-    chk <- tryCatch(readr::read_csv(checkpoint, show_col_types = FALSE, n_max = 3), error = function(e) data.frame())
-    if (nrow(chk) > 0 && all(c("season", "week", "defense") %in% names(chk))) {
-      cat("[WEEKLY DEF] ", yr, " checkpoint found; skipping.\n", sep = "")
-      next
-    }
+  def_checkpoint <- file.path("data/raw/weekly_defense_by_season", paste0("defense_week_", yr, ".csv"))
+  off_checkpoint <- file.path("data/raw/weekly_offense_by_season", paste0("offense_week_", yr, ".csv"))
+
+  def_ok <- FALSE
+  off_ok <- FALSE
+  if (file.exists(def_checkpoint) && yr != CURRENT_SEASON) {
+    chk <- tryCatch(readr::read_csv(def_checkpoint, show_col_types = FALSE, n_max = 3), error = function(e) data.frame())
+    def_ok <- nrow(chk) > 0 && all(c("season", "week", "defense") %in% names(chk))
   }
-  if (yr == CURRENT_SEASON && file.exists(checkpoint)) cat("[WEEKLY DEF] Refreshing current-season checkpoint ", yr, "...\n", sep = "")
-  cat("[WEEKLY DEF] Processing ", yr, "...\n", sep = "")
+  if (file.exists(off_checkpoint) && yr != CURRENT_SEASON) {
+    chk <- tryCatch(readr::read_csv(off_checkpoint, show_col_types = FALSE, n_max = 3), error = function(e) data.frame())
+    off_ok <- nrow(chk) > 0 && all(c("season", "week", "team") %in% names(chk))
+  }
+  if (def_ok && off_ok) {
+    cat("[WEEKLY CONTEXT] ", yr, " defense + offense checkpoints found; skipping.\n", sep = "")
+    next
+  }
+
+  if (yr == CURRENT_SEASON) cat("[WEEKLY CONTEXT] Refreshing current-season PBP context ", yr, "...\n", sep = "")
+  else cat("[WEEKLY CONTEXT] Building missing context for ", yr, "...\n", sep = "")
+
   pbp <- tryCatch(load_weekly_pbp_compact21(yr), error = function(e) {
     if (yr == CURRENT_SEASON) { warning("Current-season PBP not available yet: ", conditionMessage(e)); return(data.frame()) }
     stop(e)
   })
-  summary <- summarize_defense_week21(pbp)
-  if (nrow(summary) == 0) {
+
+  def_summary <- summarize_defense_week21(pbp)
+  off_summary <- summarize_offense_week32(pbp)
+  if (!nrow(def_summary) || !nrow(off_summary)) {
     if (yr == CURRENT_SEASON) {
-      cat("[WEEKLY DEF] No completed regular-season PBP yet for ", yr, "; current-season checkpoint not written.\n", sep = "")
-      rm(pbp, summary); invisible(gc(full = TRUE)); next
+      cat("[WEEKLY CONTEXT] No completed regular-season PBP yet for ", yr, "; current-season checkpoints not written.\n", sep = "")
+      rm(pbp, def_summary, off_summary); invisible(gc(full = TRUE)); next
     }
-    stop("No regular-season defense rows produced for ", yr)
+    stop("No regular-season context rows produced for ", yr)
   }
-  readr::write_csv(summary, checkpoint)
-  rm(pbp, summary); invisible(gc(full = TRUE))
-  cat("[WEEKLY DEF] ", yr, " checkpoint saved.\n", sep = "")
+
+  readr::write_csv(def_summary, def_checkpoint)
+  readr::write_csv(off_summary, off_checkpoint)
+  rm(pbp, def_summary, off_summary); invisible(gc(full = TRUE))
+  cat("[WEEKLY CONTEXT] ", yr, " defense + offense checkpoints saved.\n", sep = "")
 }
 
 # Always recombine every available historical checkpoint after a current-only
@@ -142,5 +215,12 @@ files <- file.path("data/raw/weekly_defense_by_season", paste0("defense_week_", 
 files <- files[file.exists(files)]
 combined <- dplyr::bind_rows(lapply(files, function(f) readr::read_csv(f, show_col_types = FALSE, progress = FALSE)))
 readr::write_csv(combined, "data/raw/weekly_defense_context_raw.csv")
+
+off_files <- file.path("data/raw/weekly_offense_by_season", paste0("offense_week_", combine_seasons, ".csv"))
+off_files <- off_files[file.exists(off_files)]
+off_combined <- dplyr::bind_rows(lapply(off_files, function(f) readr::read_csv(f, show_col_types = FALSE, progress = FALSE)))
+if (nrow(off_combined)) readr::write_csv(off_combined, "data/raw/weekly_offense_context_raw.csv")
+
 cat("\n[WEEKLY DEF] Combined weekly defense store: ", nrow(combined), " rows.\n", sep = "")
-cat("[WEEKLY DEF] Complete.\n\n")
+cat("[3.2 OFFENSE] Combined weekly offense store: ", nrow(off_combined), " rows.\n", sep = "")
+cat("[WEEKLY CONTEXT] Complete.\n\n")
