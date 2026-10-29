@@ -176,7 +176,8 @@ for (pos in POSITIONS) {
     stringsAsFactors = FALSE
   )
 }
-selection <- dplyr::bind_rows(selection_rows)
+selection <- dplyr::bind_rows(selection_rows) |>
+  dplyr::rename(architecture_improvement_pct = historical_improvement_pct)
 
 # -------------------------------------------------------------------------
 # 1B) Screen new factors one-at-a-time on the same historical OOF folds.
@@ -345,8 +346,15 @@ selection <- selection |>
     historical_mean_score = dplyr::if_else(
       is.finite(factor_mean_score), factor_mean_score, historical_mean_score
     ),
-    historical_improvement_pct =
-      100 * (historical_full_score - historical_mean_score) / pmax(historical_full_score, 1e-9)
+    factor_gain_vs_base_pct = dplyr::coalesce(factor_gain_vs_base_pct, 0),
+    historical_improvement_pct = 100 * (
+      1 -
+        (1 - dplyr::coalesce(architecture_improvement_pct, 0) / 100) *
+        (1 - factor_gain_vs_base_pct / 100)
+    ),
+    mean_features = mean_features +
+      dplyr::if_else(nzchar(selected_factors),
+        lengths(strsplit(selected_factors, "\\+")), 0L)
   )
 
 readr::write_csv(factor_screen, "output/weekly_3_2_factor_screen_folds.csv")
@@ -430,6 +438,33 @@ if (nrow(perm)) {
     dplyr::arrange(position, dplyr::desc(mean_delta_MAE_if_permuted))
   readr::write_csv(factor_summary, "output/weekly_3_2_factor_effects.csv")
 }
+
+factor_attribution <- lapply(POSITIONS, function(pos) {
+  sf <- selection$selected_factors[selection$position == pos][1]
+  factors <- if (is.na(sf) || !nzchar(sf)) character() else strsplit(sf, "\\+", fixed = FALSE)[[1]]
+  if (!length(factors)) {
+    return(data.frame(position = pos, factor_attribution_ok = TRUE,
+                      factor_attribution_failed = "", stringsAsFactors = FALSE))
+  }
+  if (!exists("factor_summary") || !nrow(factor_summary)) {
+    return(data.frame(position = pos, factor_attribution_ok = FALSE,
+                      factor_attribution_failed = paste(factors, collapse = ";"),
+                      stringsAsFactors = FALSE))
+  }
+  z <- factor_summary[factor_summary$position == pos & factor_summary$factor %in% factors, , drop = FALSE]
+  passed <- z$mean_delta_MAE_if_permuted > 0 & z$years_positive >= 1
+  failed <- setdiff(factors, as.character(z$factor[passed]))
+  data.frame(
+    position = pos,
+    factor_attribution_ok = length(failed) == 0L,
+    factor_attribution_failed = paste(failed, collapse = ";"),
+    stringsAsFactors = FALSE
+  )
+}) |> dplyr::bind_rows()
+
+selection <- selection |>
+  dplyr::left_join(factor_attribution, by = "position")
+readr::write_csv(selection, "output/weekly_3_2_selection.csv")
 
 # -------------------------------------------------------------------------
 # Independent 2026 rolling OOF. Variant is already locked above.
@@ -524,7 +559,8 @@ for (pos in POSITIONS) {
     live_gate = base_promote,
     live_all_gain = is.finite(gate$all_mae_gain_pct[1]) && gate$all_mae_gain_pct[1] >= 0.15,
     live_starter_gain = is.finite(gate$starter_mae_gain_pct[1]) && gate$starter_mae_gain_pct[1] > 0,
-    live_confidence = is.finite(gate$bootstrap_p_improves[1]) && gate$bootstrap_p_improves[1] >= 0.60
+    live_confidence = is.finite(gate$bootstrap_p_improves[1]) && gate$bootstrap_p_improves[1] >= 0.60,
+    factor_attribution = isTRUE(selection$factor_attribution_ok[selection$position == pos][1])
   )
   promote32 <- all(checks32)
 
@@ -532,6 +568,8 @@ for (pos in POSITIONS) {
     position = pos,
     selected_variant = selected_variant,
     historical_improvement_pct = hist_gain,
+    factor_attribution_ok = selection$factor_attribution_ok[selection$position == pos][1],
+    factor_attribution_failed = selection$factor_attribution_failed[selection$position == pos][1],
     live_n = gate$n[1], live_weeks = gate$weeks[1], live_starter_n = gate$starter_n[1],
     live_all_mae_gain_pct = gate$all_mae_gain_pct[1],
     live_starter_mae_gain_pct = gate$starter_mae_gain_pct[1],
