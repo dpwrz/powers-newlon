@@ -3,7 +3,15 @@ import './native-ui.css';
 
 const ADMIN_HASH='#/_fm/control-room-30', WEB_VERSION='3.0.0';
 const pnTheme=localStorage.getItem('pn_theme')||'light';
-document.documentElement.dataset.theme=pnTheme;
+function applyPnTheme(choice=localStorage.getItem('pn_theme')||'light'){
+ document.documentElement.dataset.theme=choice==='auto'
+  ? (window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')
+  : choice;
+}
+applyPnTheme(pnTheme);
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+ if(localStorage.getItem('pn_theme')==='auto')applyPnTheme('auto');
+});
 
 
 const S='https://api.sleeper.app/v1', ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
@@ -538,7 +546,7 @@ function renderBoot(){
  root.innerHTML='<main class="pn-boot" aria-label="Opening Powers-Newlon Fantasy Manager"><div class="pn-boot-content"><div class="pn-boot-mark" aria-hidden="true">PN</div><strong>Powers-Newlon</strong><span>Fantasy Manager</span><div class="pn-boot-line" role="progressbar" aria-label="Loading your fantasy dashboard"><i></i></div></div></main>';
 }
 function render(){if(st.booting){renderBoot();return}const html=isAdminLocation()?admin():st.route==='dashboard'?(st.league?home2():dashboard()):st.route==='league'?(st.league?leagueShell():dashboard()):st.route==='live'?live():st.route==='leaders'?leaders():st.route==='startsit'?startsit():about();$('#app').innerHTML=html;bind()}
-function bind(){bindAdmin();$('[data-theme]').forEach(x=>x.onclick=()=>{localStorage.setItem('pn_theme',x.dataset.theme);document.documentElement.dataset.theme=x.dataset.theme;render()});$('#nxConnectForm')?.addEventListener('submit',e=>{e.preventDefault();loadLeagues($('#username').value.trim(),+$('#season').value)});
+function bind(){bindAdmin();$('[data-theme]').forEach(x=>x.onclick=()=>{localStorage.setItem('pn_theme',x.dataset.theme);applyPnTheme(x.dataset.theme);render()});$('#nxConnectForm')?.addEventListener('submit',e=>{e.preventDefault();loadLeagues($('#username').value.trim(),+$('#season').value)});
  $('[data-explore-view]').forEach(x=>x.onclick=()=>{st.exploreView=x.dataset.exploreView;st.exploreQuery='';transitionRender()});
  $('[data-explore-pos]').forEach(x=>x.onclick=()=>{st.explorePos=x.dataset.explorePos;st.exploreQuery='';transitionRender()});
  const ex=$('#exploreSearch');
