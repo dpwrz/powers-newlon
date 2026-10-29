@@ -452,3 +452,18 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[role=button]:focus-v
  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
  ::view-transition-old(root),::view-transition-new(root){animation:none!important}
 }
+
+/* Reading order: matchup → next action → players → model status on small screens. */
+.pn-home-grid{
+ display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);
+ grid-template-areas:"match actions" "players status";
+ gap:22px;align-items:start;
+}
+.pn-home-main,.pn-home-aside{display:contents!important}
+.pn-home-main>.pn-match-card{grid-area:match}
+.pn-home-aside>.pn-actions{grid-area:actions}
+.pn-home-main>.pn-players{grid-area:players}
+.pn-home-aside>.pn-data-note{grid-area:status}
+@media(max-width:1050px){
+ .pn-home-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"match" "actions" "players" "status";gap:21px}
+}
