@@ -67,8 +67,9 @@ async function test(engine,label,width){
   assert((await page.locator('.instrument').innerText()).includes('Powers Test'));
   const scoreText=await page.locator('.instrument-team b').allTextContents();assert.equal(scoreText.length,2);
   const overflow=async where=>{const v=await page.evaluate(()=>({screen:innerWidth,page:document.documentElement.scrollWidth}));assert(v.page<=v.screen+3,where+' has horizontal overflow '+JSON.stringify(v))};
+  if(width<=900){const navState=await page.locator('.mobile-dock').evaluate(el=>{const r=el.getBoundingClientRect();return{display:getComputedStyle(el).display,bottom:r.bottom,height:r.height,viewport:innerHeight,topmost:document.elementFromPoint(40,innerHeight-25)?.closest('.mobile-dock')===el}});assert(navState.display!=='none'&&navState.topmost,'Mobile navigation must be tappable: '+JSON.stringify(navState));}
   await overflow('Briefing');await page.screenshot({path:new URL(label+'-'+width+'-briefing.png',screens).pathname});
-  await page.getByRole('navigation',{name:'Main sections'}).getByRole('button',{name:'Decisions'}).first().click();
+  await page.locator(width<=900?'.mobile-dock':'.rail-nav').getByRole('button',{name:'Decisions'}).first().click();
   await page.locator('.opportunity').first().waitFor();
   await page.getByRole('button',{name:'Start / Sit'}).click();
   await page.getByLabel('First player').selectOption('qb1');
@@ -76,7 +77,7 @@ async function test(engine,label,width){
   assert((await page.locator('.comparison-summary').innerText()).includes('1.7'));
   await overflow('Decisions');
   await page.screenshot({path:new URL(label+'-'+width+'-decisions.png',screens).pathname});
-  await page.getByRole('navigation',{name:'Main sections'}).getByRole('button',{name:'Scout'}).first().click();
+  await page.locator(width<=900?'.mobile-dock':'.rail-nav').getByRole('button',{name:'Scout'}).first().click();
   await page.getByLabel('Search players').fill('Quarterback');
   await page.locator('.scout-row').first().click();
   await page.locator('[role="dialog"]').waitFor();
@@ -84,7 +85,7 @@ async function test(engine,label,width){
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('[role="dialog"]').count(),0);
   await overflow('Scout');
-  await page.getByRole('navigation',{name:'Main sections'}).getByRole('button',{name:'League'}).first().click();
+  await page.locator(width<=900?'.mobile-dock':'.rail-nav').getByRole('button',{name:'League'}).first().click();
   await page.locator('.standings-row').first().waitFor();
   assert.equal(await page.locator('.standings-row').count(),2);
   await page.getByRole('button',{name:'Trade',exact:true}).click();
