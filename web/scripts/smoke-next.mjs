@@ -52,6 +52,11 @@ async function test(engine,label,width){
  await page.route('**/data/snapshot_version.json',r=>r.fulfill({status:200,contentType:'application/json',body:'{"version":"fixture-next-1"}'}));
  await page.route('https://api.sleeper.app/**',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mock(new URL(r.request().url()).pathname))}));
  try{
+  const [rootResponse,legacyResponse]=await Promise.all([page.request.get(url),page.request.get(url+'legacy/')]);
+  assert.equal(rootResponse.status(),200,'Root homepage must be accessible');
+  assert.equal(legacyResponse.status(),200,'Legacy rollback must be accessible');
+  assert((await rootResponse.text()).includes('id="root"'),'Main homepage serves Atlas React');
+  assert((await legacyResponse.text()).includes('id="app"'),'Legacy rollback serves old UI');
   await page.goto(url,{waitUntil:'domcontentloaded'});
   const input=page.locator('#sleeper-name');await input.waitFor({state:'visible'});
   await input.pressSequentially('qa_writer',{delay:7});
