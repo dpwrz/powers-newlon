@@ -467,3 +467,23 @@ button:focus-visible,a:focus-visible,summary:focus-visible,[role=button]:focus-v
 @media(max-width:1050px){
  .pn-home-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"match" "actions" "players" "status";gap:21px}
 }
+
+/* First paint is branded instead of a blank screen during snapshot hydration. */
+.pn-boot{
+ min-height:100dvh;display:grid;place-items:center;padding:28px;text-align:center;
+ background:radial-gradient(ellipse at 50% 35%,rgba(117,182,191,.14),transparent 55%),var(--bg);
+}
+.pn-boot-content{display:flex;flex-direction:column;align-items:center;gap:8px}
+.pn-boot-mark{
+ width:71px;height:71px;display:grid;place-items:center;margin-bottom:13px;
+ border-radius:22px;background:linear-gradient(145deg,#64c7bf,#247a78);
+ color:#fff;font-weight:810;font-size:23px;letter-spacing:-.07em;
+ box-shadow:0 15px 40px rgba(15,55,66,.20);
+}
+.pn-boot-content strong{color:var(--text);font-size:23px;letter-spacing:-.04em;font-weight:740}
+.pn-boot-content>span{color:var(--muted);font-size:13px;letter-spacing:.035em}
+.pn-boot-line{height:3px;width:128px;overflow:hidden;margin-top:26px;background:rgba(155,190,210,.19);border-radius:99px}
+.pn-boot-line i{display:block;height:100%;width:43%;border-radius:inherit;background:var(--accent);animation:pnLoading 1.45s ease-in-out infinite}
+@keyframes pnLoading{0%{transform:translateX(-110%)}50%{transform:translateX(105%)}100%{transform:translateX(240%)}}
+.pn-status-unknown{background:var(--warn)!important}
+@media(prefers-reduced-motion:reduce){.pn-boot-line i{animation:none;transform:translateX(70%)}}
