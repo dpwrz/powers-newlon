@@ -36,6 +36,7 @@ jobs:
           npm install --no-save playwright
           npx playwright install --with-deps chromium
       - name: Smoke test iPhone and desktop UX
+        timeout-minutes: 4
         run: node scripts/smoke-ui.mjs
       - name: Attach browser screenshots
         if: always()
