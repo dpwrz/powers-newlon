@@ -1077,3 +1077,191 @@ tbody tr:hover{background:#f1f6f4;box-shadow:inset 3px 0 0 var(--team-accent,#7f
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
 }
+
+
+/* ============================================================
+   Web 1.8.1 — balanced depth + less glare
+   Mid-tone canvas, varied surfaces, no repeating wallpaper.
+   ============================================================ */
+:root{
+  --bg:#dbe2df;
+  --bg-soft:#d1dad6;
+  --surface:#f1f3ef;
+  --surface-2:#e8eeeb;
+  --surface-3:#e1e9e5;
+  --ink:#122a34;
+  --text:#1d3037;
+  --muted:#66777b;
+  --muted2:#849196;
+  --line:#c6d0cc;
+  --line-strong:#aebcb7;
+  --navy:#193b49;
+  --navy-2:#285666;
+  --accent:#2f7f82;
+  --accent-strong:#236b70;
+  --accent-soft:#d8e9e7;
+  --paper:#f1f3ef;
+  --shadow-sm:0 5px 16px rgba(25,55,66,.08);
+  --shadow:0 15px 38px rgba(25,55,66,.12);
+}
+html{background:var(--bg)}
+body{
+  background:
+    radial-gradient(ellipse 72% 34% at 12% -4%,rgba(55,116,126,.14),transparent 68%),
+    radial-gradient(ellipse 56% 30% at 100% 16%,rgba(65,92,124,.09),transparent 70%),
+    radial-gradient(ellipse 62% 38% at 36% 100%,rgba(73,118,101,.07),transparent 72%),
+    linear-gradient(180deg,#e5eae7 0%,#dbe2df 46%,#d4ddd9 100%);
+}
+.topbar{
+  background:rgba(224,231,227,.97);
+  border-bottom-color:#c3ceca;
+}
+.season-badge{
+  background:#edf0ec;
+  border-color:#c3ceca;
+}
+.input,.select{
+  background:#eef1ed;
+  border-color:#aebbb6;
+}
+.input:hover,.select:hover{background:#f4f5f1}
+.input:focus,.select:focus{background:#f5f6f2}
+.btn{
+  background:#edf0ec;
+  border-color:#afbbb7;
+}
+.btn:hover{background:#f4f5f1}
+.btn-primary{background:var(--navy);color:#f5f5f0}
+.account-bar{
+  background:linear-gradient(145deg,#e9eeea,#e0e7e3);
+  border-color:#bec9c4;
+}
+.league-list{
+  background:#e9eeea;
+  border-color:#bec9c4;
+}
+.list-heading{background:#dfe6e2}
+.league-row{border-bottom-color:#ccd5d1}
+.league-row:hover{background:#e2ebe7}
+
+/* Remove the "paper sheet" feel by separating feature surfaces from data surfaces. */
+.matchup-hero{
+  border-color:#aebfba;
+  background:
+    radial-gradient(circle at 5% 4%,rgba(48,127,130,.16),transparent 34%),
+    radial-gradient(circle at 92% 108%,rgba(46,74,112,.10),transparent 42%),
+    linear-gradient(145deg,#eaf0ed,#dce7e3 74%);
+  box-shadow:0 8px 24px rgba(25,55,66,.09);
+}
+.matchup-hero::after{
+  opacity:.11;
+  background:
+    linear-gradient(90deg,transparent 49.86%,rgba(32,87,91,.13) 49.86% 50.14%,transparent 50.14%),
+    linear-gradient(0deg,transparent 72%,rgba(32,87,91,.035) 72%);
+}
+.matchup-avatar{background:#e1e9e5;border-color:#b8c6c1}
+.matchup-edge-track{background:#c6d1cd}
+
+.roster-table-wrap,.table-wrap{
+  background:#edf0ec;
+  border-color:#c0cbc6;
+  box-shadow:0 4px 14px rgba(25,55,66,.055);
+}
+th{background:#dfe6e2}
+td{border-bottom-color:#ccd5d1}
+tbody tr:hover{background:#e4ece8}
+
+.mobile-player-list{
+  background:linear-gradient(180deg,#edf0ec,#e8ede9);
+  border-color:#bfcac5;
+  box-shadow:0 4px 14px rgba(25,55,66,.06);
+}
+.mobile-player-row{border-bottom-color:#cad4cf}
+.mobile-player-row:nth-child(even){background:rgba(31,74,83,.018)}
+.mobile-player-row:active{background:#dce8e4}
+.player-headshot,.mobile-player-image,.startsit-player img,.waiver-player img{
+  background:#dfe7e3;
+  border-color:#c2ceca;
+}
+.team-dot,.startsit-team-logo{
+  background:#e5ebe8;
+  border-color:#edf0ec;
+}
+
+/* Section surfaces get individual character rather than identical white cards. */
+.pick{background:#e9eeea}
+.card,.metric,.recommendation,.game-card,.waiver-card,.player-search-panel,.startsit-card{
+  background:#edf0ec;
+  border-color:#c2ccc8;
+}
+.metric{background:#e7ece8}
+.recommendation{
+  background:linear-gradient(145deg,#e8eeea,#dfe9e5);
+}
+.waiver-card:hover,.game-card:hover,.startsit-card:hover{background:#f0f2ee}
+
+.startsit-summary{
+  border-color:#afc3bd;
+  background:
+    radial-gradient(circle at 88% 6%,rgba(47,127,130,.15),transparent 34%),
+    linear-gradient(145deg,#e8efec,#dce7e3 72%);
+  box-shadow:0 7px 22px rgba(25,55,66,.08);
+}
+.startsit-factors>div{background:rgba(238,242,238,.68);border-color:#c5d0cb}
+.startsit-card.preferred{
+  border-color:#8eb5ae;
+  background:linear-gradient(145deg,#deece8,#edf0ec 50%);
+}
+.startsit-projection{background:#e3e9e5}
+.decision-meter-track{background:#c5d1cc}
+
+.game-box,.pregame-market{background:#e4eae6}
+.market-teams>div{background:#edf0ec}
+
+/* Profile reads as a layer without becoming a bright white slab. */
+.profile-backdrop{background:rgba(20,37,43,.24)}
+.player-profile{
+  background:
+    radial-gradient(circle at 100% 0%,color-mix(in srgb,var(--team-accent,#2f7f82) 8%,transparent),transparent 34%),
+    linear-gradient(180deg,#eef1ed,#e7ece8);
+  border-left-color:#aebbb6;
+  box-shadow:-14px 0 38px rgba(25,55,66,.14);
+}
+.profile-metric,.profile-stat-grid>div,.profile-context-grid>div,.analysis-item,.news-card,.availability-panel{
+  background:#e1e8e4;
+  border-color:#c3cdc9;
+}
+.profile-close:hover{background:#dce4e0}
+
+/* Bottom navigation is quieter and less glaring. */
+@media(max-width:900px){
+  body{
+    background:
+      radial-gradient(ellipse 92% 26% at 4% -2%,rgba(55,116,126,.12),transparent 72%),
+      radial-gradient(ellipse 68% 24% at 100% 18%,rgba(65,92,124,.07),transparent 74%),
+      linear-gradient(180deg,#e4e9e6,#d9e1dd 55%,#d4ddd9);
+  }
+  .sidebar{
+    background:rgba(231,236,232,.985);
+    border-top-color:#b9c5c0;
+  }
+  .topbar{background:rgba(224,231,227,.985)}
+  .league-tabs{background:rgba(219,226,223,.985)}
+  .mobile-player-list{background:#e9eeea}
+  .matchup-hero{
+    background:
+      radial-gradient(circle at 8% 0%,rgba(48,127,130,.14),transparent 38%),
+      linear-gradient(145deg,#e8eeeb,#dce6e2);
+  }
+  .player-profile{
+    background:
+      radial-gradient(circle at 100% 0%,color-mix(in srgb,var(--team-accent,#2f7f82) 7%,transparent),transparent 32%),
+      linear-gradient(180deg,#edf0ec,#e5ebe7);
+  }
+}
+
+/* Interactions should feel immediate, not animated. */
+.nav-btn,.btn,.input,.select,.league-row,.row-chevron,.league-tab,.asset,.waiver-card,.startsit-card,.game-card,.news-card,.mobile-player-row{
+  transition-duration:70ms;
+}
+.matchup-edge-track span,.decision-meter-track span,.range-median{transition-duration:120ms}
