@@ -315,7 +315,7 @@ function LeagueView({data,onPlayer,onRefresh,refreshing}:{data:AppData;onPlayer:
  </div>;
 }
 function LoadingWorkspace({error,onRetry}:{error:unknown;onRetry:()=>void}){
- return <div className="loading-workspace"><div className="brand-symbol">PN</div><Caption>PREPARING YOUR INTELLIGENCE WORKSPACE</Caption><h1>Connecting the pieces<span>.</span></h1><p>Loading your Sleeper league, roster identities and the Powers–Newlon Model snapshot.</p><div className="loading-track"><span/></div>{error&&<ErrorLine error={error} onRetry={onRetry}/>}
+ return <div className="loading-workspace"><div className="brand-symbol">PN</div><Caption>PREPARING YOUR INTELLIGENCE WORKSPACE</Caption><h1>Connecting the pieces<span>.</span></h1><p>Loading your Sleeper league, roster identities and the Powers–Newlon Model snapshot.</p><div className="loading-track"><span/></div>{error!=null&&<ErrorLine error={error} onRetry={onRetry}/>}
  </div>;
 }
 export function App(){
