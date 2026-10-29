@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/check-runtime-contracts.mjs",
+    "prebuild": "node scripts/check-runtime-contracts.mjs && npm --prefix ../app-next install --no-audit --no-fund && npm --prefix ../app-next run build",
     "build": "vite build",
     "preview": "vite preview"
   },

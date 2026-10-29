@@ -1,0 +1,46 @@
+name: Atlas Monograph Next — build and interaction QA
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "app-next/**"
+      - "web/scripts/smoke-next.mjs"
+      - ".github/workflows/validate-next-app.yml"
+  workflow_dispatch:
+
+jobs:
+  next-app:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install next frontend
+        working-directory: app-next
+        run: npm install --no-audit --no-fund
+      - name: Typecheck and build React application
+        working-directory: app-next
+        run: npm run build
+      - name: Install legacy preview host and browser runner
+        working-directory: web
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save playwright
+          npm run build
+          npx playwright install --with-deps chromium webkit
+      - name: Validate model integration and mobile journeys
+        working-directory: web
+        timeout-minutes: 6
+        run: node scripts/smoke-next.mjs
+      - name: Upload next app build and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-monograph-next-preview
+          path: |
+            web/dist/next/**
+            web/ui-qa-next/*.png
+          if-no-files-found: ignore
