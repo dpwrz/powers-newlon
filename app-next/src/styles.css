@@ -444,8 +444,8 @@ h1,h2,h3,h4{line-height:1.12}
 }
 @media(max-width:375px){
  .content-inner{padding-inline:17px}
- .top-context>span:last-child{font-size:8px}
- .league-switcher{max-width:125px}
+ .top-context>span:last-child{display:none}
+ .league-switcher{max-width:min(160px,45vw)}
  .hero-heading h1{font-size:43px}
  .hero-aside{display:none}
  .instrument{padding:19px 18px 0}
