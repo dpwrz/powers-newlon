@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Powers-Newlon Fantasy Manager">
+ <defs>
+  <linearGradient id="base" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#354c5e"/><stop offset="1" stop-color="#1a2936"/></linearGradient>
+  <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a4f0e6"/><stop offset="1" stop-color="#48b8b2"/></linearGradient>
+ </defs>
+ <rect x="8" y="8" width="240" height="240" rx="57" fill="url(#base)"/>
+ <path d="M16 77C81 18 167 31 242 85" fill="none" stroke="#c4e7ef" stroke-opacity=".09" stroke-width="30"/>
+ <rect x="13" y="13" width="230" height="230" rx="52" fill="none" stroke="#ccebee" stroke-opacity=".20" stroke-width="2"/>
+ <path d="M62 175V83h39c33 0 50 18 50 45s-18 46-50 46H85" fill="none" stroke="url(#glow)" stroke-width="20" stroke-linejoin="round" stroke-linecap="round"/>
+ <path d="M164 173V82l40 91V82" fill="none" stroke="#f3f9fb" stroke-width="19" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
