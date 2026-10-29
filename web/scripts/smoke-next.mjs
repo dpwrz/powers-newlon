@@ -3,7 +3,7 @@ import {spawn} from 'node:child_process';
 import {setTimeout as pause} from 'node:timers/promises';
 import {chromium,webkit} from 'playwright';
 import {mkdir} from 'node:fs/promises';
-const port=4197,url='http://127.0.0.1:'+port+'/next/';
+const port=4197,url='http://127.0.0.1:'+port+'/';
 const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port',String(port)],{cwd:new URL('../',import.meta.url),stdio:['ignore','pipe','pipe']});
 let logs='';for(const s of [server.stdout,server.stderr])s.on('data',x=>logs+=String(x));
 async function ready(){for(let i=0;i<85;i++){try{const r=await fetch(url);if(r.ok)return}catch{}await pause(250)}throw Error('Preview did not start: '+logs)}
