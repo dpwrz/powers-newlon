@@ -87,7 +87,7 @@ async function test(){
    const page=await context.newPage();
    page.on('pageerror',error=>errors.push(width+': '+error.message));
    page.setDefaultTimeout(12000);
-   await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
+   await page.goto('http://127.0.0.1:4173/legacy/',{waitUntil:'domcontentloaded'});
    await page.locator('.nx-home .nx-match').waitFor({timeout:30000});
    assert.equal(await page.locator('.nav-btn').count(),4,'Four global navigation destinations');
    assert.equal(await page.locator('.nx-lineup-row').count(),4,'Home uses league starters');

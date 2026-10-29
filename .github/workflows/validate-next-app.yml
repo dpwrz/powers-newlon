@@ -5,6 +5,8 @@ on:
     paths:
       - "app-next/**"
       - "web/scripts/smoke-next.mjs"
+      - "web/scripts/promote-atlas-root.mjs"
+      - "web/package.json"
       - ".github/workflows/validate-next-app.yml"
   workflow_dispatch:
 

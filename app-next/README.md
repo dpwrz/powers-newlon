@@ -1,6 +1,6 @@
 # Powers–Newlon Fantasy Manager — Atlas × Monograph Next
 
-This is the **new, independent** Powers–Newlon frontend. The existing legacy site remains the default homepage; the new application lives at `/next/` after a successful Pages build.
+This is the **new default** Powers–Newlon frontend. The Atlas × Monograph application is served at `/` after a successful Pages build. The previous UI remains accessible at `/legacy/` as a rollback during the transition. No changes were made to the R prediction engine.
 
 ## What is implemented
 
@@ -31,7 +31,7 @@ cd app-next
 npm run build
 ```
 
-The build writes to `web/public/next/`. The legacy `web` production build invokes this build before copying static files to `web/dist/next/`, so **the existing homepage remains untouched**.
+The app build writes a self-contained asset bundle under `web/public/next/`. During `cd web && npm run build`, Vite builds the former site, then `web/scripts/promote-atlas-root.mjs` saves its `index.html` as `web/dist/legacy/index.html` and promotes the Atlas `index.html` to `web/dist/index.html`. The production homepage is now Atlas, with its hashed assets loaded from `/next/assets/`; `/legacy/` is the rollback URL.
 
 ## What is still necessary before replacing the legacy homepage
 
