@@ -33,7 +33,7 @@ async function runOne(engine,name){
  await page.route(/api\.sleeper\.app/,route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data(new URL(route.request().url()).pathname))}));
  await page.route(/espn\.com/,route=>route.fulfill({status:200,contentType:'application/json',body:'{}'}));
  try{
-  await page.goto(base+'/',{waitUntil:'domcontentloaded'});
+  await page.goto(base+'/legacy/',{waitUntil:'domcontentloaded'});
   const input=page.locator('#username'),year=page.locator('#season');
   await input.waitFor({state:'visible',timeout:30000});
   assert.equal(await input.isEnabled(),true,name+' username enabled');
