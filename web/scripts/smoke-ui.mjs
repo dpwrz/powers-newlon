@@ -60,12 +60,17 @@ const data=(path)=>{
 };
 
 async function test(){
+ console.log('Starting UI browser smoke suite');
  await ready();
+ console.log('Preview server ready');
  fs.mkdirSync(new URL('../ui-qa/',import.meta.url),{recursive:true});
- const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+ console.log('Launching Chromium');
+ const browser=await chromium.launch({headless:true,args:['--no-sandbox'],timeout:20000});
+ console.log('Chromium launched');
  const errors=[];
  try{
   for(const width of [390,1440]){
+   console.log('Testing viewport',width);
    const context=await browser.newContext({
     viewport:{width,height:width===390?844:960},
     deviceScaleFactor:width===390?2:1,isMobile:width===390,hasTouch:width===390,
@@ -83,9 +88,13 @@ async function test(){
    });
    await context.route(/espn\.com/,route=>route.fulfill({status:200,contentType:'application/json',body:'{}'}));
    const page=await context.newPage();
+   page.setDefaultTimeout(12000);
+   page.setDefaultNavigationTimeout(20000);
    page.on('pageerror',e=>errors.push(width+': '+e.message));
    await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
-   await page.locator('.pn-home .pn-match-card').waitFor({timeout:30000});
+   console.log('Waiting for Home',width);
+   await page.locator('.pn-home .pn-match-card').waitFor({timeout:25000});
+   console.log('Home ready',width);
    assert.equal(await page.locator('.nav-btn').count(),4,'Main nav has four destinations');
    if(width===390){const height=await page.locator('.nav-btn').first().evaluate(el=>el.getBoundingClientRect().height);assert(height>=44,'Touch targets meet minimum height')}
    assert.equal(await page.locator('.pn-home .pn-player').count(),4,'Home uses real league starters');
@@ -97,6 +106,7 @@ async function test(){
    });
    if(width===390)assert(positions.edgeTop<positions.playerTop,'Optimizer must precede player list on mobile');
    await page.screenshot({path:new URL('../ui-qa/home-'+width+'.png',import.meta.url).pathname,fullPage:true});
+   console.log('Opening player sheet',width);
    await page.locator('.pn-player').first().click();
    await page.locator('.player-profile').waitFor();
    const bg=await page.locator('.profile-metric').first().evaluate(el=>getComputedStyle(el).backgroundImage);
@@ -104,6 +114,7 @@ async function test(){
    await page.screenshot({path:new URL('../ui-qa/player-'+width+'.png',import.meta.url).pathname});
    await page.keyboard.press('Escape');
    await page.locator('.player-profile').waitFor({state:'detached'});
+   console.log('Testing More and Explore',width);
    await page.locator('[data-route="about"].nav-btn').click();
    await page.locator('.pn-hub-tile').first().waitFor();
    await page.screenshot({path:new URL('../ui-qa/more-'+width+'.png',import.meta.url).pathname,fullPage:true});
@@ -113,10 +124,12 @@ async function test(){
    await page.locator('[data-route="league"].nav-btn').click();
    await page.locator('.league-tabs').waitFor();
    assert.equal(await page.locator('.league-tab').count(),5,'All league tools remain accessible');
+   console.log('Viewport passed',width);
    await context.close();
   }
   assert.deepEqual(errors,[],'No uncaught browser errors');
   console.log('UI smoke checks passed for iPhone and desktop layouts.');
  }finally{await browser.close()}
 }
-try{await test()}finally{server.kill('SIGTERM')}
+const watchdog=setTimeout(()=>{console.error('Smoke test exceeded 180 seconds');server.kill('SIGTERM');process.exit(1)},180000);
+try{await test()}finally{clearTimeout(watchdog);server.kill('SIGTERM')}
