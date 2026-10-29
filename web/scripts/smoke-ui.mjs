@@ -4,7 +4,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 
-const server=spawn('npm',['run','preview','--','--host','127.0.0.1','--port','4173'],{
+const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port','4173'],{
   cwd:new URL('../',import.meta.url),stdio:['ignore','pipe','pipe']
 });
 let serverLog='';
