@@ -1,5 +1,5 @@
 FANTASY MODEL 3.1 - GUARDED WEEKLY LEARNING
-Generated: 2026-10-27 18:13:27 +0000
+Generated: 2026-10-29 00:58:04 +0000
 Completed through Week: 7
 Immutable historical rows: 34919
 Append-only current-season rows: 2395
