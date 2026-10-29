@@ -87,6 +87,7 @@ async function test(){
    await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
    await page.locator('.pn-home .pn-match-card').waitFor({timeout:30000});
    assert.equal(await page.locator('.nav-btn').count(),4,'Main nav has four destinations');
+   if(width===390){const height=await page.locator('.nav-btn').first().evaluate(el=>el.getBoundingClientRect().height);assert(height>=44,'Touch targets meet minimum height')}
    assert.equal(await page.locator('.pn-home .pn-player').count(),4,'Home uses real league starters');
    const positions=await page.locator('.pn-home-grid').evaluate(el=>{
     const match=el.querySelector('.pn-match-card').getBoundingClientRect();
