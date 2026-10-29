@@ -180,7 +180,25 @@ function tabs(){
 }
 
 function weekSel(){return`<select class="select" data-a="week">${Array.from({length:18},(_,i)=>i+1).map(w=>`<option value="${w}" ${w===st.week?'selected':''}>Week ${w}</option>`).join('')}</select>`}
-function dashboard(){if(st.league)return leagueShell();const cards=st.leagues.map(l=>`<button class="league-row" data-league="${esc(l.league_id)}">${icon(l)?`<img class="league-avatar" src="${icon(l)}" alt="">`:`<div class="league-avatar league-fallback">${esc((l.name||'L')[0])}</div>`}<span class="league-row-copy"><strong>${esc(l.name)}</strong><small>${l.settings?.type===2?'Dynasty':'Redraft'} · ${esc(l.total_rosters||'')} teams · ${esc(l.season)}</small></span><span class="row-chevron">›</span></button>`).join('');return layout('Leagues',`<header class="page-intro"><div class="kicker">Powers-Newlon Fantasy Manager</div><h1 class="page-title">Your leagues</h1><p class="page-subtitle">Model projections and roster decisions, connected to Sleeper.</p></header><div class="account-bar"><label><span>Sleeper username</span><input id="username" class="input" value="${esc(st.username)}"></label><label class="season-field"><span>Season</span><input id="season" class="input" type="number" value="${st.season}"></label><button class="btn btn-primary" data-a="load">${st.loading?'Loading…':'Load'}</button></div>${st.error?`<p class="form-error">${esc(st.error)}</p>`:''}${cards?`<section class="league-list"><div class="list-heading">Available leagues</div>${cards}</section>`:'<div class="empty empty-plain">Load your Sleeper leagues to begin.</div>'}`)}
+function dashboard(){
+ if(st.league)return home2();
+ const cards=st.leagues.map(l=>`<button type="button" class="nx-league-card" data-league="${esc(l.league_id)}">
+  <span class="nx-league-avatar">${icon(l)?`<img src="${icon(l)}" alt="">`:`<span>${esc((l.name||'L').slice(0,1))}</span>`}</span>
+  <span><strong>${esc(l.name)}</strong><small>${l.settings?.type===2?'Dynasty':'Redraft'} · ${esc(l.total_rosters||'')} teams · ${esc(l.season)}</small></span><span class="nx-chevron">›</span></button>`).join('');
+ return layout('Leagues',`<div class="nx-connect nx-page"><header class="nx-connect-heading">
+  <span class="nx-eyebrow">POWERS–NEWLON FANTASY MANAGER</span><h1>Build a better fantasy season.</h1>
+  <p>Your projections, lineups, and leagues—beautifully connected in one place.</p></header>
+  <section class="nx-connect-form"><div><span class="nx-eyebrow">CONNECT TO SLEEPER</span><h2>Find your leagues</h2><p>Enter your Sleeper username to see your available leagues. No password needed.</p></div>
+  <form id="nxConnectForm" class="nx-connect-fields">
+   <label><span>Sleeper username</span><input id="username" class="input" type="text" autocapitalize="off" autocomplete="username" value="${esc(st.username)}" placeholder="Sleeper username" required></label>
+   <label><span>Season</span><input id="season" class="input" type="number" min="2020" max="2100" value="${st.season}" required></label>
+   <button type="submit" class="nx-primary">${st.loading?'Connecting…':'Find leagues'} <span aria-hidden="true">›</span></button>
+  </form>
+  ${st.error?`<p class="nx-form-error" role="alert">${esc(st.error)}</p>`:''}
+  </section>
+  ${cards?`<section class="nx-available"><div class="nx-section-head"><div><span class="nx-eyebrow">CONNECTED LEAGUES</span><h2>Choose your league</h2></div><span>${st.leagues.length} available</span></div><div class="nx-league-list">${cards}</div></section>`:''}
+  </div>`);
+}
 function matchup(r){
   const o=rby(oppId(r.roster_id)),la=n(mi(r.roster_id)?.points,0),lb=n(mi(o?.roster_id)?.points,0),live=la>0||lb>0;
   if(!o)return`<section class="matchup-hero"><div class="matchup-hero-head"><span>Week ${st.week}</span><span>No opponent scheduled</span></div><div class="empty empty-plain">No opponent scheduled this week.</div></section>`;
@@ -473,7 +491,7 @@ function renderBoot(){
  root.innerHTML='<main class="pn-boot" aria-label="Opening Powers-Newlon Fantasy Manager"><div class="pn-boot-content"><div class="pn-boot-mark" aria-hidden="true">PN</div><strong>Powers-Newlon</strong><span>Fantasy Manager</span><div class="pn-boot-line" role="progressbar" aria-label="Loading your fantasy dashboard"><i></i></div></div></main>';
 }
 function render(){if(st.booting){renderBoot();return}const html=isAdminLocation()?admin():st.route==='dashboard'?(st.league?home2():dashboard()):st.route==='league'?(st.league?leagueShell():dashboard()):st.route==='live'?live():st.route==='leaders'?leaders():st.route==='startsit'?startsit():about();$('#app').innerHTML=html;bind()}
-function bind(){bindAdmin();
+function bind(){bindAdmin();$('#nxConnectForm')?.addEventListener('submit',e=>{e.preventDefault();loadLeagues($('#username').value.trim(),+$('#season').value)});
  $('[data-explore-view]').forEach(x=>x.onclick=()=>{st.exploreView=x.dataset.exploreView;st.exploreQuery='';transitionRender()});
  $('[data-explore-pos]').forEach(x=>x.onclick=()=>{st.explorePos=x.dataset.explorePos;st.exploreQuery='';transitionRender()});
  const ex=$('#exploreSearch');
