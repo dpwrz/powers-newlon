@@ -22,7 +22,7 @@ concurrency:
 jobs:
   integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 30
     steps:
       - name: Checkout Fantasy Model
         uses: actions/checkout@v4
@@ -64,13 +64,5 @@ jobs:
       - name: Refit locked Model 3.2 positions
         run: Rscript pipeline/32_refresh_promoted_3_2.R
 
-      - name: Force projection refresh with Model 3.2
-        env:
-          FM_RELEASE_VERSION: '3.1'
-          FM_FORCE_REFRESH: 'true'
-          FM_REFRESH_DEFENSE: 'false'
-          FM_REFRESH_DYNASTY: 'false'
-        run: Rscript runners/RUN_3_1_AUTO_REFRESH.R
-
-      - name: Verify Model 3.2 routing
+      - name: Verify Model 3.2 routing directly
         run: Rscript tests/TEST_3_2_PRODUCTION.R
