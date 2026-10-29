@@ -131,7 +131,7 @@ async function test(){
    await page.locator('[data-side="a"]').first().click();
    assert.equal(await page.locator('[data-side="a"].selected').count(),1,'Trade assets are selectable');
    await page.screenshot({path:new URL(`../ui-qa/trade-${width}.png`,import.meta.url).pathname,fullPage:true});
-   await page.locator('[data-tab="tools"]').click();
+   await page.locator('.nx-back-link[data-tab="tools"]').click();
    await page.locator('[data-tab="moves"]').click();
    await page.locator('.nx-move-card').first().waitFor();
    assert(await page.locator('.nx-move-card').count()>0,'Roster moves are visible');
