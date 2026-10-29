@@ -958,3 +958,70 @@ html[data-theme="dark"] .nx-trade-recommendation .metric,
 html[data-theme="dark"] .nx-move-next,
 html[data-theme="dark"] .nx-moves .waiver-metrics>div{background:var(--nx-elevated)!important}
 html[data-theme="dark"] .nx-trade-side .asset.selected{background:var(--nx-brand-soft)!important}
+
+/* Consistent typography and decisions on legacy calculation screens. */
+html[data-theme="light"] .tool-heading h1,
+html[data-theme="light"] .startsit-summary h2,
+html[data-theme="light"] .startsit-card h2,
+html[data-theme="light"] .startsit-card strong,
+html[data-theme="light"] .game-card strong,
+html[data-theme="light"] .game-section-title,
+html[data-theme="light"] .box-category-title,
+html[data-theme="light"] .game-stat-row strong,
+html[data-theme="light"] .leader-row strong{color:var(--nx-ink)!important}
+html[data-theme="light"] .startsit-summary,
+html[data-theme="light"] .startsit-player,
+html[data-theme="light"] .game-team-stats,
+html[data-theme="light"] .game-box,
+html[data-theme="light"] .box-table-wrap,
+html[data-theme="light"] .box-category,
+html[data-theme="light"] .trade-layout .card{
+ background:linear-gradient(145deg,#fff,#f4f8fa)!important;
+ border-color:var(--nx-edge)!important;color:var(--nx-ink)!important
+}
+html[data-theme="light"] .startsit-factors>div,
+html[data-theme="light"] .startsit-card .metric,
+html[data-theme="light"] .decision-meter,
+html[data-theme="light"] .game-stat-head,
+html[data-theme="light"] .game-box-toggle,
+html[data-theme="light"] .game-market,
+html[data-theme="light"] .period-score-row span{
+ background:#edf3f6!important;color:var(--nx-ink)!important;border-color:var(--nx-edge)!important;
+}
+html[data-theme="light"] .startsit-summary p,
+html[data-theme="light"] .startsit-factors p,
+html[data-theme="light"] .startsit-card small,
+html[data-theme="light"] .game-stat-row span,
+html[data-theme="light"] .game-section-title,
+html[data-theme="light"] .game-team-box-title,
+html[data-theme="light"] .box-category-title,
+html[data-theme="light"] .game-status-row .muted,
+html[data-theme="light"] .game-box-loading{color:var(--nx-sub)!important}
+html[data-theme="light"] .game-box-toggle{color:#157f79!important}
+html[data-theme="light"] .player-search-panel .asset{
+ background:#f0f5f8!important;border-color:var(--nx-edge)!important;color:var(--nx-ink)!important;
+}
+html[data-theme="light"] .player-search-panel .asset strong{color:var(--nx-ink)!important}
+html[data-theme="light"] .startsit-edge strong,
+html[data-theme="light"] .game-score-team>strong{color:var(--nx-ink)!important}
+html[data-theme="light"] .startsit-edge,
+html[data-theme="light"] .startsit-summary-top,
+html[data-theme="light"] .decision-meter-track{border-color:var(--nx-edge)!important}
+html[data-theme="light"] .table-wrap,
+html[data-theme="light"] .roster-table-wrap{box-shadow:none!important}
+html[data-theme="light"] .table-wrap th,
+html[data-theme="light"] .roster-table-wrap th{background:#eaf0f4!important;color:#506575!important}
+html[data-theme="light"] .table-wrap td,
+html[data-theme="light"] .roster-table-wrap td{border-color:var(--nx-edge)!important;color:var(--nx-ink)!important}
+html[data-theme="light"] .slot-label{background:rgba(22,126,123,.09);color:#167f79}
+html[data-theme="light"] .team-heading .page-title{color:var(--nx-ink)!important}
+html[data-theme="light"] .team-heading .kicker{color:var(--nx-brand)!important}
+html[data-theme="light"] .mobile-player-list{overflow:hidden;border-radius:19px}
+html[data-theme="light"] .mobile-player-row{min-height:80px;padding:13px 12px!important}
+html[data-theme="light"] .mobile-player-row .mobile-player-name,
+html[data-theme="light"] .mobile-player-row .player-name{color:var(--nx-ink)!important}
+html[data-theme="light"] .mobile-player-row .cell-sub,
+html[data-theme="light"] .mobile-player-row .player-meta{color:var(--nx-sub)!important}
+@media(max-width:900px){
+ html[data-theme="light"] .table-wrap::before{background:#f0f5f8!important;color:var(--nx-sub)!important}
+}
