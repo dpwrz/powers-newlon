@@ -545,7 +545,36 @@ function renderBoot(){
  const root=$('#app');if(!root)return;
  root.innerHTML='<main class="pn-boot" aria-label="Opening Powers-Newlon Fantasy Manager"><div class="pn-boot-content"><div class="pn-boot-mark" aria-hidden="true">PN</div><strong>Powers-Newlon</strong><span>Fantasy Manager</span><div class="pn-boot-line" role="progressbar" aria-label="Loading your fantasy dashboard"><i></i></div></div></main>';
 }
-function render(){if(st.booting){renderBoot();return}const html=isAdminLocation()?admin():st.route==='dashboard'?(st.league?home2():dashboard()):st.route==='league'?(st.league?leagueShell():dashboard()):st.route==='live'?live():st.route==='leaders'?leaders():st.route==='startsit'?startsit():about();$('#app').innerHTML=html;bind()}
+function render(){
+ if(st.booting){renderBoot();return}
+ const html=isAdminLocation()?admin():st.route==='dashboard'?(st.league?home2():dashboard()):
+ st.route==='league'?(st.league?leagueShell():dashboard()):st.route==='live'?live():
+ st.route==='leaders'?leaders():st.route==='startsit'?startsit():about();
+ const root=$('#app');
+ if(!isAdminLocation()&&root?.querySelector('.shell')){
+  const template=document.createElement('template');template.innerHTML=html;
+  const fresh=template.content.querySelector('.shell'),current=root.querySelector('.shell');
+  const oldContent=current?.querySelector('.content'),newContent=fresh?.querySelector('.content');
+  const oldTop=current?.querySelector('.topbar'),newTop=fresh?.querySelector('.topbar');
+  if(oldContent&&newContent&&oldTop&&newTop){
+   oldContent.replaceWith(newContent);oldTop.replaceWith(newTop);
+   const now=$$('.nav-btn',current),next=$$('.nav-btn',fresh);
+   for(let i=0;i<now.length;i++){
+    if(!next[i])continue;
+    now[i].className=next[i].className;
+    if(next[i].hasAttribute('aria-current'))now[i].setAttribute('aria-current','page');
+    else now[i].removeAttribute('aria-current');
+   }
+   const existingProfile=root.querySelector('[data-profile-backdrop]');
+   if(st.profile&&!existingProfile){
+    const sheet=template.content.querySelector('[data-profile-backdrop]');
+    if(sheet)root.append(sheet.cloneNode(true));
+   }else if(!st.profile&&existingProfile)existingProfile.remove();
+   bind();return;
+  }
+ }
+ root.innerHTML=html;bind();
+}
 function bind(){bindAdmin();$$('[data-theme]').forEach(x=>x.onclick=()=>{localStorage.setItem('pn_theme',x.dataset.theme);applyPnTheme(x.dataset.theme);render()});$('#nxConnectForm')?.addEventListener('submit',e=>{e.preventDefault();loadLeagues($('#username').value.trim(),+$('#season').value)});
  $$('[data-explore-view]').forEach(x=>x.onclick=()=>{st.exploreView=x.dataset.exploreView;st.exploreQuery='';transitionRender()});
  $$('[data-explore-pos]').forEach(x=>x.onclick=()=>{st.explorePos=x.dataset.explorePos;st.exploreQuery='';transitionRender()});
