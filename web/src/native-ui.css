@@ -879,3 +879,82 @@ html[data-theme="dark"] .profile-metric{background:#384d5d!important}
  html[data-theme="auto"] .nx-theme-options button{color:#b7c6d2}
  html[data-theme="auto"] .nx-theme-options button.is-active{background:#435767;color:#fff}
 }
+
+/* Trade and roster decisions — fewer meaningless panels, clearer outcomes. */
+.nx-trade,.nx-moves{max-width:1050px}
+.nx-trade .nx-section-head{margin-top:22px}
+.nx-trade-recommendation .recommendation{margin:0 0 20px;padding:20px!important;border:1px solid var(--nx-edge)!important;border-radius:20px!important;background:var(--nx-surface)!important}
+.nx-trade-recommendation .rec-title{font-size:20px;line-height:1.32;letter-spacing:-.03em;margin:7px 0;color:var(--nx-ink)}
+.nx-trade-recommendation .recommendation p{font-size:13px;line-height:1.55;color:var(--nx-sub)!important}
+.nx-trade-recommendation .grid{gap:9px!important}
+.nx-trade-recommendation .metric{background:var(--nx-elevated)!important;border:1px solid var(--nx-edge)!important;padding:13px!important;border-radius:13px!important}
+.nx-trade-recommendation .metric-label{font-size:10px;color:var(--nx-sub)}
+.nx-trade-recommendation .metric-value{font-size:20px;color:var(--nx-ink)}
+.nx-trade-summary{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:17px 21px;border-radius:20px;color:#fff;background:linear-gradient(120deg,#334d5c,#263945);margin-bottom:14px}
+.nx-trade-summary>div{display:grid;gap:6px}
+.nx-trade-summary>div+div{border-left:1px solid rgba(237,247,250,.18);padding-left:22px}
+.nx-trade-summary small{font-size:10px;color:#c0d7dd;letter-spacing:.085em;font-weight:740}
+.nx-trade-summary strong{font-size:25px;letter-spacing:-.035em;font-weight:740;font-variant-numeric:tabular-nums}
+.nx-trade-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.nx-trade-side{min-width:0;display:flex;flex-direction:column;padding:18px;border:1px solid var(--nx-edge);border-radius:20px;background:var(--nx-surface)}
+.nx-trade-side header h3{color:var(--nx-ink);margin:5px 0 14px;letter-spacing:-.025em;font-size:18px}
+.nx-sr-label{display:block;color:var(--nx-sub);font-size:11px;font-weight:700;margin-bottom:7px}
+.nx-trade-side .select{width:100%;height:46px;font-size:13px}
+.nx-trade-hint{color:var(--nx-sub);font-size:11px;margin:11px 0}
+.nx-trade-side .asset-list{display:grid;gap:5px;overflow:auto;max-height:325px;padding:0 3px 4px 0;overscroll-behavior:contain}
+.nx-trade-side .asset{
+ display:flex;justify-content:space-between;gap:10px;align-items:center;text-align:left;
+ min-height:56px;padding:10px 12px;border-radius:12px;border:1px solid var(--nx-edge);
+ background:var(--nx-elevated)!important;color:var(--nx-ink)!important;
+ transition:border-color .16s,background .16s;cursor:pointer;
+}
+.nx-trade-side .asset:hover{border-color:rgba(22,126,123,.3)}
+.nx-trade-side .asset.selected{border-color:var(--nx-brand)!important;background:var(--nx-brand-soft)!important}
+.nx-trade-side .asset strong{font-size:12px;line-height:1.25;color:var(--nx-ink)}
+.nx-trade-side .asset .muted{color:var(--nx-sub)!important;font-size:10px;line-height:1.3}
+.nx-trade-total{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--nx-edge);padding:16px 1px 0;margin-top:16px}
+.nx-trade-total span{font-size:12px;color:var(--nx-sub)}
+.nx-trade-total strong{font-size:21px;color:var(--nx-ink);font-variant-numeric:tabular-nums}
+.nx-trade-context{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}
+.nx-trade-context>div{display:grid;gap:6px;padding:14px 17px;border:1px solid var(--nx-edge);background:var(--nx-surface);border-radius:15px}
+.nx-trade-context span{font-size:10px;color:var(--nx-sub);font-weight:750;letter-spacing:.05em}
+.nx-trade-context strong{color:var(--nx-ink);font-size:19px}
+.nx-move-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:32px}
+.nx-move-card{display:flex;flex-direction:column;min-width:0;padding:19px;background:var(--nx-surface);border:1px solid var(--nx-edge);border-radius:19px}
+.nx-move-card:first-child{border-color:rgba(22,126,123,.26)}
+.nx-move-top{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:10px;font-weight:740;color:var(--nx-sub);letter-spacing:.065em}
+.nx-move-top b{color:var(--nx-brand);font-size:11px;letter-spacing:0}
+.nx-move-card h3{color:var(--nx-ink);font-size:17px;line-height:1.35;letter-spacing:-.023em;margin:14px 0 7px}
+.nx-move-card p{font-size:12px;color:var(--nx-sub);line-height:1.55;margin:0}
+.nx-move-next{font-size:11px;color:var(--nx-ink);background:var(--nx-elevated);padding:11px;border-radius:11px;margin-top:auto;line-height:1.5}
+.nx-move-card p+.nx-move-next{margin-top:15px}
+.nx-moves .waiver-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:11px}
+.nx-moves .waiver-card{background:var(--nx-surface)!important;color:var(--nx-ink)!important;border:1px solid var(--nx-edge)!important;border-radius:19px!important;text-align:left;padding:17px}
+.nx-moves .waiver-card:hover{border-color:rgba(22,126,123,.3)!important}
+.nx-moves .waiver-player strong{color:var(--nx-ink)}
+.nx-moves .waiver-rank,.nx-moves .mobile-view-analysis{color:var(--nx-brand)!important}
+.nx-moves .waiver-card p,.nx-moves .waiver-drop{color:var(--nx-sub)!important}
+.nx-moves .waiver-metrics{gap:7px}
+.nx-moves .waiver-metrics>div{background:var(--nx-elevated)!important;border:1px solid var(--nx-edge)!important}
+.nx-moves .waiver-metrics span{color:var(--nx-sub)!important}
+.nx-moves .waiver-metrics strong{color:var(--nx-ink)!important}
+@media(max-width:700px){
+ .nx-trade-grid,.nx-move-list{grid-template-columns:1fr}
+ .nx-trade-side .asset-list{max-height:290px}
+ .nx-trade-summary strong{font-size:22px}
+ .nx-move-card{padding:17px}
+ .nx-trade-recommendation .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .nx-trade-recommendation .metric{padding:10px!important}
+ .nx-trade-recommendation .metric-value{font-size:17px}
+ .nx-trade-recommendation .metric-label{font-size:9px}
+}
+html[data-theme="dark"] .nx-trade-side,
+html[data-theme="dark"] .nx-trade-context>div,
+html[data-theme="dark"] .nx-move-card,
+html[data-theme="dark"] .nx-moves .waiver-card,
+html[data-theme="dark"] .nx-trade-recommendation .recommendation{background:var(--nx-surface)!important}
+html[data-theme="dark"] .nx-trade-side .asset,
+html[data-theme="dark"] .nx-trade-recommendation .metric,
+html[data-theme="dark"] .nx-move-next,
+html[data-theme="dark"] .nx-moves .waiver-metrics>div{background:var(--nx-elevated)!important}
+html[data-theme="dark"] .nx-trade-side .asset.selected{background:var(--nx-brand-soft)!important}
