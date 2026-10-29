@@ -1,4 +1,5 @@
 import './styles.css';
+import './ui2.css';
 
 const ADMIN_HASH='#/_fm/control-room-30', WEB_VERSION='1.8.2';
 
