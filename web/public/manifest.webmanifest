@@ -6,8 +6,8 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#202a35",
-  "theme_color": "#202a35",
+  "background_color": "#eef2f5",
+  "theme_color": "#eef2f5",
   "icons": [
     {
       "src": "/pn-mark.svg",
