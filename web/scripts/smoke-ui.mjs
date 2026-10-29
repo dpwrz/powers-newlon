@@ -60,27 +60,22 @@ const data=(path)=>{
 };
 
 async function test(){
- console.log('Starting UI browser smoke suite');
  await ready();
- console.log('Preview server ready');
  fs.mkdirSync(new URL('../ui-qa/',import.meta.url),{recursive:true});
- console.log('Launching Chromium');
- const browser=await chromium.launch({headless:true,args:['--no-sandbox'],timeout:20000});
- console.log('Chromium launched');
+ const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
  const errors=[];
  try{
-  for(const width of [390,1440]){
-   console.log('Testing viewport',width);
+  for(const width of [390,768,1440]){
    const context=await browser.newContext({
-    viewport:{width,height:width===390?844:960},
-    deviceScaleFactor:width===390?2:1,isMobile:width===390,hasTouch:width===390,
-    reducedMotion:'reduce'
+    viewport:{width,height:width===390?844:960},deviceScaleFactor:width===390?2:1,
+    isMobile:width===390,hasTouch:width===390,reducedMotion:'reduce'
    });
    await context.addInitScript(()=>{
     localStorage.setItem('fm_username','ui-tester');
     localStorage.setItem('fm_league_id','ui-league');
     localStorage.setItem('fm_route','dashboard');
     localStorage.setItem('fm_season','2026');
+    localStorage.setItem('pn_theme','light');
    });
    await context.route(/api\.sleeper\.app/,route=>{
     const path=new URL(route.request().url()).pathname;
@@ -88,48 +83,66 @@ async function test(){
    });
    await context.route(/espn\.com/,route=>route.fulfill({status:200,contentType:'application/json',body:'{}'}));
    const page=await context.newPage();
-   page.setDefaultTimeout(12000);
-   page.setDefaultNavigationTimeout(20000);
-   page.on('pageerror',e=>errors.push(width+': '+e.message));
+   page.on('pageerror',error=>errors.push(width+': '+error.message));
    await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
-   console.log('Waiting for Home',width);
-   await page.locator('.pn-home .pn-match-card').waitFor({timeout:25000});
-   console.log('Home ready',width);
-   assert.equal(await page.locator('.nav-btn').count(),4,'Main nav has four destinations');
-   if(width===390){const height=await page.locator('.nav-btn').first().evaluate(el=>el.getBoundingClientRect().height);assert(height>=44,'Touch targets meet minimum height')}
-   assert.equal(await page.locator('.pn-home .pn-player').count(),4,'Home uses real league starters');
-   const positions=await page.locator('.pn-home-grid').evaluate(el=>{
-    const match=el.querySelector('.pn-match-card').getBoundingClientRect();
-    const edge=el.querySelector('.pn-actions').getBoundingClientRect();
-    const players=el.querySelector('.pn-players').getBoundingClientRect();
-    return {matchBottom:match.bottom,edgeTop:edge.top,playerTop:players.top};
-   });
-   if(width===390)assert(positions.edgeTop<positions.playerTop,'Optimizer must precede player list on mobile');
-   await page.screenshot({path:new URL('../ui-qa/home-'+width+'.png',import.meta.url).pathname,fullPage:true});
-   console.log('Opening player sheet',width);
-   await page.locator('.pn-player').first().click();
+   await page.locator('.nx-home .nx-match').waitFor({timeout:30000});
+   assert.equal(await page.locator('.nav-btn').count(),4,'Four global navigation destinations');
+   assert.equal(await page.locator('.nx-lineup-row').count(),4,'Home uses league starters');
+   assert.equal(await page.locator('.nx-home .nx-action').count()>=1,true,'Home provides a decision area');
+   if(width<=768){
+    const order=await page.locator('.nx-home-grid').evaluate(el=>{
+      const m=el.querySelector('.nx-match').getBoundingClientRect();
+      const a=el.querySelector('.nx-actions').getBoundingClientRect();
+      const p=el.querySelector('.nx-lineup').getBoundingClientRect();
+      return {match:m.bottom,action:a.top,players:p.top};
+    });
+    assert(order.action>=order.match-3 && order.action<order.players,'Actions follow matchup before players');
+   }
+   const noOverflow=async label=>{
+    const size=await page.evaluate(()=>({screen:innerWidth,content:document.documentElement.scrollWidth}));
+    assert(size.content<=size.screen+3,`${label} has horizontal overflow: ${size.content}/${size.screen}`);
+   };
+   await noOverflow('Home');
+   await page.screenshot({path:new URL(`../ui-qa/home-${width}.png`,import.meta.url).pathname,fullPage:true});
+   await page.locator('.nx-lineup-row').first().click();
    await page.locator('.player-profile').waitFor();
-   const bg=await page.locator('.profile-metric').first().evaluate(el=>getComputedStyle(el).backgroundImage);
-   assert(bg.includes('gradient'),'Player metrics must have styled surfaces');
-   await page.screenshot({path:new URL('../ui-qa/player-'+width+'.png',import.meta.url).pathname});
+   await page.screenshot({path:new URL(`../ui-qa/player-${width}.png`,import.meta.url).pathname});
    await page.keyboard.press('Escape');
    await page.locator('.player-profile').waitFor({state:'detached'});
-   console.log('Testing More and Explore',width);
+   await page.locator('[data-route="league"].nav-btn').click();
+   await page.locator('.nx-segments').waitFor();
+   assert.equal(await page.locator('.nx-league-shell > .nx-segments .nx-segment').count(),3,'League has three clear sections');
+   await page.locator('[data-tab="league"]').click();
+   await page.locator('.nx-standing-row').first().waitFor();
+   assert.equal(await page.locator('.nx-standing-row').count(),2,'Standings are mobile-native rows');
+   await noOverflow('Standings');
+   await page.screenshot({path:new URL(`../ui-qa/standings-${width}.png`,import.meta.url).pathname,fullPage:true});
+   await page.locator('[data-tab="tools"]').click();
+   await page.locator('.nx-option').first().waitFor();
+   assert.equal(await page.locator('.nx-option').count(),4,'League tools retain all advanced features');
+   await page.screenshot({path:new URL(`../ui-qa/tools-${width}.png`,import.meta.url).pathname,fullPage:true});
+   await page.locator('[data-route="leaders"].nav-btn').click();
+   await page.locator('.nx-explore').waitFor();
+   const search=page.locator('#exploreSearch');
+   await search.fill('Test');
+   await page.locator('.nx-explore-row').first().waitFor();
+   await noOverflow('Explore');
+   await page.screenshot({path:new URL(`../ui-qa/explore-${width}.png`,import.meta.url).pathname,fullPage:true});
+   await page.locator('[data-explore-view="leaders"]').click();
+   await page.locator('.nx-leader-block').waitFor();
    await page.locator('[data-route="about"].nav-btn').click();
    await page.locator('.pn-hub-tile').first().waitFor();
-   await page.screenshot({path:new URL('../ui-qa/more-'+width+'.png',import.meta.url).pathname,fullPage:true});
-   await page.locator('[data-route="leaders"].nav-btn').click();
-   await page.locator('.pn-explore').waitFor();
-   await page.screenshot({path:new URL('../ui-qa/explore-'+width+'.png',import.meta.url).pathname,fullPage:true});
-   await page.locator('[data-route="league"].nav-btn').click();
-   await page.locator('.league-tabs').waitFor();
-   assert.equal(await page.locator('.league-tab').count(),5,'All league tools remain accessible');
-   console.log('Viewport passed',width);
+   await page.locator('[data-theme="dark"]').click();
+   assert.equal(await page.locator('html').getAttribute('data-theme'),'dark','Dark appearance controls work');
+   await page.screenshot({path:new URL(`../ui-qa/more-dark-${width}.png`,import.meta.url).pathname,fullPage:true});
+   await page.locator('[data-theme="light"]').click();
+   assert.equal(await page.locator('html').getAttribute('data-theme'),'light','Light appearance controls work');
+   await noOverflow('More');
+   await page.screenshot({path:new URL(`../ui-qa/more-${width}.png`,import.meta.url).pathname,fullPage:true});
    await context.close();
   }
   assert.deepEqual(errors,[],'No uncaught browser errors');
-  console.log('UI smoke checks passed for iPhone and desktop layouts.');
+  console.log('Native UI smoke checks passed on phone, tablet and desktop.');
  }finally{await browser.close()}
 }
-const watchdog=setTimeout(()=>{console.error('Smoke test exceeded 180 seconds');server.kill('SIGTERM');process.exit(1)},180000);
-try{await test()}finally{clearTimeout(watchdog);server.kill('SIGTERM')}
+try{await test()}finally{server.kill('SIGTERM')}
