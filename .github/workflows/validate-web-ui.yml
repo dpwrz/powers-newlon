@@ -45,3 +45,13 @@ jobs:
           name: ui-2-1-screenchecks
           path: web/ui-qa/*.png
           if-no-files-found: ignore
+      - name: Smoke test Fieldnote prototype across screen sizes
+        timeout-minutes: 4
+        run: node scripts/smoke-fieldnote.mjs
+      - name: Upload Fieldnote design screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fieldnote-concept-screens
+          path: web/ui-qa-fieldnote/*.png
+          if-no-files-found: ignore
