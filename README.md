@@ -1,6 +1,8 @@
-# Fantasy Model 3.0 + Web 1.0
+# Powers-Newlon Model 3.0 + Powers-Newlon Fantasy Manager UI 2.1
 
 A consolidated NFL fantasy projection and dynasty decision system with a validated position-specific weekly projection stack, forward-only live seasonal state, bounded final-forecast error feedback, Sleeper league scoring, Start/Sit, weekly model-performance tracking, dynasty/GM tools, and a Cloudflare-hosted web product.
+
+The **Powers-Newlon Model** is the prediction engine; **Powers-Newlon Fantasy Manager** is the responsive application using its projections and league data.
 
 ## Start here
 
