@@ -1,0 +1,76 @@
+name: Fantasy Model 3.2 integration check
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fm-3-2-signal-optimization
+    paths:
+      - 'pipeline/28_project_weekly_2026_3_1.R'
+      - 'pipeline/32_refresh_promoted_3_2.R'
+      - 'runners/RUN_3_1_WEEKLY_LEARN.R'
+      - 'tests/TEST_3_2_PRODUCTION.R'
+      - '.github/workflows/fantasy-3-2-integration.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fantasy-model-3-2-integration
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout Fantasy Model
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: 'release'
+          use-public-rspm: true
+
+      - name: Install R dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::dplyr
+            any::readr
+            any::tidyr
+            any::tibble
+            any::purrr
+            any::janitor
+            any::jsonlite
+            any::nflreadr
+            any::rpart
+            any::xgboost
+            any::ranger
+            any::slider
+            any::httr2
+          cache-version: 8
+
+      - name: Parse integration code
+        run: |
+          Rscript -e 'for (f in c(
+            "R/weekly_engine_32.R",
+            "pipeline/28_project_weekly_2026_3_1.R",
+            "pipeline/32_refresh_promoted_3_2.R",
+            "tests/TEST_3_2_PRODUCTION.R"
+          )) { parse(file=f); cat("parsed ",f,"\n",sep="") }'
+
+      - name: Refit locked Model 3.2 positions
+        run: Rscript pipeline/32_refresh_promoted_3_2.R
+
+      - name: Force projection refresh with Model 3.2
+        env:
+          FM_RELEASE_VERSION: '3.1'
+          FM_FORCE_REFRESH: 'true'
+          FM_REFRESH_DEFENSE: 'false'
+          FM_REFRESH_DYNASTY: 'false'
+        run: Rscript runners/RUN_3_1_AUTO_REFRESH.R
+
+      - name: Verify Model 3.2 routing
+        run: Rscript tests/TEST_3_2_PRODUCTION.R
