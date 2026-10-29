@@ -1,8 +1,18 @@
 import './styles.css';
-import './ui2.css';
-import './ui3.css';
+import './native-ui.css';
 
-const ADMIN_HASH='#/_fm/control-room-30', WEB_VERSION='2.1.0';
+const ADMIN_HASH='#/_fm/control-room-30', WEB_VERSION='3.0.0';
+const pnTheme=localStorage.getItem('pn_theme')||'light';
+function applyPnTheme(choice=localStorage.getItem('pn_theme')||'light'){
+ document.documentElement.dataset.theme=choice==='auto'
+  ? (window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')
+  : choice;
+}
+applyPnTheme(pnTheme);
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{
+ if(localStorage.getItem('pn_theme')==='auto')applyPnTheme('auto');
+});
+
 
 const S='https://api.sleeper.app/v1', ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
 const st={route:localStorage.fm_route||'dashboard',tab:localStorage.fm_league_tab||'home',nav:false,username:localStorage.fm_username||'',season:+(localStorage.fm_season||new Date().getFullYear()),user:null,leagues:[],league:null,users:[],rosters:[],matchups:[],picks:[],drafts:[],players:null,week:null,nflWeek:null,team:null,snapshot:{},rows:[],modelById:new Map,modelByName:new Map,pickValues:new Map,dstProjections:new Map,seasonStats:new Map,seasonStatsSeason:null,seasonStatsAt:0,profile:null,profileRoster:null,playerNews:new Map,games:[],gameDetails:new Map,gameMarkets:new Map,gameOpen:new Set,adminTab:'overview',adminInspect:null,adminManifest:{},adminLoadedAt:0,tradeA:null,tradeB:null,assetsA:new Set,assetsB:new Set,compare:[],loading:false,error:''};
@@ -171,11 +181,35 @@ function navIcon(route){
   };
   return icons[route]||icons.dashboard;
 }
-function nav(route,label){const selected=st.route===route||route==='about'&&['live','startsit'].includes(st.route);return`<button type="button" class="nav-btn ${selected?'active':''}" data-route="${route}" aria-label="${esc(label)}" ${selected?'aria-current="page"':''}><span class="nav-icon">${navIcon(route)}</span><span class="nav-label">${label}</span></button>`}
+function nav(route,label){const selected=st.route===route||(route==='leaders'&&['live','startsit'].includes(st.route));return`<button type="button" class="nav-btn ${selected?'active':''}" data-route="${route}" aria-label="${esc(label)}" ${selected?'aria-current="page"':''}><span class="nav-icon">${navIcon(route)}</span><span class="nav-label">${label}</span></button>`}
 function layout(title,body){return`<a class="pn-skip" href="#pn-main">Skip to content</a><div class="shell"><aside class="sidebar" aria-label="Primary navigation"><div class="brand"><div class="brand-mark" aria-hidden="true">PN</div><div class="brand-copy"><strong>Powers-Newlon Fantasy Manager</strong><span>Football intelligence</span></div></div><nav class="nav-list" aria-label="Main sections">${nav('dashboard','Home')}${nav('league','League')}${nav('leaders','Explore')}${nav('about','More')}</nav></aside><main class="main" id="pn-main" tabindex="-1"><header class="topbar"><div class="topbar-context"><span class="pn-topbar-monogram" aria-hidden="true">PN</span><div class="pn-topbar-copy"><div class="topbar-title">${esc(title)}</div><div class="crumb">${st.league?`${esc(st.league.name)} · ${esc(tname(me()?.roster_id))}`:'Powers-Newlon Fantasy Manager'}</div></div></div><div class="top-actions">${st.league?'<button class="text-action" data-a="refreshLeague">Refresh</button><button class="text-action" data-a="back">Leagues</button>':''}<span class="season-badge">${st.season}</span></div></header><div class="content">${body}</div></main></div>${playerProfile()}`}
-function tabs(){return`<nav class="league-tabs" aria-label="League sections">${[['home','Roster'],['teams','Teams'],['league','Standings'],['trade','Trade'],['moves','Moves']].map(([a,b])=>`<button type="button" class="league-tab ${st.tab===a?'active':''}" data-tab="${a}" ${st.tab===a?'aria-current="page"':''}>${b}</button>`).join('')}</nav>`}
+function tabs(){
+ const active=['teams','trade','moves','tools','analytics'].includes(st.tab)?'tools':st.tab;
+ return `<nav class="nx-segments" aria-label="League sections">
+  ${[['home','Roster'],['league','Standings'],['tools','Tools']].map(([key,label])=>`<button type="button" class="nx-segment ${active===key?'is-selected':''}" data-tab="${key}" ${active===key?'aria-current="page"':''}>${label}</button>`).join('')}
+ </nav>`;
+}
+
 function weekSel(){return`<select class="select" data-a="week">${Array.from({length:18},(_,i)=>i+1).map(w=>`<option value="${w}" ${w===st.week?'selected':''}>Week ${w}</option>`).join('')}</select>`}
-function dashboard(){if(st.league)return leagueShell();const cards=st.leagues.map(l=>`<button class="league-row" data-league="${esc(l.league_id)}">${icon(l)?`<img class="league-avatar" src="${icon(l)}" alt="">`:`<div class="league-avatar league-fallback">${esc((l.name||'L')[0])}</div>`}<span class="league-row-copy"><strong>${esc(l.name)}</strong><small>${l.settings?.type===2?'Dynasty':'Redraft'} · ${esc(l.total_rosters||'')} teams · ${esc(l.season)}</small></span><span class="row-chevron">›</span></button>`).join('');return layout('Leagues',`<header class="page-intro"><div class="kicker">Powers-Newlon Fantasy Manager</div><h1 class="page-title">Your leagues</h1><p class="page-subtitle">Model projections and roster decisions, connected to Sleeper.</p></header><div class="account-bar"><label><span>Sleeper username</span><input id="username" class="input" value="${esc(st.username)}"></label><label class="season-field"><span>Season</span><input id="season" class="input" type="number" value="${st.season}"></label><button class="btn btn-primary" data-a="load">${st.loading?'Loading…':'Load'}</button></div>${st.error?`<p class="form-error">${esc(st.error)}</p>`:''}${cards?`<section class="league-list"><div class="list-heading">Available leagues</div>${cards}</section>`:'<div class="empty empty-plain">Load your Sleeper leagues to begin.</div>'}`)}
+function dashboard(){
+ if(st.league)return home2();
+ const cards=st.leagues.map(l=>`<button type="button" class="nx-league-card" data-league="${esc(l.league_id)}">
+  <span class="nx-league-avatar">${icon(l)?`<img src="${icon(l)}" alt="">`:`<span>${esc((l.name||'L').slice(0,1))}</span>`}</span>
+  <span><strong>${esc(l.name)}</strong><small>${l.settings?.type===2?'Dynasty':'Redraft'} · ${esc(l.total_rosters||'')} teams · ${esc(l.season)}</small></span><span class="nx-chevron">›</span></button>`).join('');
+ return layout('Leagues',`<div class="nx-connect nx-page"><header class="nx-connect-heading">
+  <span class="nx-eyebrow">POWERS–NEWLON FANTASY MANAGER</span><h1>Build a better fantasy season.</h1>
+  <p>Your projections, lineups, and leagues—beautifully connected in one place.</p></header>
+  <section class="nx-connect-form"><div><span class="nx-eyebrow">CONNECT TO SLEEPER</span><h2>Find your leagues</h2><p>Enter your Sleeper username to see your available leagues. No password needed.</p></div>
+  <form id="nxConnectForm" class="nx-connect-fields">
+   <label><span>Sleeper username</span><input id="username" class="input" type="text" autocapitalize="off" autocomplete="username" value="${esc(st.username)}" placeholder="Sleeper username" required></label>
+   <label><span>Season</span><input id="season" class="input" type="number" min="2020" max="2100" value="${st.season}" required></label>
+   <button type="submit" class="nx-primary">${st.loading?'Connecting…':'Find leagues'} <span aria-hidden="true">›</span></button>
+  </form>
+  ${st.error?`<p class="nx-form-error" role="alert">${esc(st.error)}</p>`:''}
+  </section>
+  ${cards?`<section class="nx-available"><div class="nx-section-head"><div><span class="nx-eyebrow">CONNECTED LEAGUES</span><h2>Choose your league</h2></div><span>${st.leagues.length} available</span></div><div class="nx-league-list">${cards}</div></section>`:''}
+  </div>`);
+}
 function matchup(r){
   const o=rby(oppId(r.roster_id)),la=n(mi(r.roster_id)?.points,0),lb=n(mi(o?.roster_id)?.points,0),live=la>0||lb>0;
   if(!o)return`<section class="matchup-hero"><div class="matchup-hero-head"><span>Week ${st.week}</span><span>No opponent scheduled</span></div><div class="empty empty-plain">No opponent scheduled this week.</div></section>`;
@@ -214,7 +248,34 @@ function leagueOverview(){const ranks=[...st.rosters].sort((a,b)=>(ppg(b)||0)*10
 function aval(k){if(k.startsWith('player:'))return dval(k.slice(7));const[,y,r,o]=k.split(':');return pickVal({season:+y,round:+r,original:+o})}function total(s){return[...s].reduce((a,k)=>a+aval(k),0)}
 function assets(r,set,side){const ps=(r?.players||[]).filter(id=>!isDstId(id,st.players?.[id])).map(id=>({k:`player:${id}`,l:pname(id),m:st.players?.[id]?.position||'',v:dval(id)})),pk=pickAssets(r?.roster_id).map(x=>{const o=pickMeta(x);return{k:x.key,l:`${x.season} ${ord(x.round)} · ${o.proj}`,m:`${x.original===r.roster_id?'Own pick':`via ${tname(x.original)}`} · current ${o.cur} · ${o.detail}`,v:pickVal(x)}});return`<div class="asset-list">${[...ps,...pk].map(a=>`<button class="asset ${set.has(a.k)?'selected':''}" data-side="${side}" data-asset="${esc(a.k)}"><span style="text-align:left"><strong>${esc(a.l)}</strong><span class="muted small" style="display:block">${esc(a.m)}</span></span><strong>${fi(a.v)}</strong></button>`).join('')}</div>`}
 function recommendation(){const r=me();if(!r)return'';const nd=need(r),mine=(r.players||[]).map(id=>({id,v:dval(id),p:st.players?.[id]})).filter(x=>x.v>0);let best;for(const o of st.rosters.filter(x=>x.roster_id!==r.roster_id))for(const id of o.players||[]){const p=st.players?.[id],v=dval(id);if(p?.position!==nd||!v)continue;const g=mine.filter(x=>x.p?.position!==nd).sort((a,b)=>Math.abs(a.v-v)-Math.abs(b.v-v))[0];if(g&&(!best||Math.abs(g.v-v)<best.d))best={o,id,v,g,d:Math.abs(g.v-v)}}return best?`<div class="recommendation"><div class="rec-rank">TOP TRADE PATH</div><div class="rec-title">Target ${esc(pname(best.id))} from ${esc(tname(best.o.roster_id))}</div><p class="muted">Your largest modeled need is ${nd}. A value-balanced starting point is ${esc(pname(best.g.id))}; refine with draft capital in the simulator.</p><div class="grid grid-3"><div class="metric"><div class="metric-label">You send</div><div class="metric-value">${fi(best.g.v)}</div></div><div class="metric"><div class="metric-label">You receive</div><div class="metric-value">${fi(best.v)}</div></div><div class="metric"><div class="metric-label">Raw gap</div><div class="metric-value">${fi(best.g.v-best.v)}</div></div></div></div>`:`<div class="recommendation"><div class="rec-title">Improve ${nd}</div><p class="muted">No clean one-for-one target surfaced. Build a package below.</p></div>`}
-function trade(){const a=rby(st.tradeA)||me()||st.rosters[0],b=rby(st.tradeB)||st.rosters.find(x=>x.roster_id!==a?.roster_id),ta=total(st.assetsA),tb=total(st.assetsB),gap=ta-tb,d=Math.abs(gap)/Math.max(ta,tb,1),bal=d<=.05?'Near even':d<=.15?'Moderate gap':'Large gap';const opts=r=>st.rosters.map(x=>`<option value="${x.roster_id}" ${x.roster_id===r?.roster_id?'selected':''}>${esc(tname(x.roster_id))}</option>`).join('');return`<div class="eyebrow">Trade Center</div><h1 class="page-title">Recommended trades + simulator</h1><p class="page-subtitle">Compare dynasty value, draft capital and roster fit. Balance is not an acceptance probability.</p><div class="section-head"><h2>Recommended</h2></div>${recommendation()}<div class="section-head"><h2>Trade Simulator</h2><span class="pill ${d<=.05?'good':d<=.15?'warn':'bad'}">${bal}</span></div><div class="trade-layout"><div class="card card-pad"><select class="select" data-a="tradeA">${opts(a)}</select><div style="height:12px"></div>${assets(a,st.assetsA,'a')}<div class="trade-total"><span>Total value</span><span>${fi(ta)}</span></div></div><div class="card card-pad"><select class="select" data-a="tradeB">${opts(b)}</select><div style="height:12px"></div>${assets(b,st.assetsB,'b')}<div class="trade-total"><span>Total value</span><span>${fi(tb)}</span></div></div></div><div class="grid grid-4" style="margin-top:14px"><div class="metric"><div class="metric-label">Value difference</div><div class="metric-value">${fi(gap)}</div></div><div class="metric"><div class="metric-label">Balance</div><div class="metric-value" style="font-size:18px">${bal}</div></div><div class="metric"><div class="metric-label">${esc(tname(a?.roster_id))} need</div><div class="metric-value">${need(a)}</div></div><div class="metric"><div class="metric-label">${esc(tname(b?.roster_id))} need</div><div class="metric-value">${need(b)}</div></div></div><p class="muted small">Pick values start from the model's round/year baseline, then adjust for the original team's projected draft slot. Current standings gain weight as the season progresses; farther-out picks regress toward the middle because their exact slot is less certain.</p>`}
+function trade(){
+ const a=rby(st.tradeA)||me()||st.rosters[0],b=rby(st.tradeB)||st.rosters.find(x=>x.roster_id!==a?.roster_id);
+ if(!a||!b)return '<div class="nx-empty">Connect a league with at least two teams to use the trade builder.</div>';
+ const ta=total(st.assetsA),tb=total(st.assetsB),gap=ta-tb,d=Math.abs(gap)/Math.max(ta,tb,1);
+ const bal=!ta&&!tb?'Choose assets':d<=.05?'Near even':d<=.15?'Moderate gap':'Large gap';
+ const opts=r=>st.rosters.map(x=>`<option value="${x.roster_id}" ${x.roster_id===r?.roster_id?'selected':''}>${esc(tname(x.roster_id))}</option>`).join('');
+ return `<div class="nx-trade nx-page">
+ <header class="nx-heading"><span class="nx-eyebrow">DYNASTY DECISIONS</span><h1>Trade center</h1><p>Build a realistic deal using model values and league context. The simulator does not send trades.</p></header>
+ <div class="nx-section-head"><div><span class="nx-upper">STARTING POINT</span><h2>Model suggestion</h2></div></div>
+ <div class="nx-trade-recommendation">${recommendation()}</div>
+ <div class="nx-section-head"><div><span class="nx-upper">BUILD A PACKAGE</span><h2>Trade simulator</h2></div></div>
+ <div class="nx-trade-summary"><div><small>VALUE DIFFERENCE</small><strong>${!ta&&!tb?'—':fi(gap)}</strong></div><div><small>TRADE BALANCE</small><strong>${bal}</strong></div></div>
+ <div class="nx-trade-grid">
+  <section class="nx-trade-side"><header><span class="nx-eyebrow">SIDE A</span><h3>Assets you send</h3></header><label class="nx-sr-label" for="nx-trade-a">Choose team</label>
+    <select id="nx-trade-a" class="select" data-a="tradeA">${opts(a)}</select>
+    <p class="nx-trade-hint">Tap players or picks to include them.</p>${assets(a,st.assetsA,'a')}
+    <div class="nx-trade-total"><span>Selected value</span><strong>${fi(ta)}</strong></div>
+  </section>
+  <section class="nx-trade-side"><header><span class="nx-eyebrow">SIDE B</span><h3>Assets you receive</h3></header><label class="nx-sr-label" for="nx-trade-b">Choose team</label>
+    <select id="nx-trade-b" class="select" data-a="tradeB">${opts(b)}</select>
+    <p class="nx-trade-hint">Tap players or picks to include them.</p>${assets(b,st.assetsB,'b')}
+    <div class="nx-trade-total"><span>Selected value</span><strong>${fi(tb)}</strong></div>
+  </section>
+ </div>
+ <div class="nx-trade-context"><div><span>YOUR ROSTER NEED</span><strong>${esc(need(a))}</strong></div><div><span>OTHER TEAM NEED</span><strong>${esc(need(b))}</strong></div></div>
+ <p class="nx-footnote">Value balance is not a predicted acceptance probability. Pick values depend on season, projected draft position, and uncertainty about future selections.</p>
+ </div>`;
+}
 function leagueRosteredIds(){return new Set(st.rosters.flatMap(r=>r.players||[]).map(String))}
 function rosterCapacity(){return(st.league?.roster_positions||[]).filter(x=>!['IR','TAXI'].includes(String(x).toUpperCase())).length}
 function activeRosterCount(r){const parked=new Set([...(r?.reserve||[]),...(r?.taxi||[])].map(String));return(r?.players||[]).filter(id=>!parked.has(String(id))).length}
@@ -222,66 +283,114 @@ function waiverDropCandidate(r){const actual=new Set((r?.starters||[]).filter(Bo
 function waiverCandidates(r,limit=3){if(!r||!st.players)return[];const rostered=leagueRosteredIds(),capacity=rosterCapacity(),needsDrop=capacity>0&&activeRosterCount(r)>=capacity,drop=needsDrop?waiverDropCandidate(r):null;if(needsDrop&&!drop)return[];const baseProj=rproj(r),nd=need(r),dynastyLeague=+st.league?.settings?.type===2,allowed=new Set(['QB','RB','WR','TE','DEF','DST']),pool=[];for(const[id,p]of Object.entries(st.players)){if(rostered.has(String(id)))continue;const pos=String(p?.position||'').toUpperCase();if(!allowed.has(pos))continue;if(!p?.team&&!isDstId(id,p))continue;const m=model(id,p);if(m.availability?.forceZero)continue;if(m.projection==null&&m.avg==null&&!m.dynasty)continue;pool.push({id,p,m,pre:(m.projection||0)*100+(m.avg||0)*30+(m.dynasty||0)*.05+(pos===nd?75:0)})}pool.sort((a,b)=>b.pre-a.pre);const out=[];for(const x of pool.slice(0,80)){const dropId=drop?.id||null,testPlayers=(r.players||[]).filter(id=>String(id)!==String(dropId));testPlayers.push(x.id);const sim={...r,players:testPlayers},newProj=rproj(sim),weeklyGain=baseProj!=null&&newProj!=null?newProj-baseProj:0,dropDyn=drop?.m?.dynasty||0,dynastyGain=(x.m.dynasty||0)-dropDyn,dropAvg=drop?.m?.avg||0,seasonGain=(x.m.avg||0)-dropAvg,needMatch=String(x.p.position||'').toUpperCase()===nd,good=weeklyGain>=.6||(needMatch&&seasonGain>=1)||(dynastyLeague&&dynastyGain>=500);if(!good)continue;const score=weeklyGain*180+Math.max(-5,seasonGain)*20+(needMatch?60:0)+(dynastyLeague?dynastyGain*.035:0);out.push({...x,drop,weeklyGain,dynastyGain,seasonGain,needMatch,score,newProj})}return out.sort((a,b)=>b.score-a.score).slice(0,limit)}
 function waiverReason(w){if(w.weeklyGain>=.6)return`Adding ${pname(w.id)} raises the modeled Week ${st.week} optimal lineup by ${f(w.weeklyGain)} points.`;if(+st.league?.settings?.type===2&&w.dynastyGain>=500)return`${pname(w.id)} adds ${fi(w.dynastyGain)} net dynasty-value points versus the suggested drop.`;return`${pname(w.id)} materially improves the current-season production profile at ${w.p.position}.`}
 function waiverCards(a){if(!a.length)return'';return`<div class="section-head"><h2>Waiver opportunities</h2><span class="muted small">Only adds that clear the roster-improvement threshold are shown</span></div><div class="waiver-grid">${a.map((w,i)=>`<button class="waiver-card" data-player="${esc(w.id)}"><div class="waiver-rank">${i===0?'TOP ADD':`#${i+1}`}</div><div class="waiver-player"><img src="${assetImage(w.id,w.p)}" alt="" onerror="this.style.display='none'"><div><strong>${esc(pname(w.id))}</strong><span>${esc(w.p.position||'')} · ${esc(w.p.team||'FA')}</span></div></div><div class="waiver-metrics"><div><span>Week ${st.week}</span><strong>${f(w.m.projection)}</strong></div><div><span>Season PPG</span><strong>${f(w.m.avg)}</strong></div><div><span>Dynasty</span><strong>${w.m.dynasty!=null?fi(w.m.dynasty):'—'}</strong></div><div><span>Lineup gain</span><strong>${w.weeklyGain>0?`+${f(w.weeklyGain)}`:f(w.weeklyGain)}</strong></div></div><p>${esc(waiverReason(w))}</p><div class="waiver-drop">${w.drop?`Suggested drop: ${esc(pname(w.drop.id))}`:'Open roster spot · no drop required'}</div><div class="mobile-view-analysis">View player news + analysis</div></button>`).join('')}</div>`}
-function moves(){const r=me();if(!r)return'<div class="empty">Connect a roster first.</div>';const nd=need(r),opt=optimal(r),cur=new Set(r.starters||[]),swap=[...opt.entries()].find(([id])=>!cur.has(id)),sur=['QB','RB','WR','TE'].map(p=>({p,c:(r.players||[]).filter(id=>st.players?.[id]?.position===p).length})).sort((a,b)=>b.c-a.c)[0],waivers=waiverCandidates(r,3),best=waivers[0],recs=[];if(best)recs.push([`Add ${pname(best.id)}`,waiverReason(best),best.drop?`Use a waiver claim/free-agent add for ${pname(best.id)} and consider dropping ${pname(best.drop.id)}.`:`Add ${pname(best.id)} into the open roster spot.`]);if(swap)recs.push([`Start ${pname(swap[0])}`,`The optimizer places this player in ${swap[1]}.`,'Review the Home tab before kickoff.']);recs.push([`Upgrade ${nd}`,`${nd} is your largest relative roster need.`,`Open Trade Center and target teams strong at ${nd}.`]);recs.push([`Shop surplus ${sur?.p||'depth'}`,`You carry ${sur?.c||0} ${sur?.p||''} assets, your deepest raw position group.`,'Use depth to address need before spending premium picks.']);return`<div class="eyebrow">Recommended Moves</div><h1 class="page-title">What should you do next?</h1><p class="page-subtitle">Prioritized GM actions from your roster, league context, projections, dynasty values and currently unrostered players.</p><div class="grid">${recs.map((x,i)=>`<div class="recommendation"><div class="rec-rank">#${i+1}</div><div class="rec-title">${esc(x[0])}</div><p class="muted">${esc(x[1])}</p><strong>Best path</strong><p>${esc(x[2])}</p></div>`).join('')}</div>${waiverCards(waivers)}<p class="muted small" style="margin-top:14px">Waiver suggestions use the league's current roster ownership, Powers-Newlon Model weekly projections, current-season PPG, roster need and dynasty value. A player is only surfaced when the simulated add materially improves this roster. Availability on Sleeper can still depend on your league's waiver timing and claim rules.</p>`}
-
+function moves(){
+ const r=me();if(!r)return'<div class="nx-empty">Connect a roster to see recommendations.</div>';
+ const nd=need(r),opt=optimal(r),cur=new Set(r.starters||[]),
+ swap=[...opt.entries()].find(([id])=>!cur.has(id)),
+ surplus=['QB','RB','WR','TE'].map(p=>({p,count:(r.players||[]).filter(id=>st.players?.[id]?.position===p).length})).sort((a,b)=>b.count-a.count)[0],
+ waivers=waiverCandidates(r,3),best=waivers[0],recs=[];
+ if(best)recs.push({type:'WAIVER',title:`Consider adding ${pname(best.id)}`,detail:waiverReason(best),next:best.drop?`Potential drop: ${pname(best.drop.id)}`:'Open roster spot · no drop required',impact:best.weeklyGain>=.6?`+${f(best.weeklyGain)} PPR`:'LONG-TERM'});
+ if(swap)recs.push({type:'LINEUP',title:`Start ${pname(swap[0])}?`,detail:`The model selects this player for ${swap[1]}.`,next:'Compare with your current starter and confirm kickoff locks.',impact:'REVIEW'});
+ recs.push({type:'ROSTER',title:`Strengthen your ${nd} group`,detail:`${nd} is your lowest relative position group.`,next:'Use the Trade Center to compare potential upgrades.',impact:'TEAM NEED'});
+ recs.push({type:'DYNASTY',title:`Evaluate your ${surplus?.p||'roster'} depth`,detail:`You have ${surplus?.count||0} players at ${surplus?.p||'this position'}.`,next:'Consider whether surplus value can strengthen a thinner position.',impact:'LONG-TERM'});
+ return `<div class="nx-moves nx-page"><header class="nx-heading"><span class="nx-eyebrow">POWERS–NEWLON INTELLIGENCE</span><h1>Your next move</h1><p>Clear, prioritized ideas from your league, roster, and independent projections.</p></header>
+  <div class="nx-move-list">${recs.map((x,i)=>`<article class="nx-move-card"><div class="nx-move-top"><span>${i+1} · ${x.type}</span><b>${x.impact}</b></div>
+  <h3>${esc(x.title)}</h3><p>${esc(x.detail)}</p><div class="nx-move-next">${esc(x.next)}</div></article>`).join('')}</div>
+  <div class="nx-section-head"><div><span class="nx-upper">AVAILABLE IN YOUR LEAGUE</span><h2>Waiver opportunities</h2></div></div>
+  ${waivers.length?waiverCards(waivers):'<div class="nx-empty">No waiver ideas clear the current model improvement threshold.</div>'}
+  <p class="nx-footnote">Every add is advisory. Waiver timing, roster limits, and player status can differ from what is available through the read-only integration.</p>
+ </div>`;
+}
 // UI 2.0: the home surface uses the existing model and Sleeper data sources.
-function home2Match(r){
- const opponent=rby(oppId(r.roster_id)),a=mi(r.roster_id),b=mi(opponent?.roster_id);
- if(!opponent)return '<div class="pn-empty">No opponent is scheduled for this week.</div>';
- const actualA=n(a?.points,0),actualB=n(b?.points,0),hasActual=actualA>0||actualB>0;
- const projA=rproj(r),projB=rproj(opponent),delta=projA!=null&&projB!=null?projA-projB:null;
- const score=(v)=>v==null?'—':f(v);
- const team=(x,label,value,sub)=>`<div class="pn-match-team"><div class="pn-team-identity">${rosterAvatar(x)?`<img src="${rosterAvatar(x)}" alt="">`:''}<div><span class="pn-eyebrow">${label}</span><strong>${esc(tname(x.roster_id))}</strong></div></div><div class="pn-score">${score(value)}<small>${sub}</small></div></div>`;
- const share=projA!=null&&projB!=null&&projA+projB>0?Math.round(100*projA/(projA+projB)):50;
- return `<section class="pn-match-card" aria-label="Week ${st.week} matchup">
-  <div class="pn-card-top"><span class="pn-eyebrow">Week ${st.week} · Head to head</span><span class="pn-state">${hasActual?'<i class="pn-pulse"></i>Scores reported':'Pregame'}</span></div>
-  ${team(r,'Your team',hasActual?actualA:projA,hasActual?'Actual PPR':'Projected PPR')}
-  <div class="pn-match-divider"></div>
-  ${team(opponent,'Opponent',hasActual?actualB:projB,hasActual?'Actual PPR':'Projected PPR')}
-  <div class="pn-match-summary" aria-live="polite">
-   <div><span>${hasActual?'Current score margin':'Projected margin'}</span><strong>${hasActual?f(actualA-actualB):delta==null?'—':(delta>0?'+':'')+f(delta)} pts</strong></div>
-   <div class="pn-share-track" aria-label="Share of combined projected points"><span style="width:${share}%"></span></div>
-   <small>Bar shows share of combined model projections, not win probability.</small>
-   ${hasActual?`<div class="pn-projection-foot">Model projection · You ${score(projA)} · Opponent ${score(projB)}</div>`:''}
-  </div>
- </section>`;
-}
-let pnWaiverKey='',pnWaiverValue=null;
-function pnWaiverForHome(r){
- const key=[st.league?.league_id,st.week,r.roster_id,st.leagueFetchedAt||0,st.snapshot?.version||''].join(':');
- if(key!==pnWaiverKey){pnWaiverKey=key;pnWaiverValue=waiverCandidates(r,1)[0]||null}
- return pnWaiverValue;
-}
 
+function nxScore(v){return v==null?'—':f(v)}
+function nxStarterProjection(r){
+ const ids=(r?.starters||[]).filter(id=>id&&id!=='0');
+ if(!ids.length)return {value:rproj(r),missing:0,fallback:true};
+ let total=0,available=0;for(const id of ids){const v=model(id).projection;if(v!=null){total+=v;available++}}
+ return {value:available?total:null,missing:ids.length-available,fallback:false};
+}
+function home2Match(r){
+ const o=rby(oppId(r.roster_id)),ma=mi(r.roster_id),mb=mi(o?.roster_id);
+ if(!o)return '<div class="nx-match nx-empty">No opponent scheduled for this week.</div>';
+ const a=nxStarterProjection(r),b=nxStarterProjection(o),aa=n(ma?.points,0),ab=n(mb?.points,0),scored=aa>0||ab>0;
+ const diff=scored?aa-ab:a.value!=null&&b.value!=null?a.value-b.value:null;
+ const share=a.value!=null&&b.value!=null&&a.value+b.value>0?Math.round(100*a.value/(a.value+b.value)):50;
+ const team=(roster,side,score)=>`<div class="nx-match-team"><div class="nx-match-avatar">${rosterAvatar(roster)?`<img src="${rosterAvatar(roster)}" alt="">`:'<span>PN</span>'}</div><div class="nx-match-team-name"><small>${side}</small><strong>${esc(tname(roster.roster_id))}</strong></div><div class="nx-match-score"><strong>${nxScore(score)}</strong><small>${scored?'ACTUAL':'PROJ.'}</small></div></div>`;
+ return `<section class="nx-match"><header class="nx-match-head"><span class="nx-eyebrow">WEEK ${st.week} · MATCHUP</span><span class="nx-chip">${scored?(st.week<st.nflWeek?'FINAL / REVIEW':'SCORING REPORTED'):'PREGAME'}</span></header>
+ ${team(r,'YOUR TEAM',scored?aa:a.value)}<div class="nx-match-versus">VS</div>${team(o,'OPPONENT',scored?ab:b.value)}
+ <div class="nx-match-base"><div class="nx-match-margin"><span>${scored?'Actual difference':'Projected difference'}</span><strong>${diff==null?'—':(diff>0?'+':'')+f(diff)+' pts'}</strong></div>
+ <div class="nx-match-track"><span style="width:${share}%"></span></div>
+ <p>${scored?`Model estimate: ${nxScore(a.value)} vs ${nxScore(b.value)} PPR. `:''}Share of combined model points, not win probability.</p>
+ ${a.missing||b.missing?'<p class="nx-warning">Some starter projections are unavailable.</p>':''}
+ </div></section>`;
+}
+let nxWaiverKey='',nxWaiverData=null;
+function nxWaiver(r){const key=[st.league?.league_id,st.week,r.roster_id,st.leagueFetchedAt||0].join('|');if(key!==nxWaiverKey){nxWaiverKey=key;nxWaiverData=waiverCandidates(r,1)[0]||null}return nxWaiverData}
 function home2Actions(r){
- const starters=new Set((r.starters||[]).filter(id=>id&&id!=='0')),opt=optimal(r);
- const swap=[...opt.entries()].find(([id])=>!starters.has(id));
- const options=[];
- if(swap){
-  const incoming=swap[0],position=swap[1],incomingProj=model(incoming).projection;
-  options.push({tag:'LINEUP',title:`Consider starting ${pname(incoming)}`,detail:`The Powers-Newlon Model selects ${pname(incoming)} for ${position}. Review the lineup and kickoff status before making a change.`,value:incomingProj==null?'':'Proj. '+f(incomingProj),tab:'home',action:'Review roster',priority:2});
- }
- const candidate=pnWaiverForHome(r);
- if(candidate)options.push({tag:'WAIVERS',title:`Consider ${pname(candidate.id)}`,detail:waiverReason(candidate),value:candidate.weeklyGain>=.6?'+'+f(candidate.weeklyGain)+' pts':'Long-term',tab:'moves',action:'Review move',priority:candidate.weeklyGain>2?3:1});
- if(!options.length)options.push({tag:'LINEUP',title:'Review your starting lineup',detail:'No clear model-recommended swap is available right now. Check matchups and player availability before kickoff.',value:'',tab:'home',action:'Open roster'});
- return `<section class="pn-actions"><div class="pn-section-head"><div><span class="pn-eyebrow">Your edge</span><h2>Make your next move</h2></div><button class="pn-text-link" data-home-tab="moves">All moves →</button></div>
- ${options.sort((a,b)=>(b.priority||0)-(a.priority||0)).slice(0,2).map((o,i)=>`<article class="pn-action-card"><div class="pn-action-header"><span class="pn-action-tag">${o.tag}</span><span class="pn-action-value">${esc(o.value)}</span></div><h3>${esc(o.title)}</h3><p>${esc(o.detail)}</p><button class="pn-action-button" data-home-tab="${o.tab}">${esc(o.action)} <span aria-hidden="true">→</span></button></article>`).join('')}
- <p class="pn-disclaimer">Recommendations are advisory. Verify league eligibility, player status, and transaction rules in Sleeper.</p></section>`;
+ const starters=new Set((r.starters||[]).filter(id=>id&&id!=='0')),swap=[...optimal(r)].find(([id])=>!starters.has(id)),candidate=nxWaiver(r),items=[];
+ if(candidate)items.push({tag:'WAIVER IDEA',title:`Consider ${pname(candidate.id)}`,detail:waiverReason(candidate),impact:candidate.weeklyGain>=.6?`+${f(candidate.weeklyGain)} PPR`:'DYNASTY',action:'moves',priority:candidate.weeklyGain});
+ if(swap)items.push({tag:'LINEUP',title:`Start ${pname(swap[0])}?`,detail:`The model prefers this player in your ${swap[1]} slot. Compare the current starter and kickoff status.`,impact:'REVIEW',action:'home',priority:1});
+ if(!items.length)items.push({tag:'LINEUP CHECK',title:'Review your starters',detail:'No clear swap is identified right now. Confirm injuries and game status before kickoff.',impact:'READY',action:'home',priority:0});
+ items.sort((a,b)=>b.priority-a.priority);
+ return `<section class="nx-actions"><div class="nx-section-head"><div><span class="nx-eyebrow">DECISIONS</span><h2>Your edge</h2></div><button class="nx-link" data-home-tab="moves">All moves ›</button></div>
+ ${items.slice(0,2).map((x,i)=>`<article class="nx-action ${i===0?'nx-action-featured':''}"><div class="nx-action-top"><span>${x.tag}</span><b>${x.impact}</b></div><h3>${esc(x.title)}</h3><p>${esc(x.detail)}</p><button class="nx-action-cta" data-home-tab="${x.action}">Review opportunity <span>›</span></button></article>`).join('')}
+ <p class="nx-footnote">Advisory only. Verify player eligibility and lineup locks in Sleeper.</p></section>`;
 }
 function home2Players(r){
- const ids=(r.starters||[]).filter(id=>id&&id!=='0').slice(0,6);
- return `<section class="pn-players"><div class="pn-section-head"><div><span class="pn-eyebrow">Your players</span><h2>Starting lineup</h2></div><button class="pn-text-link" data-home-tab="home">Full roster →</button></div>
- <div class="pn-player-list">${ids.map(id=>{const p=st.players?.[id]||{},m=model(id,p),team=teamCode(p.team),logo=teamLogo(team);return `<button class="pn-player" data-player="${esc(id)}" data-roster="${r.roster_id}"><span class="pn-player-photo"><img loading="lazy" src="${assetImage(id,p)}" alt="" onerror="this.style.visibility='hidden'"></span><span class="pn-player-info"><strong>${esc(pname(id))}</strong><small>${esc(p.position||'—')} · ${esc(team||'FA')}${m.opp?' · vs '+esc(m.opp):''}</small></span><span class="pn-player-points"><strong>${f(m.projection)}</strong><small>Proj. PPR</small></span><span class="pn-chevron">›</span></button>`}).join('')}</div></section>`;
+ const ids=(r.starters||[]).filter(id=>id&&id!=='0').slice(0,5);
+ return `<section class="nx-lineup"><div class="nx-section-head"><div><span class="nx-eyebrow">STARTING GROUP</span><h2>Players to watch</h2></div><button class="nx-link" data-home-tab="home">Full roster ›</button></div>
+ <div class="nx-lineup-list">${ids.map(id=>{const p=st.players?.[id]||{},m=model(id,p);return`<button class="nx-lineup-row" data-player="${esc(id)}" data-roster="${r.roster_id}"><span class="nx-portrait"><img loading="lazy" src="${assetImage(id,p)}" alt="" onerror="this.style.visibility='hidden'"></span><span class="nx-lineup-info"><strong>${esc(pname(id))}</strong><small>${esc(p.position||'—')} · ${esc(p.team||'FA')}${m.opp?' · '+esc(m.opp):''}</small></span><span class="nx-lineup-proj">${f(m.projection)}<small>PROJ</small></span><span class="nx-chevron">›</span></button>`}).join('')}</div></section>`;
 }
 function home2(){
  if(!st.league)return dashboard();
- const r=me();
- if(!r)return layout('Home','<div class="pn-empty">Your roster is not available. Select a league or refresh the connection.</div>');
- return layout('Home',`<div class="pn-home"><div class="pn-home-heading"><div><span class="pn-eyebrow">Powers-Newlon Fantasy Manager</span><h1>Your Week</h1><p>${esc(st.league.name)} · Week ${st.week}</p></div><div class="pn-week-picker">${weekSel()}</div></div>
- <div class="pn-home-grid"><div class="pn-home-main">${home2Match(r)}${home2Players(r)}</div><div class="pn-home-aside">${home2Actions(r)}<div class="pn-data-note"><span class="pn-eyebrow">Model intelligence</span><strong>Powered by Powers-Newlon Model</strong><p>Weekly projections are model-generated. Actual scoring is supplied by your connected league. Scores and projections are different data streams.</p><button class="pn-text-link" data-route="startsit">Compare players →</button></div></div></div></div>`);
+ if(st.loading)return layout('Home','<div class="nx-loading">Refreshing league information…</div>');
+ const r=me();if(!r)return layout('Home','<div class="nx-empty">Your account is not associated with a roster in this league.</div>');
+ const last=st.leagueFetchedAt?new Date(st.leagueFetchedAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):null;
+ return layout('Home',`<div class="nx-home">
+ <header class="nx-home-heading"><div><span class="nx-eyebrow">POWERS–NEWLON · ${esc(st.season)}</span><h1>Your week <em>/ ${st.week}</em></h1><p>${esc(st.league.name)}</p></div><div class="nx-home-week">${weekSel()}</div></header>
+ <div class="nx-home-grid">${home2Match(r)}${home2Actions(r)}${home2Players(r)}
+ <section class="nx-model-status"><span class="nx-eyebrow">POWERED BY</span><h3>Powers-Newlon Model</h3><p>Independent projections and league-aware recommendations, grounded in your roster.</p><small>${last?'League data refreshed at '+last:'Refresh league data for the latest view'}</small><button class="nx-link" data-route="startsit">Compare players ›</button></section></div></div>`);
+}
+function leagueToolLanding(){
+ return `<div class="nx-league-tools nx-page">
+   <header class="nx-heading"><div class="nx-eyebrow">Your league</div><h1>Team tools</h1><p>Make informed decisions without leaving your league.</p></header>
+   <div class="nx-option-grid">
+    <button class="nx-option" data-tab="teams"><span class="nx-option-icon">▦</span><span><strong>Team browser</strong><small>Inspect any roster and compare its strengths</small></span><span>›</span></button>
+    <button class="nx-option" data-tab="trade"><span class="nx-option-icon">⇄</span><span><strong>Trade center</strong><small>Build and evaluate possible trades</small></span><span>›</span></button>
+    <button class="nx-option" data-tab="moves"><span class="nx-option-icon">✧</span><span><strong>Roster moves</strong><small>Waiver adds and lineup opportunities</small></span><span>›</span></button>
+    <button class="nx-option" data-tab="analytics"><span class="nx-option-icon">▥</span><span><strong>League analytics</strong><small>Dynasty values, needs, and playoff picture</small></span><span>›</span></button>
+   </div>
+ </div>`;
+}
+function nxLeagueStandings(){
+ const rank=[...st.rosters].sort((a,b)=>n(b.settings?.wins,0)-n(a.settings?.wins,0)||
+ (n(b.settings?.fpts,0)+n(b.settings?.fpts_decimal,0)/100)-(n(a.settings?.fpts,0)+n(a.settings?.fpts_decimal,0)/100));
+ const playoff=n(st.league?.settings?.playoff_teams,6);
+ return `<div class="nx-standings nx-page">
+  <header class="nx-heading"><div class="nx-eyebrow">League standings · ${esc(st.season)}</div><h1>Standings</h1><p>Where every team sits in the race.</p></header>
+  <div class="nx-standing-head"><span>Rank · Team</span><span>Record</span><span>Points for</span></div>
+  <div class="nx-standing-list">${rank.map((r,i)=>{
+    const a=r.settings||{},wins=n(a.wins,0),losses=n(a.losses,0),ties=n(a.ties,0),pts=n(a.fpts,0)+n(a.fpts_decimal,0)/100;
+    const avatar=rosterAvatar(r);
+    return `<button type="button" class="nx-standing-row ${+r.roster_id===+me()?.roster_id?'is-yours':''}" data-team-link="${r.roster_id}">
+     <span class="nx-standing-rank">${i+1}</span>
+     <span class="nx-standing-team">${avatar?`<img src="${avatar}" alt="">`:'<span class="nx-avatar-fallback">PN</span>'}<span><strong>${esc(tname(r.roster_id))}</strong><small>${i<playoff?'Playoff position':'Outside playoff spots'}${+r.roster_id===+me()?.roster_id?' · You':''}</small></span></span>
+     <span class="nx-standing-record">${wins}–${losses}${ties?'-'+ties:''}</span>
+     <span class="nx-standing-points">${f(pts,1)}</span>
+    </button>`}).join('')}</div>
+  <div class="nx-footnote">${playoff} playoff spots. Records and points are sourced from Sleeper; select a team to inspect its roster.</div>
+ </div>`;
+}
+function leagueShell(){
+ if(st.loading)return layout('League',`<div class="nx-loading" role="status">Updating your league…</div>`);
+ const deep=['teams','trade','moves','analytics'].includes(st.tab);
+ const content=st.tab==='home'?teamHome(me()):
+ st.tab==='league'?nxLeagueStandings():st.tab==='tools'?leagueToolLanding():
+ st.tab==='teams'?teams():st.tab==='trade'?trade():st.tab==='moves'?moves():leagueOverview();
+ return layout('League',`<div class="nx-league-shell">${tabs()}${deep?'<button type="button" class="nx-back-link" data-tab="tools">‹ All tools</button>':''}${content}</div>`);
 }
 
-function leagueShell(){let x=st.loading?'<div class="empty">Loading league…</div>':st.tab==='home'?teamHome(me()):st.tab==='teams'?teams():st.tab==='league'?leagueOverview():st.tab==='trade'?trade():moves();return layout(st.league.name,tabs()+x)}
 const ESPN_SUMMARY='https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary';
 async function loadGameDetails(id,force=false){const key=String(id);if(!force&&st.gameDetails.has(key)&&!st.gameDetails.get(key)?.error)return st.gameDetails.get(key);st.gameDetails.set(key,{loading:true});render();const data=await liveJson(`${ESPN_SUMMARY}?event=${encodeURIComponent(key)}`,null),value=data||{error:true};st.gameDetails.set(key,value);render();return value}
 async function liveLoad(){const ns=await nflState(),data=await liveJson(`${ESPN}?dates=${ns?.season||st.season}&seasontype=2&week=${st.week}`,{});st.games=data?.events||[];const ids=new Set(st.games.map(e=>String(e.id)));for(const id of [...st.gameOpen])if(!ids.has(id))st.gameOpen.delete(id);for(const id of [...st.gameMarkets.keys()])if(!ids.has(id))st.gameMarkets.delete(id);render();await loadPregameMarkets(st.games);render();const open=[...st.gameOpen];if(open.length)await Promise.all(open.map(id=>loadGameDetails(id,true)))}
@@ -306,7 +415,50 @@ function marketProbabilities(o,predictor){const aML=marketMoneyline(o,false),hML
 function pregameMarket(e,c,a,h){if(!gameIsPregame(e,c))return'';const saved=st.gameMarkets.get(String(e.id))||{},o=eventMarket(e,c),provider=o?.provider?.name||o?.provider?.displayName||'',probs=marketProbabilities(o,saved.predictor),aML=marketMoneyline(o,false),hML=marketMoneyline(o,true),spread=o?.details||o?.spreadDisplayValue||null,total=maybeNum(o?.overUnder??o?.total);if(!o&&saved.loading)return'<div class="pregame-market loading"><div class="eyebrow">Pregame market</div><div class="muted small">Loading betting lines…</div></div>';if(!hasUsefulMarket(o)&&probs.away==null)return'<div class="pregame-market unavailable"><div class="eyebrow">Pregame market</div><div class="muted small">Betting lines are not currently available for this matchup.</div></div>';return`<div class="pregame-market"><div class="pregame-market-head"><div><div class="eyebrow">Pregame market</div><strong>${provider?esc(provider):'Current line'}</strong></div><div class="market-line-summary"><span>Spread <strong>${esc(spread??'—')}</strong></span><span>Total <strong>${total!=null?f(total,1):'—'}</strong></span></div></div><div class="market-teams"><div><span>${esc(a?.team?.abbreviation||'Away')}</span><strong>${americanOdds(aML)}</strong><small>Moneyline</small><b>${probs.away!=null?`${f(probs.away,1)}%`:'—'}</b><small>Win probability</small></div><div><span>${esc(h?.team?.abbreviation||'Home')}</span><strong>${americanOdds(hML)}</strong><small>Moneyline</small><b>${probs.home!=null?`${f(probs.home,1)}%`:'—'}</b><small>Win probability</small></div></div><div class="market-foot">${esc(probs.source||'Market data')}${probs.source==='Market implied'?' · normalized to remove the two-sided sportsbook vig':''} · lines can move before kickoff.</div></div>`}
 function live(){const cards=st.games.map(e=>{const c=e.competitions?.[0]||{},ts=c.competitors||[],a=ts.find(x=>x.homeAway==='away')||{},h=ts.find(x=>x.homeAway==='home')||{},key=String(e.id),open=st.gameOpen.has(key),status=e.status?.type?.shortDetail||c.status?.type?.shortDetail||'Scheduled',pregame=gameIsPregame(e,c);return`<div class="card game-card ${open?'game-open':''}"><div class="game-status-row"><div class="game-status">${esc(status)}</div><div class="muted small">${esc(c.venue?.fullName||'')}</div></div><div class="game-score-team"><div>${gameTeamLogo(a)?`<img src="${gameTeamLogo(a)}" alt="">`:''}<span><strong>${esc(a.team?.abbreviation||'Away')}</strong><small>${esc(a.team?.displayName||'')}</small></span></div><strong>${pregame?'—':esc(a.score||'0')}</strong></div><div class="game-score-team"><div>${gameTeamLogo(h)?`<img src="${gameTeamLogo(h)}" alt="">`:''}<span><strong>${esc(h.team?.abbreviation||'Home')}</strong><small>${esc(h.team?.displayName||'')}</small></span></div><strong>${pregame?'—':esc(h.score||'0')}</strong></div>${pregameMarket(e,c,a,h)}${(a.linescores?.length||h.linescores?.length)?`<div class="period-score"><div></div><div class="period-score-row">${periodScore(a)}</div><div class="period-score-row">${periodScore(h)}</div></div>`:''}<button class="game-box-toggle" data-game-toggle="${esc(key)}">${open?'Hide box score':'View box score'} <span>${open?'⌃':'⌄'}</span></button>${gameBox(e,a,h)}</div>`}).join('');return layout('Live NFL Stats',`<div class="toolbar"><div><h1 class="page-title">Live NFL Stats</h1><p class="page-subtitle">Live scores and box stats, plus spread, total, moneyline and win probability for games that have not kicked off.</p></div><div style="margin-left:auto">${weekSel()}</div><button class="btn" data-a="refreshLive">Refresh</button></div>${cards?`<div class="scoreboard">${cards}</div>`:'<div class="empty">Loading current NFL games…</div>'}`)}
 function leader(title,keys){const a=[...st.seasonStats.entries()].map(([id,row])=>{const p=st.players?.[id]||{},x=dstStats(row),v=maybeNum(field(x,keys));return{id,p,v,name:p.full_name||[p.first_name,p.last_name].filter(Boolean).join(' ')||`Player ${id}`}}).filter(x=>x.v!=null&&x.v>0&&x.name&&['QB','RB','WR','TE'].includes(String(x.p?.position||'').toUpperCase())).sort((a,b)=>b.v-a.v).slice(0,10);return`<div class="card card-pad"><div class="eyebrow">${st.season} NFL season</div><h3>${esc(title)}</h3>${a.length?a.map((x,i)=>`<div class="leader-row leader-open" data-player="${esc(x.id)}" role="button" tabindex="0"><strong>${i+1}</strong><div class="leader-player"><img src="${head(x.id)}" alt="" onerror="this.style.display='none'"><span><strong>${esc(x.name)}</strong><small>${esc(x.p.position||'')} · ${esc(x.p.team||'FA')}</small></span></div><strong>${fi(x.v)}</strong></div>`).join(''):'<div class="empty">Season stats are loading or unavailable.</div>'}</div>`}
-function leaders(){const c=[['Passing Yards',['pass_yd','pass_yds','passing_yards','pass_yards']],['Passing TDs',['pass_td','passing_tds','pass_tds']],['Rushing Yards',['rush_yd','rush_yds','rushing_yards','rush_yards']],['Rushing TDs',['rush_td','rushing_tds','rush_tds']],['Receiving Yards',['rec_yd','rec_yds','receiving_yards','rec_yards']],['Receptions',['rec','receptions']],['Receiving TDs',['rec_td','receiving_tds','rec_tds']],['Targets',['rec_tgt','targets']]];return layout('Explore',`<div class="pn-explore"><header class="pn-page-heading"><span class="pn-eyebrow">The numbers, without the noise</span><h1>Explore</h1><p>Discover NFL leaders, compare players, and follow games.</p></header><div class="pn-explore-shortcuts"><button data-route="startsit"><strong>Start / Sit</strong><span>Compare projections ›</span></button><button data-route="live"><strong>NFL Scores</strong><span>Games & box scores ›</span></button></div><div class="toolbar pn-leaders-heading"><div><h1 class="page-title">NFL Leaders</h1><p class="page-subtitle">Current ${st.season} regular-season league leaders from live Sleeper season totals.</p></div><button class="btn" data-a="refreshLeaders">Refresh leaders</button></div>${st.seasonStats.size?`<div class="leaders-grid">${c.map(x=>leader(x[0],x[1])).join('')}</div>`:'<div class="empty">Loading current-season NFL statistics…</div>'}</div>`)}
+function nxExploreList(query='',position='ALL'){
+ const q=String(query||'').trim().toLowerCase(),pos=position||'ALL';
+ let entries=[];
+ if(q){
+  entries=Object.entries(st.players||{}).filter(([,p])=>
+   ['QB','RB','WR','TE'].includes(String(p?.position||'').toUpperCase()) &&
+   (pos==='ALL'||p.position===pos)&&
+   String(p?.full_name||[p.first_name,p.last_name].filter(Boolean).join(' ')).toLowerCase().includes(q)).slice(0,18);
+ }else if(st.league){
+  const ids=[...new Set(st.rosters.flatMap(r=>r.players||[]))];
+  entries=ids.filter(id=>st.players?.[id]&&['QB','RB','WR','TE'].includes(st.players[id].position) &&
+   (pos==='ALL'||st.players[id].position===pos)).map(id=>[id,st.players[id]]);
+  entries.sort((a,b)=>(model(b[0],b[1]).projection??-1)-(model(a[0],a[1]).projection??-1));
+  entries=entries.slice(0,14);
+ }else{
+  entries=Object.entries(st.players||{}).filter(([,p])=>['QB','RB','WR','TE'].includes(p?.position)&&(pos==='ALL'||p.position===pos)).slice(0,14);
+ }
+ if(!entries.length)return `<div class="nx-empty">${q?'No matching players found. Try a different name.':'Select a league or search for a player.'}</div>`;
+ return `<div class="nx-explore-rows">${entries.map(([id,p])=>{
+  const m=model(id,p),name=p.full_name||[p.first_name,p.last_name].filter(Boolean).join(' ');
+  return `<button type="button" class="nx-explore-row" data-player="${esc(id)}"><span class="nx-portrait"><img loading="lazy" src="${assetImage(id,p)}" alt="" onerror="this.style.visibility='hidden'"></span>
+  <span class="nx-lineup-info"><strong>${esc(name)}</strong><small>${esc(p.position||'')} · ${esc(p.team||'FA')}${m.opp?' · '+esc(m.opp):''}</small></span>
+  <span class="nx-lineup-proj">${f(m.projection)}<small>PROJ.</small></span><span class="nx-chevron">›</span></button>`}).join('')}</div>`;
+}
+function leaders(){
+ const sections=[['Passing Yards',['pass_yd','pass_yds','passing_yards','pass_yards']],
+  ['Rushing Yards',['rush_yd','rush_yds','rushing_yards','rush_yards']],
+  ['Receiving Yards',['rec_yd','rec_yds','receiving_yards','rec_yards']],
+  ['Receptions',['rec','receptions']],
+  ['Passing TDs',['pass_td','passing_tds','pass_tds']],
+  ['Receiving TDs',['rec_td','receiving_tds','rec_tds']]];
+ const view=st.exploreView||'players',pos=st.explorePos||'ALL';
+ const body=view==='leaders'?`<div class="nx-leader-block"><div class="nx-subheading"><h2>NFL leaders</h2><button class="nx-link" data-a="refreshLeaders">Refresh ›</button></div>
+ ${st.seasonStats.size?`<div class="leaders-grid">${sections.map(([name,keys])=>leader(name,keys)).join('')}</div>`:'<div class="nx-loading">Loading season leaders…</div>'}</div>`:
+ `<section class="nx-player-browser"><div class="nx-subheading"><h2>Player projections</h2><span>Week ${st.week}</span></div>
+ <div class="nx-search-wrap"><span aria-hidden="true">⌕</span><input id="exploreSearch" type="search" autocapitalize="off" autocomplete="off" placeholder="Search NFL players…" value="${esc(st.exploreQuery||'')}" aria-label="Search NFL players"></div>
+ <div class="nx-filter-row">${['ALL','QB','RB','WR','TE'].map(k=>`<button type="button" data-explore-pos="${k}" class="${pos===k?'is-active':''}">${k==='ALL'?'All':k}</button>`).join('')}</div>
+ <div id="exploreResults">${nxExploreList(st.exploreQuery||'',pos)}</div><p class="nx-footnote">Weekly numbers are independent Powers-Newlon Model projections, not Sleeper projections.</p></section>`;
+ return layout('Explore',`<div class="nx-explore nx-page">
+ <header class="nx-heading"><span class="nx-eyebrow">DISCOVER & COMPARE</span><h1>Explore</h1><p>Players, projections, and the numbers behind every decision.</p></header>
+ <div class="nx-explore-actions"><button data-route="startsit"><strong>Start / Sit</strong><small>Compare players <span>↗</span></small></button><button data-route="live"><strong>NFL scores</strong><small>Games & box scores <span>↗</span></small></button></div>
+ <nav class="nx-segments" aria-label="Explore views"><button data-explore-view="players" class="nx-segment ${view==='players'?'is-selected':''}">Players</button><button data-explore-view="leaders" class="nx-segment ${view==='leaders'?'is-selected':''}">NFL leaders</button></nav>
+ ${body}</div>`);
+}
 function startSitRow(id){const p=st.players?.[id]||{},m=model(id,p),av=m.availability||availabilityInfo(id,p,st.week,1),avgLabel=m.avgSource==='actual'?(m.avgGames?`${m.avgGames} GP`:'Actual'):m.avgSource==='projected'?'Projected':'—',range=m.floor!=null&&m.ceiling!=null?m.ceiling-m.floor:null,vsAvg=m.projection!=null&&m.avg!=null?m.projection-m.avg:null;return{id,p,m,av,avgLabel,range,vsAvg}}
 function startSitDecision(rows){if(rows.length<2)return null;const ranked=[...rows].sort((a,b)=>(b.m.projection??-999)-(a.m.projection??-999)),top=ranked[0],second=ranked[1],gap=top.m.projection!=null&&second.m.projection!=null?top.m.projection-second.m.projection:null,floorGap=top.m.floor!=null&&second.m.floor!=null?top.m.floor-second.m.floor:null,ceilGap=top.m.ceiling!=null&&second.m.ceiling!=null?top.m.ceiling-second.m.ceiling:null,avgGap=top.m.avg!=null&&second.m.avg!=null?top.m.avg-second.m.avg:null,overlap=top.m.floor!=null&&top.m.ceiling!=null&&second.m.floor!=null&&second.m.ceiling!=null?Math.max(0,Math.min(top.m.ceiling,second.m.ceiling)-Math.max(top.m.floor,second.m.floor)):null;let level='Close call';if(gap!=null&&gap>=4)level='Strong lean';else if(gap!=null&&gap>=2)level='Moderate lean';if(top.av.factor<1||second.av.factor<1)level=gap!=null&&gap>=4?'Moderate lean':'Close call';const reasons=[];if(gap!=null)reasons.push(`${pname(top.id)} projects ${f(Math.abs(gap))} points higher than ${pname(second.id)} for Week ${st.week}.`);if(floorGap!=null&&Math.abs(floorGap)>=1)reasons.push(`${pname(floorGap>=0?top.id:second.id)} has the stronger modeled floor by ${f(Math.abs(floorGap))} points.`);if(ceilGap!=null&&Math.abs(ceilGap)>=1)reasons.push(`${pname(ceilGap>=0?top.id:second.id)} has the higher ceiling by ${f(Math.abs(ceilGap))} points.`);if(avgGap!=null&&Math.abs(avgGap)>=1)reasons.push(`${pname(avgGap>=0?top.id:second.id)} has the better current-season scoring rate by ${f(Math.abs(avgGap))} PPG.`);if(top.av.factor<1||second.av.factor<1){const risk=[top,second].filter(x=>x.av.factor<1).map(x=>`${pname(x.id)} ${Math.round(x.av.factor*100)}%`).join(', ');reasons.push(`Availability risk matters here: ${risk}.`)}if(overlap!=null&&overlap>=4)reasons.push(`Their floor-ceiling ranges overlap by ${f(overlap)} points, so the outcome is less certain than the raw projection gap alone.`);return{ranked,top,second,gap,floorGap,ceilGap,avgGap,overlap,level,reasons}}
 function startSitCard(x,rank,decision){
@@ -354,7 +506,7 @@ function about(){
   <div class="pn-hub-group"><h2>Account & model</h2><div class="pn-settings-list">
    <div class="pn-settings-row"><span><strong>Connected league</strong><small>${leagueName}</small></span><button class="pn-text-link" data-a="back">Switch league →</button></div>
    <div class="pn-settings-row"><span><strong>Prediction engine</strong><small>Powers-Newlon Model · ${esc(version)}</small></span><span class="pn-status-dot ${st.rows.length?'':'pn-status-unknown'}" aria-label="${st.rows.length?'Model snapshot loaded':'Model snapshot unavailable'}"></span></div>
-   <div class="pn-settings-row"><span><strong>Appearance</strong><small>Follows your device’s light or dark setting</small></span><span class="pn-muted-tag">Automatic</span></div>
+   <div class="pn-settings-row"><span><strong>Appearance</strong><small>Choose the experience that feels best to you</small></span><span class="nx-theme-options">${["light","dark","auto"].map(x=>`<button type="button" data-theme="${x}" class="${(localStorage.getItem('pn_theme')||'light')===x?"is-active":""}">${x[0].toUpperCase()+x.slice(1)}</button>`).join("")}</span></div>
   </div></div>
   <details class="pn-about-details"><summary>About Powers-Newlon Fantasy Manager <span>+</span></summary><p>Our application brings together league information from Sleeper, weekly predictions from the Powers-Newlon Model, lineup decisions, dynasty valuation, and NFL statistics. Sleeper supplies league information—not the model’s projections.</p><div class="pn-about-stats"><span>Model player rows <strong>${fi(st.rows.length)}</strong></span><span>League provider <strong>Sleeper</strong></span></div></details>
   </div>`);
@@ -393,8 +545,42 @@ function renderBoot(){
  const root=$('#app');if(!root)return;
  root.innerHTML='<main class="pn-boot" aria-label="Opening Powers-Newlon Fantasy Manager"><div class="pn-boot-content"><div class="pn-boot-mark" aria-hidden="true">PN</div><strong>Powers-Newlon</strong><span>Fantasy Manager</span><div class="pn-boot-line" role="progressbar" aria-label="Loading your fantasy dashboard"><i></i></div></div></main>';
 }
-function render(){if(st.booting){renderBoot();return}const html=isAdminLocation()?admin():st.route==='dashboard'?(st.league?home2():dashboard()):st.route==='league'?(st.league?leagueShell():dashboard()):st.route==='live'?live():st.route==='leaders'?leaders():st.route==='startsit'?startsit():about();$('#app').innerHTML=html;bind()}
-function bind(){bindAdmin();$$('[data-home-tab]').forEach(x=>x.onclick=()=>{st.route='league';st.tab=x.dataset.homeTab;localStorage.fm_route='league';localStorage.fm_league_tab=st.tab;transitionRender()});$$('[data-player]').forEach(x=>{x.onclick=()=>openPlayerProfile(x.dataset.player,x.dataset.roster||null);x.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPlayerProfile(x.dataset.player,x.dataset.roster||null)}}});bindProfile();$$('[data-route]').forEach(x=>x.onclick=async()=>{st.route=x.dataset.route;localStorage.fm_route=st.route;transitionRender();if(st.route==='live'&&!st.games.length)liveLoad();if(st.route==='leaders'){await Promise.all([players(),loadSeasonStats()]);render()}if(st.route==='startsit')players()});$('[data-a="nav"]')?.addEventListener('click',()=>{st.nav=!st.nav;render()});$('[data-a="load"]')?.addEventListener('click',()=>loadLeagues($('#username').value.trim(),+$('#season').value));$$('[data-league]').forEach(x=>x.onclick=()=>openLeague(x.dataset.league));$('[data-a="refreshLeague"]')?.addEventListener('click',()=>refreshLeague(true));$('[data-a="back"]')?.addEventListener('click',()=>{st.league=null;st.route='dashboard';localStorage.fm_route='dashboard';localStorage.removeItem('fm_league_id');transitionRender()});$$('[data-tab]').forEach(x=>x.onclick=()=>{st.tab=x.dataset.tab;localStorage.fm_league_tab=st.tab;transitionRender()});$('[data-a="week"]')?.addEventListener('change',async e=>{await setWeek(+e.target.value);if(st.route==='live')liveLoad();if(st.route==='leaders'){await Promise.all([players(),loadSeasonStats()]);render()}});$('[data-a="team"]')?.addEventListener('change',e=>{st.team=+e.target.value;transitionRender()});$('[data-a="tradeA"]')?.addEventListener('change',e=>{st.tradeA=+e.target.value;st.assetsA=new Set;render()});$('[data-a="tradeB"]')?.addEventListener('change',e=>{st.tradeB=+e.target.value;st.assetsB=new Set;render()});$$('[data-side]').forEach(x=>x.onclick=()=>{const set=x.dataset.side==='a'?st.assetsA:st.assetsB;set.has(x.dataset.asset)?set.delete(x.dataset.asset):set.add(x.dataset.asset);render()});$('[data-a="refreshLive"]')?.addEventListener('click',liveLoad);$('[data-a="refreshLeaders"]')?.addEventListener('click',async()=>{await Promise.all([players(true),loadSeasonStats(true)]);render();toast('NFL season leaders refreshed.')});$$(`[data-game-toggle]`).forEach(x=>x.onclick=async()=>{const id=String(x.dataset.gameToggle);if(st.gameOpen.has(id)){st.gameOpen.delete(id);render();return}st.gameOpen.add(id);render();await loadGameDetails(id,true)});const search=$('#search');if(search)search.oninput=()=>{const q=search.value.toLowerCase().trim(),found=!q||!st.players?[]:Object.entries(st.players).filter(([,p])=>String(p.full_name||'').toLowerCase().includes(q)&&['QB','RB','WR','TE'].includes(p.position)).slice(0,12),box=$('#results');box.innerHTML=found.map(([id,p])=>`<button class="asset" data-add="${id}"><span><strong>${esc(p.full_name)}</strong><span class="muted small" style="display:block">${esc(p.position)} · ${esc(p.team||'FA')}</span></span><span>+</span></button>`).join('');$$('[data-add]',box).forEach(x=>x.onclick=()=>{if(st.compare.length>=4)return toast('Compare up to four players.');if(!st.compare.includes(x.dataset.add))st.compare.push(x.dataset.add);transitionRender()})};$$('[data-remove]').forEach(x=>x.onclick=()=>{st.compare=st.compare.filter(id=>id!==x.dataset.remove);transitionRender()})}
+function render(){
+ if(st.booting){renderBoot();return}
+ const html=isAdminLocation()?admin():st.route==='dashboard'?(st.league?home2():dashboard()):
+ st.route==='league'?(st.league?leagueShell():dashboard()):st.route==='live'?live():
+ st.route==='leaders'?leaders():st.route==='startsit'?startsit():about();
+ const root=$('#app');
+ if(!isAdminLocation()&&root?.querySelector('.shell')){
+  const template=document.createElement('template');template.innerHTML=html;
+  const fresh=template.content.querySelector('.shell'),current=root.querySelector('.shell');
+  const oldContent=current?.querySelector('.content'),newContent=fresh?.querySelector('.content');
+  const oldTop=current?.querySelector('.topbar'),newTop=fresh?.querySelector('.topbar');
+  if(oldContent&&newContent&&oldTop&&newTop){
+   oldContent.replaceWith(newContent);oldTop.replaceWith(newTop);
+   const now=$$('.nav-btn',current),next=$$('.nav-btn',fresh);
+   for(let i=0;i<now.length;i++){
+    if(!next[i])continue;
+    now[i].className=next[i].className;
+    if(next[i].hasAttribute('aria-current'))now[i].setAttribute('aria-current','page');
+    else now[i].removeAttribute('aria-current');
+   }
+   const existingProfile=root.querySelector('[data-profile-backdrop]');
+   if(st.profile&&!existingProfile){
+    const sheet=template.content.querySelector('[data-profile-backdrop]');
+    if(sheet)root.append(sheet.cloneNode(true));
+   }else if(!st.profile&&existingProfile)existingProfile.remove();
+   bind();return;
+  }
+ }
+ root.innerHTML=html;bind();
+}
+function bind(){bindAdmin();$$('[data-theme]').forEach(x=>x.onclick=()=>{localStorage.setItem('pn_theme',x.dataset.theme);applyPnTheme(x.dataset.theme);render()});$('#nxConnectForm')?.addEventListener('submit',e=>{e.preventDefault();loadLeagues($('#username').value.trim(),+$('#season').value)});
+ $$('[data-explore-view]').forEach(x=>x.onclick=()=>{st.exploreView=x.dataset.exploreView;st.exploreQuery='';transitionRender()});
+ $$('[data-explore-pos]').forEach(x=>x.onclick=()=>{st.explorePos=x.dataset.explorePos;st.exploreQuery='';transitionRender()});
+ const ex=$('#exploreSearch');
+ if(ex)ex.addEventListener('input',()=>{st.exploreQuery=ex.value;const box=$('#exploreResults');if(box){box.innerHTML=nxExploreList(st.exploreQuery,st.explorePos);$$('[data-player]',box).forEach(x=>x.onclick=()=>openPlayerProfile(x.dataset.player));}});
+$$('[data-home-tab]').forEach(x=>x.onclick=()=>{st.route='league';st.tab=x.dataset.homeTab;localStorage.fm_route='league';localStorage.fm_league_tab=st.tab;transitionRender()});$$('[data-player]').forEach(x=>{x.onclick=()=>openPlayerProfile(x.dataset.player,x.dataset.roster||null);x.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPlayerProfile(x.dataset.player,x.dataset.roster||null)}}});bindProfile();$$('[data-route]').forEach(x=>x.onclick=async()=>{st.route=x.dataset.route;localStorage.fm_route=st.route;transitionRender();if(st.route==='live'&&!st.games.length)liveLoad();if(st.route==='leaders'){await Promise.all([players(),loadSeasonStats()]);render()}if(st.route==='startsit')players()});$('[data-a="nav"]')?.addEventListener('click',()=>{st.nav=!st.nav;render()});$('[data-a="load"]')?.addEventListener('click',()=>loadLeagues($('#username').value.trim(),+$('#season').value));$$('[data-league]').forEach(x=>x.onclick=()=>openLeague(x.dataset.league));$('[data-a="refreshLeague"]')?.addEventListener('click',()=>refreshLeague(true));$('[data-a="back"]')?.addEventListener('click',()=>{st.league=null;st.route='dashboard';localStorage.fm_route='dashboard';localStorage.removeItem('fm_league_id');transitionRender()});$$('[data-tab]').forEach(x=>x.onclick=()=>{st.tab=x.dataset.tab;localStorage.fm_league_tab=st.tab;transitionRender()});$$('[data-team-link]').forEach(x=>x.onclick=()=>{st.team=+x.dataset.teamLink;st.tab='teams';localStorage.fm_league_tab='teams';transitionRender()});$('[data-a="week"]')?.addEventListener('change',async e=>{await setWeek(+e.target.value);if(st.route==='live')liveLoad();if(st.route==='leaders'){await Promise.all([players(),loadSeasonStats()]);render()}});$('[data-a="team"]')?.addEventListener('change',e=>{st.team=+e.target.value;transitionRender()});$('[data-a="tradeA"]')?.addEventListener('change',e=>{st.tradeA=+e.target.value;st.assetsA=new Set;render()});$('[data-a="tradeB"]')?.addEventListener('change',e=>{st.tradeB=+e.target.value;st.assetsB=new Set;render()});$$('[data-side]').forEach(x=>x.onclick=()=>{const positions=$('.nx-trade-side .asset-list').map(node=>node.scrollTop);const set=x.dataset.side==='a'?st.assetsA:st.assetsB;set.has(x.dataset.asset)?set.delete(x.dataset.asset):set.add(x.dataset.asset);render();$$('.nx-trade-side .asset-list').forEach((node,i)=>node.scrollTop=positions[i]||0)});$('[data-a="refreshLive"]')?.addEventListener('click',liveLoad);$('[data-a="refreshLeaders"]')?.addEventListener('click',async()=>{await Promise.all([players(true),loadSeasonStats(true)]);render();toast('NFL season leaders refreshed.')});$$(`[data-game-toggle]`).forEach(x=>x.onclick=async()=>{const id=String(x.dataset.gameToggle);if(st.gameOpen.has(id)){st.gameOpen.delete(id);render();return}st.gameOpen.add(id);render();await loadGameDetails(id,true)});const search=$('#search');if(search)search.oninput=()=>{const q=search.value.toLowerCase().trim(),found=!q||!st.players?[]:Object.entries(st.players).filter(([,p])=>String(p.full_name||'').toLowerCase().includes(q)&&['QB','RB','WR','TE'].includes(p.position)).slice(0,12),box=$('#results');box.innerHTML=found.map(([id,p])=>`<button class="asset" data-add="${id}"><span><strong>${esc(p.full_name)}</strong><span class="muted small" style="display:block">${esc(p.position)} · ${esc(p.team||'FA')}</span></span><span>+</span></button>`).join('');$$('[data-add]',box).forEach(x=>x.onclick=()=>{if(st.compare.length>=4)return toast('Compare up to four players.');if(!st.compare.includes(x.dataset.add))st.compare.push(x.dataset.add);transitionRender()})};$$('[data-remove]').forEach(x=>x.onclick=()=>{st.compare=st.compare.filter(id=>id!==x.dataset.remove);transitionRender()})}
 let pnScoreRefreshBusy=false;
 async function pnRefreshScoreFeed(){
  if(pnScoreRefreshBusy||document.hidden||!st.league||st.loading||st.profile||st.week!==st.nflWeek||!['dashboard','league'].includes(st.route))return;
