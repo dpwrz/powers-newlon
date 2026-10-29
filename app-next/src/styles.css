@@ -351,9 +351,14 @@ h1,h2,h3,h4{line-height:1.12}
  .connect-grid{grid-template-columns:1fr 1fr;gap:32px}
 }
 @media(max-width:700px){
- .top-strip{padding:0 16px;height:62px}
- .league-switcher{max-width:170px;padding:8px}
- .top-context>span:last-child{white-space:nowrap;font-size:9px}
+ .top-strip{padding:0 16px;height:62px;min-width:0;gap:8px}
+ .top-context{min-width:0;flex:0 0 auto}
+ .top-context>span:last-child{display:none}
+ .top-actions{min-width:0;flex:1;justify-content:flex-end;gap:8px}
+ .league-switcher{min-width:0;max-width:min(210px,54vw);flex:0 1 auto;padding:8px}
+ .league-title{min-width:0}
+ .week-switch{flex:none}
+ .week-switch select{max-width:64px}
  .content-inner{padding:24px 19px 44px}
  .hero-heading{margin:7px 0 25px;align-items:start}
  .hero-heading h1{font-size:clamp(43px,11vw,66px);margin:11px 0}
