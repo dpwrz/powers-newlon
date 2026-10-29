@@ -238,10 +238,10 @@ function home2Match(r){
   ${team(r,'Your team',hasActual?actualA:projA,hasActual?'Actual PPR':'Projected PPR')}
   <div class="pn-match-divider"></div>
   ${team(opponent,'Opponent',hasActual?actualB:projB,hasActual?'Actual PPR':'Projected PPR')}
-  <div class="pn-match-summary">
+  <div class="pn-match-summary" aria-live="polite">
    <div><span>${hasActual?'Current score margin':'Projected margin'}</span><strong>${hasActual?f(actualA-actualB):delta==null?'—':(delta>0?'+':'')+f(delta)} pts</strong></div>
    <div class="pn-share-track" aria-label="Share of combined projected points"><span style="width:${share}%"></span></div>
-   <small>Bar shows share of combined pregame projections, not win probability.</small>
+   <small>Bar shows share of combined model projections, not win probability.</small>
    ${hasActual?`<div class="pn-projection-foot">Model projection · You ${score(projA)} · Opponent ${score(projB)}</div>`:''}
   </div>
  </section>`;
@@ -389,8 +389,51 @@ async function adminRefresh(){await Promise.all([snapshot(true),nflState(),playe
 async function adminClearCache(){try{localStorage.removeItem('fm_players_cache');localStorage.removeItem('fm_players_cache_at');if('caches'in window){const names=await caches.keys();await Promise.all(names.map(k=>caches.delete(k)))}}catch(e){console.warn('cache clear',e)}st.players=null;st.seasonStats=new Map;st.seasonStatsAt=0;await adminRefresh();toast('Powers-Newlon Model browser caches cleared.')}
 function bindAdmin(){$$('[data-admin-tab]').forEach(x=>x.onclick=()=>{st.adminTab=x.dataset.adminTab;render()});$('[data-a="adminRefresh"]')?.addEventListener('click',adminRefresh);$('[data-a="adminClearCache"]')?.addEventListener('click',adminClearCache);$('[data-a="adminReload"]')?.addEventListener('click',()=>location.reload());$('[data-a="exitAdmin"]')?.addEventListener('click',()=>{history.replaceState(null,'',location.pathname+location.search);location.reload()});const q=$('#admin-player-search'),box=$('#admin-player-results');if(q&&box)q.oninput=()=>{const needle=normName(q.value),found=!needle||!st.players?[]:Object.entries(st.players).filter(([,p])=>['QB','RB','WR','TE'].includes(String(p?.position||'').toUpperCase())&&normName(p?.full_name||[p?.first_name,p?.last_name].filter(Boolean).join(' ')).includes(needle)).slice(0,15);box.innerHTML=found.map(([id,p])=>`<button class="asset" data-admin-inspect="${esc(id)}"><span><strong>${esc(p.full_name||pname(id))}</strong><span class="muted small" style="display:block">${esc(p.position||'')} · ${esc(p.team||'FA')}</span></span><span>Inspect</span></button>`).join('');$$('[data-admin-inspect]',box).forEach(x=>x.onclick=()=>{st.adminInspect=x.dataset.adminInspect;render()})}}
 
-function render(){const html=isAdminLocation()?admin():st.route==='dashboard'?(st.league?home2():dashboard()):st.route==='league'?(st.league?leagueShell():dashboard()):st.route==='live'?live():st.route==='leaders'?leaders():st.route==='startsit'?startsit():about();$('#app').innerHTML=html;bind()}
+function renderBoot(){
+ const root=$('#app');if(!root)return;
+ root.innerHTML='<main class="pn-boot" aria-label="Opening Powers-Newlon Fantasy Manager"><div class="pn-boot-content"><div class="pn-boot-mark" aria-hidden="true">PN</div><strong>Powers-Newlon</strong><span>Fantasy Manager</span><div class="pn-boot-line" role="progressbar" aria-label="Loading your fantasy dashboard"><i></i></div></div></main>';
+}
+function render(){if(st.booting){renderBoot();return}const html=isAdminLocation()?admin():st.route==='dashboard'?(st.league?home2():dashboard()):st.route==='league'?(st.league?leagueShell():dashboard()):st.route==='live'?live():st.route==='leaders'?leaders():st.route==='startsit'?startsit():about();$('#app').innerHTML=html;bind()}
 function bind(){bindAdmin();$$('[data-home-tab]').forEach(x=>x.onclick=()=>{st.route='league';st.tab=x.dataset.homeTab;localStorage.fm_route='league';localStorage.fm_league_tab=st.tab;transitionRender()});$$('[data-player]').forEach(x=>{x.onclick=()=>openPlayerProfile(x.dataset.player,x.dataset.roster||null);x.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPlayerProfile(x.dataset.player,x.dataset.roster||null)}}});bindProfile();$$('[data-route]').forEach(x=>x.onclick=async()=>{st.route=x.dataset.route;localStorage.fm_route=st.route;transitionRender();if(st.route==='live'&&!st.games.length)liveLoad();if(st.route==='leaders'){await Promise.all([players(),loadSeasonStats()]);render()}if(st.route==='startsit')players()});$('[data-a="nav"]')?.addEventListener('click',()=>{st.nav=!st.nav;render()});$('[data-a="load"]')?.addEventListener('click',()=>loadLeagues($('#username').value.trim(),+$('#season').value));$$('[data-league]').forEach(x=>x.onclick=()=>openLeague(x.dataset.league));$('[data-a="refreshLeague"]')?.addEventListener('click',()=>refreshLeague(true));$('[data-a="back"]')?.addEventListener('click',()=>{st.league=null;st.route='dashboard';localStorage.fm_route='dashboard';localStorage.removeItem('fm_league_id');transitionRender()});$$('[data-tab]').forEach(x=>x.onclick=()=>{st.tab=x.dataset.tab;localStorage.fm_league_tab=st.tab;transitionRender()});$('[data-a="week"]')?.addEventListener('change',async e=>{await setWeek(+e.target.value);if(st.route==='live')liveLoad();if(st.route==='leaders'){await Promise.all([players(),loadSeasonStats()]);render()}});$('[data-a="team"]')?.addEventListener('change',e=>{st.team=+e.target.value;transitionRender()});$('[data-a="tradeA"]')?.addEventListener('change',e=>{st.tradeA=+e.target.value;st.assetsA=new Set;render()});$('[data-a="tradeB"]')?.addEventListener('change',e=>{st.tradeB=+e.target.value;st.assetsB=new Set;render()});$$('[data-side]').forEach(x=>x.onclick=()=>{const set=x.dataset.side==='a'?st.assetsA:st.assetsB;set.has(x.dataset.asset)?set.delete(x.dataset.asset):set.add(x.dataset.asset);render()});$('[data-a="refreshLive"]')?.addEventListener('click',liveLoad);$('[data-a="refreshLeaders"]')?.addEventListener('click',async()=>{await Promise.all([players(true),loadSeasonStats(true)]);render();toast('NFL season leaders refreshed.')});$$(`[data-game-toggle]`).forEach(x=>x.onclick=async()=>{const id=String(x.dataset.gameToggle);if(st.gameOpen.has(id)){st.gameOpen.delete(id);render();return}st.gameOpen.add(id);render();await loadGameDetails(id,true)});const search=$('#search');if(search)search.oninput=()=>{const q=search.value.toLowerCase().trim(),found=!q||!st.players?[]:Object.entries(st.players).filter(([,p])=>String(p.full_name||'').toLowerCase().includes(q)&&['QB','RB','WR','TE'].includes(p.position)).slice(0,12),box=$('#results');box.innerHTML=found.map(([id,p])=>`<button class="asset" data-add="${id}"><span><strong>${esc(p.full_name)}</strong><span class="muted small" style="display:block">${esc(p.position)} · ${esc(p.team||'FA')}</span></span><span>+</span></button>`).join('');$$('[data-add]',box).forEach(x=>x.onclick=()=>{if(st.compare.length>=4)return toast('Compare up to four players.');if(!st.compare.includes(x.dataset.add))st.compare.push(x.dataset.add);transitionRender()})};$$('[data-remove]').forEach(x=>x.onclick=()=>{st.compare=st.compare.filter(id=>id!==x.dataset.remove);transitionRender()})}
-async function init(){await Promise.all([snapshot(),nflState()]);if(isAdminLocation()){await adminLoad();render();return}render();if(st.username){await loadLeagues(st.username,st.season);const id=localStorage.fm_league_id;if(id&&st.leagues.some(l=>String(l.league_id)===id))await openLeague(id)}if(st.route==='live')liveLoad()}
+let pnScoreRefreshBusy=false;
+async function pnRefreshScoreFeed(){
+ if(pnScoreRefreshBusy||document.hidden||!st.league||st.loading||st.profile||st.week!==st.nflWeek||!['dashboard','league'].includes(st.route))return;
+ pnScoreRefreshBusy=true;
+ try{
+  const next=await liveJson(`${S}/league/${st.league.league_id}/matchups/${st.week}`,null);
+  if(!Array.isArray(next)||!next.length)return;
+  st.scoreFetchedAt=Date.now();
+  if(JSON.stringify(next)===JSON.stringify(st.matchups))return;
+  st.matchups=next;
+  const r=me();if(!r)return;
+  if(st.route==='dashboard'){
+   const card=$('.pn-match-card');
+   if(card)card.outerHTML=home2Match(r);
+  }else if(st.tab==='home'){
+   const card=$('.matchup-hero');
+   if(card)card.outerHTML=matchup(r);
+  }
+ }finally{pnScoreRefreshBusy=false}
+}
+async function init(){
+ st.booting=true;renderBoot();
+ try{
+  await Promise.all([snapshot(),nflState()]);
+  if(isAdminLocation()){st.booting=false;await adminLoad();render();return}
+  if(st.username){
+   await loadLeagues(st.username,st.season);
+   const id=localStorage.fm_league_id;
+   if(id&&st.leagues.some(l=>String(l.league_id)===id))await openLeague(id);
+  }
+  st.booting=false;render();
+  if(st.route==='live')liveLoad();
+  window.setInterval(pnRefreshScoreFeed,60_000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)pnRefreshScoreFeed()});
+ }catch(error){
+  console.error('Powers-Newlon startup failed',error);
+  st.booting=false;st.error='Could not finish loading the app. Please refresh and try again.';
+  render();
+ }
+}
 window.addEventListener('hashchange',async()=>{if(isAdminLocation()){await adminLoad();render()}else location.reload()});
 init();
