@@ -1,5 +1,6 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState,type FormEvent,type ReactNode} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
+import {createPortal} from 'react-dom';
 import {ArrowDownRight,ArrowLeft,ArrowRight,ArrowUpRight,BarChart3,BookOpen,Check,ChevronDown,
  ChevronRight,Clock3,Compass,GitCompareArrows,Info,Layers,Menu,RefreshCw,Search,ShieldCheck,
  SlidersHorizontal,Sparkles,Target,TrendingUp,X} from 'lucide-react';
@@ -51,7 +52,7 @@ function AppShell({screen,setScreen,league,week,setWeek,onSwitch,children,update
    <main id="main-content" className="main-content" tabIndex={-1} key={screen}><div className="content-inner">{children}</div></main>
    <footer className="app-footer"><span>Powers–Newlon / Independent fantasy intelligence</span><span>MODEL OUTPUTS ARE ADVISORY</span></footer>
   </div>
-  <nav className="mobile-dock" aria-label="Main sections">{sections.map(s=><button type="button" key={s.key} className={screen===s.key?'active':''} aria-current={screen===s.key?'page':undefined} onClick={()=>change(s.key)}><Symbol kind={s.key}/><span>{s.label}</span></button>)}</nav>
+  {createPortal(<nav className="mobile-dock" aria-label="Mobile main sections">{sections.map(s=><button type="button" key={s.key} className={screen===s.key?'active':''} aria-current={screen===s.key?'page':undefined} onClick={()=>change(s.key)}><Symbol kind={s.key}/><span>{s.label}</span></button>)}</nav>,document.body)}
  </div>;
 }
 function Connect({onConnect,onSelect,leagues,username,year,loading,error,connected}:
