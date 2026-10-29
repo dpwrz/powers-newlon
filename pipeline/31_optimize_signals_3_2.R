@@ -86,7 +86,7 @@ for (pos in POSITIONS) {
       feats <- wk32_variant_features(train0, pos, variant)
       fit <- wk31_fit(
         train0, pos, cfg, features = feats,
-        seed = SEED + yy * 100L + match(pos, POSITIONS) * 10L + match(variant, MODEL32_VARIANTS)
+        seed = SEED + yy * 100L + match(pos, POSITIONS) * 10L
       )
       test0$.pred32 <- wk31_predict(fit, test0)
       mm <- wk32_cohort_metrics(test0, ".pred32", pos)
@@ -200,8 +200,7 @@ for (pos in POSITIONS) {
       feats <- if (factor == "NONE") base_feats else unique(c(base_feats, factor))
       fit <- wk31_fit(
         train0, pos, cfg, features = feats,
-        seed = SEED + 32100L + yy * 10L + match(pos, POSITIONS) +
-          match(factor, c("NONE", MODEL32_FACTOR_FEATURES))
+        seed = SEED + 32100L + yy * 10L + match(pos, POSITIONS)
       )
       test0$.pred32_factor <- wk31_predict(fit, test0)
       mm <- wk32_cohort_metrics(test0, ".pred32_factor", pos)
@@ -286,7 +285,7 @@ for (pos in POSITIONS) {
       feats <- unique(c(base_feats, factors))
       fit <- wk31_fit(
         train0, pos, config_for32(pos), features = feats,
-        seed = SEED + 32200L + yy * 10L + match(pos, POSITIONS) + ci
+        seed = SEED + 32200L + yy * 10L + match(pos, POSITIONS)
       )
       test0$.pred_combo32 <- wk31_predict(fit, test0)
       mm <- wk32_cohort_metrics(test0, ".pred_combo32", pos)
