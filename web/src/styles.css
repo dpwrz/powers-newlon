@@ -1531,3 +1531,242 @@ tbody tr:hover{
   *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
   ::view-transition-old(root),::view-transition-new(root),::view-transition-group(*){animation:none!important}
 }
+
+
+/* ============================================================
+   Web 1.7.1 — faster motion + midnight stadium palette
+   ============================================================ */
+:root{
+  --bg:#071015;
+  --bg-elevated:#0b151b;
+  --surface:#0f1a20;
+  --surface-2:#132129;
+  --surface-3:#172832;
+  --line:#24353e;
+  --line-strong:#354a55;
+  --text:#f1f3ef;
+  --muted:#9aa8ad;
+  --muted2:#6f8188;
+  --field:#59b7ac;
+  --field-strong:#73d0c3;
+  --field-soft:rgba(89,183,172,.11);
+  --good:#72c79b;
+  --warn:#e0b66a;
+  --bad:#df7e84;
+  --paper:#e6e3d8;
+  --shadow-sm:0 8px 22px rgba(0,0,0,.15);
+  --shadow:0 18px 46px rgba(0,0,0,.24);
+  --ease:cubic-bezier(.22,.72,.24,1);
+}
+html{background:var(--bg)}
+body{
+  background:
+    radial-gradient(ellipse 65% 44% at 8% -6%,rgba(49,129,145,.18),transparent 64%),
+    radial-gradient(ellipse 52% 40% at 100% 18%,rgba(50,76,126,.14),transparent 67%),
+    radial-gradient(ellipse 55% 42% at 48% 96%,rgba(35,102,94,.09),transparent 70%),
+    repeating-linear-gradient(135deg,rgba(255,255,255,.008) 0 1px,transparent 1px 5px),
+    linear-gradient(180deg,#081117 0%,#071015 46%,#081116 100%);
+}
+.sidebar{
+  background:linear-gradient(180deg,rgba(8,17,22,.985),rgba(7,14,19,.99));
+  border-right-color:#1c2b33;
+}
+.topbar{
+  background:rgba(7,16,21,.965);
+  border-bottom-color:#1e2d35;
+  backdrop-filter:none;
+}
+.brand-mark{
+  border-color:#35505a;
+  background:linear-gradient(145deg,#142832,#0c1a20);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+}
+.nav-btn.active{
+  background:linear-gradient(90deg,rgba(89,183,172,.13),rgba(89,183,172,.025));
+  border-color:rgba(89,183,172,.16);
+}
+.season-badge{
+  border-color:#283a43;
+  background:#0c181e;
+}
+.input,.select{
+  border-color:#314650;
+  background:#09151b;
+}
+.input:hover,.select:hover{border-color:#425b66}
+.input:focus,.select:focus{
+  border-color:#5a9c99;
+  background:#0b181e;
+  box-shadow:0 0 0 3px rgba(89,183,172,.08);
+}
+.btn{
+  border-color:#344a54;
+  background:#122129;
+}
+.btn:hover{
+  background:#172a33;
+  border-color:#47616c;
+}
+.btn-primary{
+  border-color:#ccd3ca;
+  background:var(--paper);
+  color:#10171a;
+}
+
+/* Rich surfaces use color sparingly; information surfaces stay quiet. */
+.account-bar,
+.league-list,
+.roster-table-wrap,
+.table-wrap,
+.mobile-player-list,
+.player-search-panel,
+.card,
+.metric,
+.game-card,
+.startsit-card,
+.pick,
+.recommendation{
+  background:linear-gradient(180deg,rgba(15,27,34,.96),rgba(11,22,28,.97));
+  border-color:var(--line);
+}
+.list-heading,th{background:#0d1a20}
+.league-row:hover,tbody tr:hover,.asset:hover,.leader-open:hover{background:#13232b}
+.player-headshot,.mobile-player-image,.startsit-player img,.waiver-player img{
+  background:#14232a;
+  border-color:#2d414a;
+}
+.team-dot,.startsit-team-logo{background:#172932;border-color:#0d1a20}
+.position-tag{
+  background:#132129;
+  border-color:#30454e;
+}
+.slot-label{
+  border-color:rgba(89,183,172,.23);
+  background:rgba(89,183,172,.075);
+  color:#a5d4ce;
+}
+
+/* Matchup is the most atmospheric football surface. */
+.matchup-hero{
+  border-color:#304852;
+  background:
+    radial-gradient(circle at 12% 0%,rgba(89,183,172,.16),transparent 38%),
+    radial-gradient(circle at 92% 105%,rgba(61,88,142,.13),transparent 42%),
+    linear-gradient(145deg,#12242c,#0b171d 72%);
+  box-shadow:0 12px 32px rgba(0,0,0,.18);
+}
+.matchup-hero::after{
+  opacity:.09;
+  background:
+    repeating-linear-gradient(90deg,transparent 0 62px,rgba(214,232,230,.12) 62px 63px),
+    linear-gradient(90deg,transparent 49.85%,rgba(214,232,230,.17) 49.85% 50.15%,transparent 50.15%);
+}
+.matchup-avatar{
+  border-color:#36515b;
+  background:#152831;
+}
+.matchup-edge-track,.decision-meter-track{background:#263b44}
+.matchup-edge-track span,.decision-meter-track span{
+  background:linear-gradient(90deg,#418f8a,#73d0c3);
+}
+
+/* Start/Sit keeps a feature treatment without neon or heavy glow. */
+.startsit-summary{
+  border-color:#35515a;
+  background:
+    radial-gradient(circle at 88% 5%,rgba(89,183,172,.16),transparent 33%),
+    linear-gradient(145deg,#13252d,#0c181e 68%);
+  box-shadow:0 10px 30px rgba(0,0,0,.16);
+}
+.startsit-card.preferred{
+  border-color:rgba(89,183,172,.46);
+  background:
+    linear-gradient(145deg,rgba(89,183,172,.075),rgba(15,26,32,.98) 46%);
+}
+.startsit-card.preferred::before{background:var(--field-strong)}
+.range-track{background:linear-gradient(90deg,#344c55,#5c928d,#9bbdb6)}
+.startsit-projection{background:#0b171d}
+
+/* Player sheet keeps team identity, but avoids blur-heavy effects. */
+.profile-backdrop{
+  background:rgba(2,7,10,.68);
+  backdrop-filter:none;
+}
+.player-profile{
+  background:
+    linear-gradient(180deg,color-mix(in srgb,var(--team-accent,#3d7f83) 10%,#0d1a20) 0,#0d1a20 170px);
+  border-left-color:#30454e;
+}
+.profile-metric,.profile-stat-grid>div,.profile-context-grid>div,.analysis-item,.news-card,.availability-panel{
+  background:#101f26;
+  border-color:#263942;
+}
+
+/* Performance: no full-page or shared-element animation. Local transitions only. */
+::view-transition-old(root),
+::view-transition-new(root),
+::view-transition-group(*){animation:none!important}
+.matchup-number strong,
+.projection-cell>strong,
+.mobile-player-score>strong,
+.startsit-projection strong,
+.profile-metric strong{
+  animation:none;
+}
+.player-profile{animation:sheetIn 145ms var(--ease) both}
+.profile-backdrop{animation:backdropIn 90ms linear both}
+.toast{animation:sheetUp 130ms var(--ease) both}
+.nav-btn,
+.btn,
+.input,
+.select,
+.league-row,
+.row-chevron,
+.league-tab,
+.asset,
+.waiver-card,
+.startsit-card,
+.game-card,
+.news-card{
+  transition-duration:105ms;
+}
+.matchup-edge-track span,
+.decision-meter-track span,
+.range-median{transition-duration:180ms}
+
+/* Avoid animating paint-heavy properties. */
+.game-card,
+.waiver-card,
+.startsit-card{transition-property:transform,border-color,background-color}
+.game-card:hover{box-shadow:none}
+.player-profile{will-change:transform,opacity}
+
+@media(max-width:900px){
+  body{
+    background:
+      radial-gradient(ellipse 90% 32% at 0% -2%,rgba(49,129,145,.15),transparent 68%),
+      radial-gradient(ellipse 75% 30% at 100% 18%,rgba(50,76,126,.11),transparent 72%),
+      repeating-linear-gradient(135deg,rgba(255,255,255,.006) 0 1px,transparent 1px 6px),
+      linear-gradient(180deg,#081117,#071015 52%,#081116);
+  }
+  .sidebar{
+    background:#081116;
+    backdrop-filter:none;
+  }
+  .league-tabs{
+    background:#071015;
+    backdrop-filter:none;
+  }
+  .topbar{background:#071015}
+  .matchup-hero::after{
+    background:
+      repeating-linear-gradient(90deg,transparent 0 48px,rgba(214,232,230,.08) 48px 49px),
+      linear-gradient(90deg,transparent 49.8%,rgba(214,232,230,.12) 49.8% 50.2%,transparent 50.2%);
+  }
+  .player-profile{
+    background:
+      linear-gradient(180deg,color-mix(in srgb,var(--team-accent,#3d7f83) 8%,#0d1a20) 0,#0d1a20 135px);
+    animation:sheetUp 135ms var(--ease) both;
+    will-change:transform,opacity;
+  }
+}
