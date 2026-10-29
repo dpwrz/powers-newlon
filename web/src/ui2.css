@@ -83,3 +83,53 @@ td{border-bottom-color:var(--line)}
  .toast{background:#fff}
  .sidebar .nav-btn:hover{background:rgba(31,66,95,.06)}
 }
+
+/* UI 2.0 compatibility: legacy 1.8.x screens use --ink/--surface/--navy
+   and hard-coded pale backgrounds; align those surfaces with the new palette. */
+:root{
+ --ink:#f3f6fa;--ink-soft:#d9e2eb;--navy:#25313e;
+ --bg-soft:#26323e;--surface:#2b3541;--surface-2:#344151;--surface-3:#3a4959;
+ --accent-strong:#72d9ce;
+}
+.page-title,.page-intro h1,.roster-title,.roster-name,.section-title,.list-heading{color:var(--text)}
+.page-subtitle,.crumb,.small,.matchup-edge-label,.matchup-edge-scale{color:var(--muted)}
+.league-tabs{background:#303d4b!important;border:1px solid var(--line);border-radius:16px;padding:3px;gap:2px}
+.league-tab{color:#c1cdd9!important;border-radius:12px;border:0!important;background:transparent!important}
+.league-tab.active{color:#b0f2e9!important;background:rgba(114,217,206,.13)!important}
+.league-tab:hover{color:#fff!important;background:rgba(255,255,255,.06)!important}
+.matchup-hero,.mobile-player-list,.account-bar,.league-list,.roster-table-wrap,.table-wrap,.card,.metric,.recommendation,.game-card,.waiver-card,.player-search-panel,.startsit-card,.pick{
+ background:linear-gradient(145deg,#354453,#2b3745)!important;
+ border-color:rgba(191,207,224,.15)!important;
+ color:var(--text)!important;
+}
+.matchup-team-copy strong,.matchup-number strong,.matchup-edge-label strong,.mobile-player-row strong,.player-name,.mobile-player-row,.matchup-hero-head,.section-head h2{color:var(--text)!important}
+.matchup-team-copy small,.matchup-number small,.mobile-player-row small,.matchup-edge-scale,.matchup-edge-label span{color:var(--muted)!important}
+.mobile-player-row{background:transparent!important;border-bottom-color:var(--line)!important}
+.mobile-player-row:nth-child(even){background:rgba(255,255,255,.025)!important}
+.mobile-player-row:active{background:rgba(255,255,255,.08)!important}
+.matchup-avatar,.player-headshot,.mobile-player-image{background:#405163!important;border-color:var(--line)!important}
+.matchup-edge-track,.decision-meter-track{background:#52616e!important}
+.league-row,.standing-row,.asset,.leader-row{color:var(--text)}
+.select,.input{background:#263442!important;color:var(--text)!important;border-color:var(--line)!important}
+.kicker,.eyebrow{color:var(--accent)!important}
+.sidebar{background:#293644!important}
+.nav-btn{color:#bfccd8!important}
+.nav-btn.active{color:#a3eee4!important;background:rgba(114,217,206,.14)!important}
+@media(max-width:900px){.sidebar{background:#293644!important}}
+@media(prefers-color-scheme:light){
+ :root{--ink:#1d2b39;--ink-soft:#42566b;--navy:#e5ebf1;--bg-soft:#edf1f5;--surface:#fff;--surface-2:#f3f6fa;--surface-3:#e8eef3;--accent-strong:#147e79}
+ .league-tabs{background:#e5ebf1!important}
+ .league-tab{color:#40576c!important}
+ .league-tab.active{color:#116e69!important;background:rgba(20,126,121,.12)!important}
+ .league-tab:hover{color:#1d2b39!important}
+ .matchup-hero,.mobile-player-list,.account-bar,.league-list,.roster-table-wrap,.table-wrap,.card,.metric,.recommendation,.game-card,.waiver-card,.player-search-panel,.startsit-card,.pick{background:linear-gradient(145deg,#fff,#edf2f6)!important;color:var(--text)!important}
+ .matchup-team-copy strong,.matchup-number strong,.matchup-edge-label strong,.mobile-player-row strong,.player-name,.mobile-player-row,.matchup-hero-head,.section-head h2{color:var(--text)!important}
+ .matchup-team-copy small,.matchup-number small,.mobile-player-row small,.matchup-edge-scale,.matchup-edge-label span{color:var(--muted)!important}
+ .mobile-player-row:nth-child(even){background:rgba(20,45,65,.025)!important}
+ .matchup-avatar,.player-headshot,.mobile-player-image{background:#e2eaf1!important}
+ .matchup-edge-track,.decision-meter-track{background:#d0dce5!important}
+ .select,.input{background:#fff!important;color:var(--text)!important}
+ .sidebar{background:#f3f6fa!important}
+ .nav-btn{color:#53677a!important}
+ .nav-btn.active{color:#147e79!important}
+}
