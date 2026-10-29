@@ -105,6 +105,8 @@ async function test(){
     const size=await page.evaluate(()=>({screen:innerWidth,content:document.documentElement.scrollWidth}));
     assert(size.content<=size.screen+3,`${label} has horizontal overflow: ${size.content}/${size.screen}`);
    };
+   const homeScores=await page.locator('.nx-home .nx-match-score strong').allTextContents();
+   assert.equal(homeScores.length,2,'Home has both matchup scores');
    await noOverflow('Home');
    await page.screenshot({path:new URL(`../ui-qa/home-${width}.png`,import.meta.url).pathname,fullPage:true});
    await page.locator('.nx-lineup-row').first().click();
@@ -114,6 +116,9 @@ async function test(){
    await page.locator('.player-profile').waitFor({state:'detached'});
    await page.locator('[data-route="league"].nav-btn').click();
    await page.locator('.nx-segments').waitFor();
+   const leagueScores=await page.locator('.nx-league-shell .nx-match-score strong').allTextContents();
+   assert.deepEqual(leagueScores,homeScores,'Home and League must show identical lineup-based matchup projections');
+   assert.equal(await page.locator('.nx-match-detail summary').count(),1,'Projection methodology is available on the League card');
    assert.equal(await page.locator('.nx-league-shell > .nx-segments .nx-segment').count(),3,'League has three clear sections');
    await page.locator('[data-tab="league"]').click();
    await page.locator('.nx-standing-row').first().waitFor();
