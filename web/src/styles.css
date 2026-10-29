@@ -1265,3 +1265,146 @@ tbody tr:hover{background:#e4ece8}
   transition-duration:70ms;
 }
 .matchup-edge-track span,.decision-meter-track span,.range-median{transition-duration:120ms}
+
+
+/* ============================================================
+   Web 1.8.2 — lower-luminance balanced canvas
+   ============================================================ */
+:root{
+  --bg:#c7d0cc;
+  --bg-soft:#bec9c4;
+  --surface:#dde3df;
+  --surface-2:#d4ddd8;
+  --surface-3:#cbd7d1;
+  --line:#aebbb6;
+  --line-strong:#94a59e;
+  --text:#203138;
+  --muted:#5f7074;
+  --muted2:#77878b;
+  --navy:#173846;
+  --navy-2:#234d5c;
+  --accent:#2c777c;
+  --accent-strong:#1f6268;
+  --accent-soft:#c8ddda;
+  --paper:#dde3df;
+}
+body{
+  background:
+    radial-gradient(ellipse 78% 32% at 8% -5%,rgba(43,102,112,.16),transparent 70%),
+    radial-gradient(ellipse 54% 28% at 100% 14%,rgba(47,69,106,.10),transparent 72%),
+    radial-gradient(ellipse 60% 34% at 35% 100%,rgba(62,104,88,.08),transparent 72%),
+    linear-gradient(180deg,#d4dcda 0%,#c7d0cc 48%,#c0cac6 100%);
+}
+.topbar{
+  background:var(--navy);
+  border-bottom-color:#102b36;
+  color:#f3f4ef;
+}
+.topbar-title{color:#f3f4ef}
+.crumb{color:rgba(243,244,239,.58)}
+.topbar .text-action{color:rgba(243,244,239,.72)}
+.topbar .text-action:hover{color:#fff;border-bottom-color:#78aaa7}
+.season-badge{
+  background:rgba(255,255,255,.08);
+  border-color:rgba(255,255,255,.16);
+  color:rgba(255,255,255,.72);
+}
+.league-tabs{
+  background:rgba(199,208,204,.94);
+}
+.account-bar,
+.league-list,
+.roster-table-wrap,
+.table-wrap,
+.mobile-player-list,
+.card,
+.metric,
+.recommendation,
+.game-card,
+.waiver-card,
+.player-search-panel,
+.startsit-card,
+.pick{
+  background:#dce2de;
+  border-color:#aebbb6;
+}
+.list-heading,th{
+  background:#cfd8d3;
+}
+.league-row{border-bottom-color:#b9c5c0}
+.league-row:hover,tbody tr:hover,.asset:hover,.leader-open:hover{background:#d2ddd8}
+.matchup-hero{
+  border-color:#9fb2ab;
+  background:
+    radial-gradient(circle at 7% 2%,rgba(44,119,124,.18),transparent 35%),
+    radial-gradient(circle at 94% 108%,rgba(48,75,111,.11),transparent 42%),
+    linear-gradient(145deg,#dce6e2,#cbd9d3 76%);
+}
+.matchup-avatar{
+  background:#d2dcd7;
+  border-color:#aabbb4;
+}
+.matchup-edge-track,.decision-meter-track{background:#b8c6c0}
+.startsit-summary{
+  border-color:#9db3ac;
+  background:
+    radial-gradient(circle at 88% 6%,rgba(44,119,124,.17),transparent 34%),
+    linear-gradient(145deg,#dae5e0,#cbd9d3 72%);
+}
+.startsit-factors>div{
+  background:rgba(221,229,225,.72);
+  border-color:#aebcb6;
+}
+.startsit-card.preferred{
+  border-color:#7fa59d;
+  background:linear-gradient(145deg,#c9ded8,#dce2de 52%);
+}
+.startsit-projection,
+.game-box,
+.pregame-market,
+.market-teams>div{
+  background:#d1dad5;
+}
+.profile-player{}
+.player-profile{
+  background:
+    radial-gradient(circle at 100% 0%,color-mix(in srgb,var(--team-accent,#2c777c) 9%,transparent),transparent 32%),
+    linear-gradient(180deg,#dce2de,#d0d9d4);
+}
+.profile-metric,
+.profile-stat-grid>div,
+.profile-context-grid>div,
+.analysis-item,
+.news-card,
+.availability-panel{
+  background:#cfd8d3;
+  border-color:#aebbb6;
+}
+.input,.select{
+  background:#d8dfdb;
+  border-color:#9dacA6;
+}
+.input:hover,.select:hover,.input:focus,.select:focus{background:#e2e7e4}
+.btn{
+  background:#d6ddd9;
+  border-color:#9fada7;
+}
+.btn:hover{background:#e0e5e2}
+.btn-primary{background:var(--navy);border-color:var(--navy);color:#f3f4ef}
+@media(max-width:900px){
+  body{
+    background:
+      radial-gradient(ellipse 90% 28% at 2% -3%,rgba(43,102,112,.15),transparent 72%),
+      radial-gradient(ellipse 70% 26% at 100% 18%,rgba(47,69,106,.08),transparent 74%),
+      linear-gradient(180deg,#d2dad7,#c5cfcb 56%,#bec9c4);
+  }
+  .topbar{background:var(--navy)}
+  .league-tabs{background:rgba(199,208,204,.98)}
+  .sidebar{
+    background:#d2dad6;
+    border-top-color:#a9b7b1;
+  }
+  .mobile-player-list{background:#d8dfdb}
+  .mobile-player-row:nth-child(even){background:rgba(23,56,70,.025)}
+  .mobile-player-row:active{background:#cbd8d2}
+}
