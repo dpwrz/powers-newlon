@@ -35,9 +35,13 @@ jobs:
         run: |
           npm install --no-save playwright
           npx playwright install --with-deps chromium
+          npx playwright install --with-deps webkit
       - name: Smoke test iPhone and desktop UX
         timeout-minutes: 4
         run: node scripts/smoke-ui.mjs
+      - name: Verify league entry in Chromium and Safari WebKit
+        timeout-minutes: 4
+        run: node scripts/smoke-onboarding.mjs
       - name: Attach browser screenshots
         if: always()
         uses: actions/upload-artifact@v4
