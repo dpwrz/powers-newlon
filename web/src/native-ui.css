@@ -1025,3 +1025,25 @@ html[data-theme="light"] .mobile-player-row .player-meta{color:var(--nx-sub)!imp
 @media(max-width:900px){
  html[data-theme="light"] .table-wrap::before{background:#f0f5f8!important;color:var(--nx-sub)!important}
 }
+
+/* Consistent matchup presentation in Home and League.
+   Keep the methodology optional rather than adding another large stat card. */
+.nx-match-detail{margin-top:14px;padding-top:12px;border-top:1px solid rgba(222,239,244,.13);color:#d3e2e8}
+.nx-match-detail summary{display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;list-style:none;font-size:11px;font-weight:710;min-height:34px;color:#d3e2e8}
+.nx-match-detail summary::-webkit-details-marker{display:none}
+.nx-match-detail summary>span{color:#9fe3d9;font-size:15px;transition:transform .2s ease}
+.nx-match-detail[open] summary>span{transform:rotate(180deg)}
+.nx-match-detail-rows{display:grid;gap:9px;padding:10px 0}
+.nx-match-detail-rows>div{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px}
+.nx-match-detail-rows span{color:#c6d9df}
+.nx-match-detail-rows strong{color:#fff;white-space:nowrap;font-size:12px;font-weight:750;font-variant-numeric:tabular-nums}
+.nx-match-detail>p{color:#b4cbd5;font-size:10px;line-height:1.55;margin:6px 0 0}
+.nx-league-shell>.nx-match,.team-heading+.nx-match{margin-bottom:22px}
+@media(max-width:650px){
+ .nx-match-detail{margin-top:11px}
+ .nx-match-detail summary{font-size:11px}
+ .nx-league-shell>.nx-match,.team-heading+.nx-match{margin-bottom:19px}
+}
+@media(prefers-reduced-motion:reduce){
+ .nx-match-detail summary>span{transition:none}
+}
