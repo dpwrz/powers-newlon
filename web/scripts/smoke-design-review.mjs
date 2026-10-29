@@ -34,7 +34,7 @@ try{
      await page.locator('.nav-link[data-nav="decisions"]').click();
      await page.locator('#left-select').selectOption('goff');
      await page.locator('#right-select').selectOption('love');
-     assert((await page.locator('.comp-delta').innerText()).includes('−1.3'),'Common fixture model difference');
+     assert((await page.locator('.comp-delta').innerText()).includes('-1.3'),'Common fixture model difference');
      await page.locator('#review-btn').click();
      await checkWidth('Decisions '+width+' '+concept);
      await page.locator('.nav-link[data-nav="scout"]').click();
