@@ -2,6 +2,9 @@ import './styles.css';
 import './native-ui.css';
 
 const ADMIN_HASH='#/_fm/control-room-30', WEB_VERSION='3.0.0';
+const pnTheme=localStorage.getItem('pn_theme')||'light';
+document.documentElement.dataset.theme=pnTheme;
+
 
 const S='https://api.sleeper.app/v1', ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
 const st={route:localStorage.fm_route||'dashboard',tab:localStorage.fm_league_tab||'home',nav:false,username:localStorage.fm_username||'',season:+(localStorage.fm_season||new Date().getFullYear()),user:null,leagues:[],league:null,users:[],rosters:[],matchups:[],picks:[],drafts:[],players:null,week:null,nflWeek:null,team:null,snapshot:{},rows:[],modelById:new Map,modelByName:new Map,pickValues:new Map,dstProjections:new Map,seasonStats:new Map,seasonStatsSeason:null,seasonStatsAt:0,profile:null,profileRoster:null,playerNews:new Map,games:[],gameDetails:new Map,gameMarkets:new Map,gameOpen:new Set,adminTab:'overview',adminInspect:null,adminManifest:{},adminLoadedAt:0,tradeA:null,tradeB:null,assetsA:new Set,assetsB:new Set,compare:[],loading:false,error:''};
@@ -451,7 +454,7 @@ function about(){
   <div class="pn-hub-group"><h2>Account & model</h2><div class="pn-settings-list">
    <div class="pn-settings-row"><span><strong>Connected league</strong><small>${leagueName}</small></span><button class="pn-text-link" data-a="back">Switch league →</button></div>
    <div class="pn-settings-row"><span><strong>Prediction engine</strong><small>Powers-Newlon Model · ${esc(version)}</small></span><span class="pn-status-dot ${st.rows.length?'':'pn-status-unknown'}" aria-label="${st.rows.length?'Model snapshot loaded':'Model snapshot unavailable'}"></span></div>
-   <div class="pn-settings-row"><span><strong>Appearance</strong><small>Follows your device’s light or dark setting</small></span><span class="pn-muted-tag">Automatic</span></div>
+   <div class="pn-settings-row"><span><strong>Appearance</strong><small>Choose the experience that feels best to you</small></span><span class="nx-theme-options">${["light","dark","auto"].map(x=>`<button type="button" data-theme="${x}" class="${(localStorage.getItem('pn_theme')||'light')===x?"is-active":""}">${x[0].toUpperCase()+x.slice(1)}</button>`).join("")}</span></div>
   </div></div>
   <details class="pn-about-details"><summary>About Powers-Newlon Fantasy Manager <span>+</span></summary><p>Our application brings together league information from Sleeper, weekly predictions from the Powers-Newlon Model, lineup decisions, dynasty valuation, and NFL statistics. Sleeper supplies league information—not the model’s projections.</p><div class="pn-about-stats"><span>Model player rows <strong>${fi(st.rows.length)}</strong></span><span>League provider <strong>Sleeper</strong></span></div></details>
   </div>`);
@@ -491,7 +494,7 @@ function renderBoot(){
  root.innerHTML='<main class="pn-boot" aria-label="Opening Powers-Newlon Fantasy Manager"><div class="pn-boot-content"><div class="pn-boot-mark" aria-hidden="true">PN</div><strong>Powers-Newlon</strong><span>Fantasy Manager</span><div class="pn-boot-line" role="progressbar" aria-label="Loading your fantasy dashboard"><i></i></div></div></main>';
 }
 function render(){if(st.booting){renderBoot();return}const html=isAdminLocation()?admin():st.route==='dashboard'?(st.league?home2():dashboard()):st.route==='league'?(st.league?leagueShell():dashboard()):st.route==='live'?live():st.route==='leaders'?leaders():st.route==='startsit'?startsit():about();$('#app').innerHTML=html;bind()}
-function bind(){bindAdmin();$('#nxConnectForm')?.addEventListener('submit',e=>{e.preventDefault();loadLeagues($('#username').value.trim(),+$('#season').value)});
+function bind(){bindAdmin();$('[data-theme]').forEach(x=>x.onclick=()=>{localStorage.setItem('pn_theme',x.dataset.theme);document.documentElement.dataset.theme=x.dataset.theme;render()});$('#nxConnectForm')?.addEventListener('submit',e=>{e.preventDefault();loadLeagues($('#username').value.trim(),+$('#season').value)});
  $('[data-explore-view]').forEach(x=>x.onclick=()=>{st.exploreView=x.dataset.exploreView;st.exploreQuery='';transitionRender()});
  $('[data-explore-pos]').forEach(x=>x.onclick=()=>{st.explorePos=x.dataset.explorePos;st.exploreQuery='';transitionRender()});
  const ex=$('#exploreSearch');
