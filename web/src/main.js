@@ -201,8 +201,8 @@ function dashboard(){
   <p>Your projections, lineups, and leagues—beautifully connected in one place.</p></header>
   <section class="nx-connect-form"><div><span class="nx-eyebrow">CONNECT TO SLEEPER</span><h2>Find your leagues</h2><p>Enter your Sleeper username to see your available leagues. No password needed.</p></div>
   <form id="nxConnectForm" class="nx-connect-fields">
-   <label><span>Sleeper username</span><input id="username" class="input" type="text" autocapitalize="off" autocomplete="username" value="${esc(st.username)}" placeholder="Sleeper username" required></label>
-   <label><span>Season</span><input id="season" class="input" type="number" min="2020" max="2100" value="${st.season}" required></label>
+   <label><span>Sleeper username</span><input id="username" class="input" type="text" autocapitalize="off" autocomplete="username" value="${esc(st.connectDraftUsername??st.username)}" placeholder="Sleeper username" required></label>
+   <label><span>Season</span><input id="season" class="input" type="number" min="2020" max="2100" value="${st.connectDraftSeason??st.season}" required></label>
    <button type="submit" class="nx-primary">${st.loading?'Connecting…':'Find leagues'} <span aria-hidden="true">›</span></button>
   </form>
   ${st.error?`<p class="nx-form-error" role="alert">${esc(st.error)}</p>`:''}
@@ -541,8 +541,30 @@ function render(){
   const fresh=template.content.querySelector('.shell'),current=root.querySelector('.shell');
   const oldContent=current?.querySelector('.content'),newContent=fresh?.querySelector('.content');
   const oldTop=current?.querySelector('.topbar'),newTop=fresh?.querySelector('.topbar');
+  // Keep the connection form mounted during data refreshes. Replacing it while
+  // someone is entering a username drops focus and dismisses the iOS keyboard.
+  const existingConnect=oldContent?.querySelector('#nxConnectForm');
+  const nextConnect=newContent?.querySelector('#nxConnectForm');
+  const keepConnect=!!(existingConnect&&nextConnect&&!st.league);
   if(oldContent&&newContent&&oldTop&&newTop){
-   oldContent.replaceWith(newContent);oldTop.replaceWith(newTop);
+   if(keepConnect){
+    const button=existingConnect.querySelector('button[type="submit"]');
+    if(button){
+      button.disabled=!!st.loading;
+      button.setAttribute('aria-busy',String(!!st.loading));
+      button.innerHTML=st.loading?'Finding leagues…':'Find leagues <span aria-hidden="true">›</span>';
+    }
+    const oldError=oldContent.querySelector('.nx-form-error');
+    oldError?.remove();
+    const nextError=newContent.querySelector('.nx-form-error');
+    if(nextError)oldContent.querySelector('.nx-connect-form')?.append(nextError.cloneNode(true));
+    const oldList=oldContent.querySelector('.nx-available');
+    const nextList=newContent.querySelector('.nx-available');
+    if(oldList&&nextList)oldList.replaceWith(nextList);
+    else if(oldList)oldList.remove();
+    else if(nextList)oldContent.querySelector('.nx-connect')?.append(nextList);
+   }else oldContent.replaceWith(newContent);
+   oldTop.replaceWith(newTop);
    const now=$$('.nav-btn',current),next=$$('.nav-btn',fresh);
    for(let i=0;i<now.length;i++){
     if(!next[i])continue;
@@ -560,7 +582,21 @@ function render(){
  }
  root.innerHTML=html;bind();
 }
-function bind(){bindAdmin();$$('[data-theme]').forEach(x=>x.onclick=()=>{localStorage.setItem('pn_theme',x.dataset.theme);applyPnTheme(x.dataset.theme);render()});$('#nxConnectForm')?.addEventListener('submit',e=>{e.preventDefault();loadLeagues($('#username').value.trim(),+$('#season').value)});
+function bind(){bindAdmin();$('[data-theme]').forEach(x=>x.onclick=()=>{localStorage.setItem('pn_theme',x.dataset.theme);applyPnTheme(x.dataset.theme);render()});
+ const connectForm=$('#nxConnectForm');
+ if(connectForm){
+  const input=connectForm.querySelector('#username'),season=connectForm.querySelector('#season');
+  input.oninput=()=>{st.connectDraftUsername=input.value};
+  season.oninput=()=>{st.connectDraftSeason=season.value};
+  connectForm.onsubmit=e=>{
+   e.preventDefault();
+   const username=input.value.trim(),year=Number(season.value);
+   if(!username){input.focus();return}
+   if(!Number.isInteger(year)||year<2020||year>2100){season.focus();return}
+   st.connectDraftUsername=username;st.connectDraftSeason=String(year);
+   loadLeagues(username,year);
+  };
+ }
  $$('[data-explore-view]').forEach(x=>x.onclick=()=>{st.exploreView=x.dataset.exploreView;st.exploreQuery='';transitionRender()});
  $$('[data-explore-pos]').forEach(x=>x.onclick=()=>{st.explorePos=x.dataset.explorePos;st.exploreQuery='';transitionRender()});
  const ex=$('#exploreSearch');
