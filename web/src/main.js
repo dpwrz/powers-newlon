@@ -202,7 +202,7 @@ function home2Match(r){
  const team=(x,label,value,sub)=>`<div class="pn-match-team"><div class="pn-team-identity">${rosterAvatar(x)?`<img src="${rosterAvatar(x)}" alt="">`:''}<div><span class="pn-eyebrow">${label}</span><strong>${esc(tname(x.roster_id))}</strong></div></div><div class="pn-score">${score(value)}<small>${sub}</small></div></div>`;
  const share=projA!=null&&projB!=null&&projA+projB>0?Math.round(100*projA/(projA+projB)):50;
  return `<section class="pn-match-card" aria-label="Week ${st.week} matchup">
-  <div class="pn-card-top"><span class="pn-eyebrow">Week ${st.week} · Head to head</span><span class="pn-state">${hasActual?'<i class="pn-pulse"></i>Scoring underway':'Pregame'}</span></div>
+  <div class="pn-card-top"><span class="pn-eyebrow">Week ${st.week} · Head to head</span><span class="pn-state">${hasActual?'<i class="pn-pulse"></i>Scores reported':'Pregame'}</span></div>
   ${team(r,'Your team',hasActual?actualA:projA,hasActual?'Actual PPR':'Projected PPR')}
   <div class="pn-match-divider"></div>
   ${team(opponent,'Opponent',hasActual?actualB:projB,hasActual?'Actual PPR':'Projected PPR')}
