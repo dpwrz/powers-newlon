@@ -49,3 +49,14 @@ jobs:
           name: ui-2-1-screenchecks
           path: web/ui-qa/*.png
           if-no-files-found: ignore
+
+      - name: Test design comparison interactions and screen sizes
+        timeout-minutes: 4
+        run: node scripts/smoke-design-review.mjs
+      - name: Upload design comparison screen captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pnfm-three-directions
+          path: web/ui-qa-design/*.png
+          if-no-files-found: ignore
