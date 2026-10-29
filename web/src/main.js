@@ -252,6 +252,7 @@ function moves(){const r=me();if(!r)return'<div class="empty">Connect a roster f
 
 // UI 2.0: the home surface uses the existing model and Sleeper data sources.
 
+function nxScore(v){return v==null?'—':f(v)}
 function nxStarterProjection(r){
  const ids=(r?.starters||[]).filter(id=>id&&id!=='0');
  if(!ids.length)return {value:rproj(r),missing:0,fallback:true};
@@ -264,12 +265,12 @@ function home2Match(r){
  const a=nxStarterProjection(r),b=nxStarterProjection(o),aa=n(ma?.points,0),ab=n(mb?.points,0),scored=aa>0||ab>0;
  const diff=scored?aa-ab:a.value!=null&&b.value!=null?a.value-b.value:null;
  const share=a.value!=null&&b.value!=null&&a.value+b.value>0?Math.round(100*a.value/(a.value+b.value)):50;
- const team=(roster,side,score)=>`<div class="nx-match-team"><div class="nx-match-avatar">${rosterAvatar(roster)?`<img src="${rosterAvatar(roster)}" alt="">`:'<span>PN</span>'}</div><div class="nx-match-team-name"><small>${side}</small><strong>${esc(tname(roster.roster_id))}</strong></div><div class="nx-match-score"><strong>${f(score)}</strong><small>${scored?'ACTUAL':'PROJ.'}</small></div></div>`;
+ const team=(roster,side,score)=>`<div class="nx-match-team"><div class="nx-match-avatar">${rosterAvatar(roster)?`<img src="${rosterAvatar(roster)}" alt="">`:'<span>PN</span>'}</div><div class="nx-match-team-name"><small>${side}</small><strong>${esc(tname(roster.roster_id))}</strong></div><div class="nx-match-score"><strong>${nxScore(score)}</strong><small>${scored?'ACTUAL':'PROJ.'}</small></div></div>`;
  return `<section class="nx-match"><header class="nx-match-head"><span class="nx-eyebrow">WEEK ${st.week} · MATCHUP</span><span class="nx-chip">${scored?(st.week<st.nflWeek?'FINAL / REVIEW':'SCORING REPORTED'):'PREGAME'}</span></header>
  ${team(r,'YOUR TEAM',scored?aa:a.value)}<div class="nx-match-versus">VS</div>${team(o,'OPPONENT',scored?ab:b.value)}
  <div class="nx-match-base"><div class="nx-match-margin"><span>${scored?'Actual difference':'Projected difference'}</span><strong>${diff==null?'—':(diff>0?'+':'')+f(diff)+' pts'}</strong></div>
  <div class="nx-match-track"><span style="width:${share}%"></span></div>
- <p>${scored?`Model estimate: ${f(a.value)} vs ${f(b.value)} PPR. `:''}Share of combined model points, not win probability.</p>
+ <p>${scored?`Model estimate: ${nxScore(a.value)} vs ${nxScore(b.value)} PPR. `:''}Share of combined model points, not win probability.</p>
  ${a.missing||b.missing?'<p class="nx-warning">Some starter projections are unavailable.</p>':''}
  </div></section>`;
 }
