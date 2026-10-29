@@ -1,0 +1,15 @@
+FANTASY MODEL 3.2 - SIGNAL OPTIMIZATION TOURNAMENT
+Generated: 2026-10-29 00:04:25 +0000
+Independent live evaluation through Week: 7
+
+ARCHITECTURE SELECTION (2024-2025 only)
+QB | full | factors=none | historical score gain 0.094% | mean features 117.0
+RB | full | factors=none | historical score gain -0.033% | mean features 117.0
+WR | compact | factors=none | historical score gain 0.214% | mean features 56.0
+TE | full | factors=none | historical score gain -0.014% | mean features 117.0
+
+LIVE 2026 PROMOTION
+QB | KEEP 3.1 | all MAE gain 0.027% | starter gain -0.338% | week win 50.0% | bootstrap 0.001 | failed: selected_new_architecture;historical_gain;live_gate;live_all_gain;live_starter_gain;live_confidence
+RB | KEEP 3.1 | all MAE gain 0.724% | starter gain 0.295% | week win 83.3% | bootstrap 0.821 | failed: selected_new_architecture;historical_gain
+WR | KEEP 3.1 | all MAE gain 0.623% | starter gain 0.065% | week win 83.3% | bootstrap 0.544 | failed: live_gate;live_confidence
+TE | KEEP 3.1 | all MAE gain 1.012% | starter gain 0.645% | week win 100.0% | bootstrap 0.879 | failed: selected_new_architecture;historical_gain
