@@ -222,3 +222,171 @@ function Dossier({f,onClose,onCompare}:{f:Forecast;onClose:()=>void;onCompare:()
    </div>
   </div>;
 }
+
+type TradeAsset={key:string;name:string;position:string;value:number|null;type:'player'|'pick'};
+function availableTradeAssets(r:Roster,data:AppData):TradeAsset[]{
+ const assets:TradeAsset[]=rosterAssets(r,data.index,data.players,data.week)
+  .filter(p=>p.position!=='DEF').map(p=>({key:p.id,name:p.name,position:p.position,value:p.dynasty,type:'player'}));
+ const roundCount=Math.min(8,num(data.league.settings?.draft_rounds)??4);
+ for(let season=Number(data.league.season)+1;season<=Number(data.league.season)+2;season++){
+  for(let round=1;round<=roundCount;round++){
+   const transfer=data.bundle.picks.find(p=>Number(p.season)===season&&Number(p.round)===round&&Number(p.roster_id)===r.roster_id);
+   const currentOwner=transfer?Number(transfer.owner_id):r.roster_id;
+   if(currentOwner!==r.roster_id)continue;
+   assets.push({key:'pick:'+season+':'+round+':'+r.roster_id,name:season+' Round '+round,
+    position:'FUTURE PICK',value:data.index.pickValue(season,round),type:'pick'});
+  }
+ }
+ return assets;
+}
+function TradeWorkbench({data}:{data:AppData}){
+ const {myRoster,rosters,index,players,week,users}=data;
+ const [otherId,setOtherId]=useState<string>('');
+ const [send,setSend]=useState<string[]>([]),[receive,setReceive]=useState<string[]>([]);
+ const r=myRoster||rosters[0],other=rosters.find(x=>String(x.roster_id)===(otherId||String(rosters.find(x=>x.roster_id!==r?.roster_id)?.roster_id)))||null;
+ useEffect(()=>{setSend([]);setReceive([])},[otherId]);
+ if(!r||!other)return <Empty title="A second team is required" detail="The trade workbench needs a connected league with at least two rosters."/>;
+ const a=availableTradeAssets(r,data),b=availableTradeAssets(other,data);
+ const selectedA=a.filter(x=>send.includes(x.key)),selectedB=b.filter(x=>receive.includes(x.key));
+ const total=(xs:TradeAsset[])=>xs.reduce((n,x)=>n+(x.value??0),0);
+ const missing=[...selectedA,...selectedB].some(x=>x.value===null);
+ const diff=selectedA.length&&selectedB.length&&!missing?total(selectedB)-total(selectedA):null;
+ const toggle=(v:string,selected:string[],setter:(next:string[])=>void)=>setter(selected.includes(v)?selected.filter(x=>x!==v):[...selected,v]);
+ return <div className="trade-workbench">
+  <SectionTitle index="01" title="BUILD A PROPOSED TRADE"/>
+  <div className="trade-control"><label htmlFor="trade-opponent">TRADE PARTNER</label><select id="trade-opponent" value={other.roster_id} onChange={e=>setOtherId(e.target.value)}>{rosters.filter(x=>x.roster_id!==r.roster_id).map(x=><option key={x.roster_id} value={x.roster_id}>{rosterName(x,users)}</option>)}</select></div>
+  <div className="trade-overview">
+   <div><Caption>MODEL DYNASTY VALUE / NET RECEIVED</Caption><strong>{diff===null?'—':(diff>0?'+':'')+fmt(diff,0)}</strong></div>
+   <div><Caption>SELECTED ASSETS</Caption><strong>{send.length} <span>⇄</span> {receive.length}</strong></div>
+   <p>{missing?'A selected asset has no model valuation. Totals are not comparable.':!send.length||!receive.length?'Choose at least one asset from each side.':'Positive means the package you receive has higher summed model dynasty value.'}</p>
+  </div>
+  <div className="trade-columns">
+   <AssetList label="01 / ASSETS YOU SEND" team={rosterName(r,users)} assets={a} selected={send} onSelect={id=>toggle(id,send,setSend)}/>
+   <AssetList label="02 / ASSETS YOU RECEIVE" team={rosterName(other,users)} assets={b} selected={receive} onSelect={id=>toggle(id,receive,setReceive)}/>
+  </div>
+  <div className="context-strip"><Info size={17}/>This is a valuation comparison, not an acceptance or win-probability forecast. Pick values are round-level model baselines, not predictions of exact draft position. Nothing is sent to Sleeper.</div>
+ </div>;
+}
+function AssetList({label,team,assets,selected,onSelect}:{label:string;team:string;assets:TradeAsset[];selected:string[];onSelect:(key:string)=>void}){
+ const [filter,setFilter]=useState('ALL');
+ return <section className="asset-column"><div className="asset-column-top"><Caption>{label}</Caption><h3>{team}</h3></div>
+  <div className="asset-filters">{['ALL','QB','RB','WR','TE','PICKS'].map(x=><button key={x} className={filter===x?'active':''} onClick={()=>setFilter(x)}>{x}</button>)}</div>
+  <div className="asset-scroller">{assets.filter(a=>filter==='ALL'||(filter==='PICKS'?a.type==='pick':a.position===filter)).map(asset=><button className={'asset-line '+(selected.includes(asset.key)?'picked':'')} type="button" key={asset.key} onClick={()=>onSelect(asset.key)} aria-pressed={selected.includes(asset.key)}>
+   <span className="asset-check">{selected.includes(asset.key)&&<Check size={14}/>}</span><span className="asset-name"><strong>{asset.name}</strong><small>{asset.position}</small></span><b>{fmt(asset.value,0)}</b></button>)}
+   {assets.length===0&&<p className="small-note">No eligible assets loaded.</p>}</div>
+   <div className="asset-total"><span>SELECTED / {selected.length}</span><strong>{fmt(assets.filter(a=>selected.includes(a.key)).reduce((v,a)=>v+(a.value??0),0),0)}</strong></div>
+ </section>;
+}
+function LeagueView({data,onPlayer,onRefresh,refreshing}:{data:AppData;onPlayer:(id:string)=>void;onRefresh:()=>void;refreshing:boolean}){
+ const [section,setSection]=useState<LeagueScreen>('standings');
+ const [teamId,setTeamId]=useState<string>('');
+ const {rosters,users,myRoster,players,index,league,week,matchup,bundle}=data;
+ const chosen=rosters.find(x=>String(x.roster_id)===(teamId||String(myRoster?.roster_id)))||rosters[0];
+ const ranked=useMemo(()=>standings(rosters,users),[rosters,users]);
+ const ownIds=new Set(myRoster?.players||[]);
+ return <div className="screen league-screen"><header className="page-heading"><Caption>04 / LEAGUE INTELLIGENCE</Caption><h1>League<span>.</span></h1><p>{league.name} · A competitive view of the season, roster composition, and long-term assets.</p></header>
+  <div className="league-subnav" role="group" aria-label="League sections">{([['standings','Standings'],['roster','Roster'],['trade','Trade'],['draft','Draft'],['health','Data health']] as const).map(([key,label])=><button className={section===key?'active':''} aria-pressed={section===key} key={key} onClick={()=>setSection(key)}>{label}</button>)}</div>
+  {section==='standings'&&<><SectionTitle index="01" title="LEAGUE STANDINGS"/><div className="standings-table">
+   <div className="standings-head"><span>RANK / TEAM</span><span>RECORD</span><span>POINTS FOR</span></div>
+   {ranked.map((r,i)=><button key={r.id} className={'standings-row '+(r.id===myRoster?.roster_id?'yours':'')} onClick={()=>{setTeamId(String(r.id));setSection('roster')}}><span className="standings-index">{String(i+1).padStart(2,'0')}</span><span className="standings-name"><strong>{r.name}</strong><small>{r.id===myRoster?.roster_id?'YOUR TEAM':'VIEW ROSTER'}</small></span><span className="standings-record">{r.wins}–{r.losses}{r.ties?'-'+r.ties:''}</span><span className="standings-points">{fmt(r.pts)}</span><ChevronRight size={15}/></button>)}</div>
+    <div className="context-strip"><Info size={17}/>Records and points for are taken from Sleeper. These are actual league statistics, not model predictions.</div></>}
+  {section==='roster'&&<><div className="roster-heading"><SectionTitle index="01" title="ROSTER INTELLIGENCE"/><label>TEAM<select value={chosen?.roster_id||''} onChange={e=>setTeamId(e.target.value)}>{rosters.map(r=><option key={r.roster_id} value={r.roster_id}>{rosterName(r,users)}</option>)}</select></label></div>
+   <div className="roster-overview"><div><Caption>TEAM RECORD</Caption><strong>{chosen?recordOf(chosen).slice(0,2).join('–'):'—'}</strong></div>
+    <div><Caption>ACTUAL POINTS FOR</Caption><strong>{chosen?fmt(pf(chosen)):'—'}</strong></div>
+    <div><Caption>MODELED OPTIMAL PPR</Caption><strong>{chosen?fmt(optimal(chosen,league,index,players,week).total):'—'}</strong></div></div>
+   {chosen&&<><SectionTitle index="02" title="STARTERS"/><div className="roster-list">{lineup(chosen,league,index,players,week).members.map((m,i)=>{
+     const f=m.id==='0'?null:index.get(m.id,players[m.id],week);
+     return <button key={i} className="roster-row" disabled={!f} onClick={()=>f&&onPlayer(f.id)}><span className="roster-position">{m.slot}</span><span><strong>{f?.name||'Unfilled'}</strong><small>{f?f.team+' · '+f.position:'No starter assigned'}</small></span><b>{fmt(m.projection)}</b><ChevronRight size={15}/></button>})}</div>
+     <SectionTitle index="03" title="BENCH & RESERVES"/><div className="roster-list">{(chosen.players||[]).filter(id=>!chosen.starters.includes(id)).map(id=>{
+      const f=index.get(id,players[id],week);return <button key={id} className="roster-row" onClick={()=>onPlayer(id)}><span className="roster-position">{f.position}</span><span><strong>{f.name}</strong><small>{f.team} · {f.status||'Status unavailable'}</small></span><b>{fmt(f.projection)}</b><ChevronRight size={15}/></button>})}</div></>}
+   </>}
+  {section==='trade'&&<TradeWorkbench data={data}/>}
+  {section==='draft'&&<><SectionTitle index="01" title="FUTURE PICK OUTLOOK"/><p className="section-description">Model dynasty values by draft year and round. Exact pick slots are not forecast by this screen.</p>
+    <div className="draft-table">{Array.from({length:3},(_,offset)=>Number(league.season)+offset).flatMap(y=>Array.from({length:Math.min(6,num(league.settings?.draft_rounds)??4)},(_,i)=>({year:y,round:i+1}))).map(x=><div className="draft-row" key={x.year+'-'+x.round}><strong>{x.year} · Round {x.round}</strong><span>Model baseline</span><b>{fmt(index.pickValue(x.year,x.round),0)}</b></div>)}</div>
+    <p className="fine-print">Pick ownership and exact selection position vary with trades, season results, and league rules. This table is a valuation reference, not your confirmed pick inventory.</p></>}
+  {section==='health'&&<><SectionTitle index="01" title="DATA & PROVENANCE"/><div className="health-list">
+    <div><span>MODEL SOURCE</span><strong>Powers–Newlon Model</strong><small>{index.rows.length.toLocaleString()} player rows in snapshot</small></div>
+    <div><span>LEAGUE SOURCE</span><strong>Sleeper · Read-only</strong><small>{rosters.length} connected rosters, {bundle.matchups.length} matchup entries</small></div>
+    <div><span>PROJECTION WEEK</span><strong>{String(index.snapshot.projection_week??'Unspecified')}</strong><small>Model production week, not necessarily the chosen league week</small></div>
+    <div><span>LEAGUE LAST REFRESH</span><strong>{new Date(bundle.fetchedAt).toLocaleString()}</strong><small>Actual points and roster changes may update independently.</small></div>
+    <div><span>STARTER COVERAGE</span><strong>{matchup.my.known}/{matchup.my.slots}</strong><small>{matchup.my.missing.length?matchup.my.missing.length+' starter slots have no model forecast.':'All current starter slots have model forecasts.'}</small></div>
+   </div><button className="outline-action" onClick={onRefresh} disabled={refreshing}><RefreshCw size={16}/>{refreshing?' Refreshing…':' Refresh league data'}</button>
+   <div className="context-strip"><ShieldCheck size={17}/>No Sleeper projections are used to fill missing model values. A missing forecast remains missing. Historical forecasts should be retained as locked benchmarks by the model pipeline.</div></>}
+ </div>;
+}
+function LoadingWorkspace({error,onRetry}:{error:unknown;onRetry:()=>void}){
+ return <div className="loading-workspace"><div className="brand-symbol">PN</div><Caption>PREPARING YOUR INTELLIGENCE WORKSPACE</Caption><h1>Connecting the pieces<span>.</span></h1><p>Loading your Sleeper league, roster identities and the Powers–Newlon Model snapshot.</p><div className="loading-track"><span/></div>{error&&<ErrorLine error={error} onRetry={onRetry}/>}
+ </div>;
+}
+export function App(){
+ const queryClient=useQueryClient();
+ const savedUser=safeStored('pn_next_username')||'';
+ const savedSeason=Number(safeStored('pn_next_season'))||new Date().getFullYear();
+ const [username,setUsername]=useState(savedUser),[season,setSeason]=useState(savedSeason);
+ const [user,setUser]=useState<SleeperUser|null>(null);
+ const [leagues,setLeagues]=useState<League[]>([]);
+ const [connected,setConnected]=useState(false),[connecting,setConnecting]=useState(false),[connectError,setConnectError]=useState<string|null>(null);
+ const [leagueId,setLeagueId]=useState<string|null>(null);
+ const [weekOverride,setWeekOverride]=useState<number|null>(null);
+ const [screen,setScreen]=useState<Screen>('briefing');
+ const [dossierId,setDossierId]=useState<string|null>(null);
+ const pendingRequest=useRef(0),started=useRef(false);
+ const connect=useCallback(async(name:string,yr:number,restore=false)=>{
+  const id=++pendingRequest.current;
+  setConnecting(true);setConnectError(null);
+  try{
+   const found=await getSleeperUser(name);
+   const results=await getLeagues(found.user_id,yr);
+   if(id!==pendingRequest.current)return;
+   setUser(found);setUsername(name);setSeason(yr);setLeagues(results);setConnected(true);
+   remember('pn_next_username',name);remember('pn_next_season',String(yr));
+   const chosen=restore?safeStored('pn_next_league'):null;
+   if(chosen&&results.some(l=>l.league_id===chosen))setLeagueId(chosen);
+  }catch(error){
+   if(id!==pendingRequest.current)return;
+   setConnectError(error instanceof Error?error.message:'Could not retrieve Sleeper leagues.');
+   setConnected(false);
+  }finally{if(id===pendingRequest.current)setConnecting(false)}
+ },[]);
+ useEffect(()=>{if(started.current)return;started.current=true;if(savedUser)void connect(savedUser,savedSeason,true)},[connect,savedUser,savedSeason]);
+ const nfl=useQuery({queryKey:['nfl-state'],queryFn:({signal})=>getNflState(signal),staleTime:10*60*1000});
+ const nflWeek=nfl.data?.week??1;
+ const selectedWeek=weekOverride??nflWeek;
+ const bundleQuery=useQuery({queryKey:['next-bundle',leagueId,selectedWeek],queryFn:({signal})=>getLeagueBundle(leagueId!,selectedWeek,signal),enabled:!!leagueId,staleTime:70_000});
+ const modelQuery=useQuery({queryKey:['next-model'],queryFn:({signal})=>getSnapshot(signal),enabled:!!leagueId,staleTime:Infinity});
+ const playersQuery=useQuery({queryKey:['next-players'],queryFn:({signal})=>getPlayers(signal),enabled:!!leagueId,staleTime:12*60*60*1000});
+ const index=useMemo(()=>modelQuery.data?new ModelIndex(modelQuery.data):null,[modelQuery.data]);
+ const data=useMemo<AppData|null>(()=>{
+  if(!bundleQuery.data||!playersQuery.data||!index||!leagueId)return null;
+  const bundle=bundleQuery.data,players=playersQuery.data,roster=bundle.rosters.find(r=>String(r.owner_id)===String(user?.user_id))||null;
+  return {league:bundle.league,users:bundle.users,rosters:bundle.rosters,players,bundle,index,week:selectedWeek,
+   nflWeek,myRoster:roster,matchup:matchupView(roster,bundle.rosters,bundle.users,bundle.matchups,bundle.league,index,players,selectedWeek,nflWeek)};
+ },[bundleQuery.data,playersQuery.data,index,leagueId,user?.user_id,selectedWeek,nflWeek]);
+ const ideas=useMemo(()=>data?.myRoster?lineupDecisions(data.myRoster,data.league,data.index,data.players,data.week):[],[data]);
+ const selectLeague=(id:string)=>{setLeagueId(id);remember('pn_next_league',id);setWeekOverride(null);setScreen('briefing')};
+ const switchLeague=()=>{setLeagueId(null);remember('pn_next_league',null);setDossierId(null);setScreen('briefing')};
+ const closeDossier=useCallback(()=>setDossierId(null),[]);
+ const openPlayer=(id:string)=>setDossierId(id);
+ const goCompare=()=>{setDossierId(null);setScreen('decisions')};
+ const refresh=()=>{void queryClient.invalidateQueries({queryKey:['next-bundle',leagueId]})};
+ useEffect(()=>{
+  if(!leagueId)return;
+  const check=()=>{if(document.visibilityState==='visible')refresh()};
+  const timer=window.setInterval(check,90_000);
+  document.addEventListener('visibilitychange',check);
+  return()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',check)};
+ },[leagueId,queryClient]);
+ if(!leagueId)return <Connect onConnect={connect} onSelect={selectLeague} leagues={leagues} username={username} year={season} loading={connecting} error={connectError} connected={connected}/>;
+ const error=bundleQuery.error||modelQuery.error||playersQuery.error;
+ if(!data)return <LoadingWorkspace error={error} onRetry={()=>{void bundleQuery.refetch();void modelQuery.refetch();void playersQuery.refetch()}}/>;
+ const dossier=dossierId?data.index.get(dossierId,data.players[dossierId],data.week):null;
+ return <AppShell screen={screen} setScreen={setScreen} league={data.league} week={selectedWeek} setWeek={setWeekOverride} onSwitch={switchLeague} updatedAt={data.bundle.fetchedAt}>
+   {nfl.isError&&<div className="nfl-warning">NFL week could not be refreshed. Select the correct week manually.</div>}
+   {bundleQuery.isFetching&&<div className="refresh-indicator"><RefreshCw size={13}/> Updating league data without leaving this screen</div>}
+   {screen==='briefing'&&<Briefing data={data} onScreen={setScreen} onPlayer={openPlayer} ideas={ideas}/>}
+   {screen==='decisions'&&<DecisionLab data={data} ideas={ideas} onPlayer={openPlayer}/>}
+   {screen==='scout'&&<Scout data={data} onPlayer={openPlayer}/>}
+   {screen==='league'&&<LeagueView data={data} onPlayer={openPlayer} onRefresh={refresh} refreshing={bundleQuery.isFetching}/>}
+   {dossier&&<Dossier f={dossier} onClose={closeDossier} onCompare={goCompare}/>}
+  </AppShell>;
+}
