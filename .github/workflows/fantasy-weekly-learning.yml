@@ -1,4 +1,4 @@
-name: Fantasy Model 3.1 weekly learning
+name: Fantasy Model 3.1/3.2 weekly learning
 
 on:
   workflow_dispatch:
@@ -10,10 +10,12 @@ on:
       - main
     paths:
       - 'R/weekly_engine_31.R'
+      - 'R/weekly_engine_32.R'
       - 'R/weekly_training_history_31.R'
       - 'pipeline/09_build_weekly_data.R'
       - 'pipeline/28_project_weekly_2026_3_1.R'
       - 'pipeline/30_train_weekly_live_3_1.R'
+      - 'pipeline/32_refresh_promoted_3_2.R'
       - 'runners/RUN_3_1_WEEKLY_LEARN.R'
       - 'tests/TEST_3_1_WEEKLY_LEARNING.R'
       - '.github/workflows/fantasy-weekly-learning.yml'
@@ -66,10 +68,12 @@ jobs:
           set -euo pipefail
           Rscript -e 'files <- c(
             "R/weekly_engine_31.R",
+            "R/weekly_engine_32.R",
             "R/weekly_training_history_31.R",
             "pipeline/09_build_weekly_data.R",
             "pipeline/28_project_weekly_2026_3_1.R",
             "pipeline/30_train_weekly_live_3_1.R",
+            "pipeline/32_refresh_promoted_3_2.R",
             "runners/RUN_3_1_WEEKLY_LEARN.R",
             "tests/TEST_3_1_WEEKLY_LEARNING.R"
           ); for (f in files) { parse(file=f); cat("parsed ", f, "\n", sep="") }'
@@ -90,6 +94,9 @@ jobs:
           test -f output/weekly_3_1_live_promotion.csv
           test -f output/weekly_3_1_live_manifest.csv
           test -f output/weekly_3_1_live_evaluation_history.csv
+          if [[ -f output/weekly_3_2_promotion.csv ]]; then
+            Rscript -e 'p <- read.csv("output/weekly_3_2_promotion.csv"); z <- p[p$promoted_32 %in% TRUE, , drop=FALSE]; if (nrow(z)) for (pos in z$position) { stopifnot(file.exists(paste0("models/weekly_3_2_live_",pos,".json"))); stopifnot(file.exists(paste0("models/weekly_3_2_live_",pos,"_meta.rds"))) }'
+          fi
           test -f output/model_snapshot.json
 
       - name: Sync production snapshot into web app
@@ -126,6 +133,10 @@ jobs:
           git add -f models/weekly_3_1_live_*.json 2>/dev/null || true
           git add -f models/weekly_3_1_live_*_meta.rds 2>/dev/null || true
           find models/archive/weekly_3_1_live -type f -print0 2>/dev/null | xargs -0 -r git add -f --
+          git add -f models/weekly_3_2_live_*.json 2>/dev/null || true
+          git add -f models/weekly_3_2_live_*_meta.rds 2>/dev/null || true
+          find models/archive/weekly_3_2_live -type f -print0 2>/dev/null | xargs -0 -r git add -f --
+          git add -f output/weekly_3_2_refresh_manifest.csv 2>/dev/null || true
           git add -f output/weekly_3_1_live_*.csv 2>/dev/null || true
           git add -f output/weekly_3_1_live_quality_report.txt 2>/dev/null || true
           git add -f output/pregame_feature_history_*.csv 2>/dev/null || true
@@ -143,7 +154,7 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Weekly-learn Fantasy Model 3.1"
+          git commit -m "Weekly-learn Fantasy Model 3.1/3.2"
 
           if [[ -n "$(git status --porcelain)" ]]; then
             git stash push --include-untracked -m "weekly-learning-runtime-leftovers"
