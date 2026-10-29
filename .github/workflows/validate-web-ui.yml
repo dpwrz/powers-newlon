@@ -42,6 +42,16 @@ jobs:
       - name: Verify league entry in Chromium and Safari WebKit
         timeout-minutes: 4
         run: node scripts/smoke-onboarding.mjs
+      - name: Test selected Atlas–Monograph design and capture screenshots
+        timeout-minutes: 4
+        run: node scripts/smoke-atlas-monograph.mjs
+      - name: Upload Atlas–Monograph design screens
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-monograph-design-screens
+          path: web/ui-qa-atlas-monograph/*.png
+          if-no-files-found: ignore
       - name: Attach browser screenshots
         if: always()
         uses: actions/upload-artifact@v4

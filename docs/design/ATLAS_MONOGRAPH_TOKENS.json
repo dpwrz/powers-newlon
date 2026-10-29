@@ -1,0 +1,89 @@
+{
+  "title": "Powers-Newlon Fantasy Manager — Atlas x Monograph",
+  "status": "selected design direction, fixture prototype only",
+  "colors": {
+    "canvas": "#F5F3EE",
+    "surface": "#FFFEFB",
+    "surfaceSubtle": "#ECEBE4",
+    "ink": "#25342E",
+    "secondaryInk": "#607067",
+    "action": "#2A5348",
+    "hero": "#23463E",
+    "heroInk": "#F6F2E9",
+    "editorialCopper": "#9F5237",
+    "chartSage": "#A9C9B4",
+    "chartCompare": "#E2D7C2",
+    "line": "#D7D9D1",
+    "selection": "#E0EBE5"
+  },
+  "typography": {
+    "family": "-apple-system, BlinkMacSystemFont, Segoe UI, Inter, system-ui, sans-serif",
+    "metadata": "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+    "display": {
+      "desktopMinPx": 48,
+      "desktopMaxPx": 70,
+      "mobilePx": 38,
+      "weight": 760
+    },
+    "bodyPx": [
+      14,
+      16
+    ],
+    "formInputPx": 16,
+    "metadataPx": [
+      11,
+      13
+    ],
+    "numeric": "tabular-nums"
+  },
+  "geometry": {
+    "instrumentRadiusPx": 4,
+    "buttonRadiusPx": 5,
+    "inputRadiusPx": 5,
+    "spacingPx": [
+      4,
+      8,
+      12,
+      16,
+      24,
+      32,
+      48
+    ],
+    "mobileTouchTargetMinPx": 44
+  },
+  "motion": {
+    "routeMs": [
+      160,
+      240
+    ],
+    "dossierMs": [
+      250,
+      320
+    ],
+    "easing": "cubic-bezier(.22,1,.36,1)",
+    "reducedMotion": "immediate"
+  },
+  "responsive": {
+    "checkedWidthsPx": [
+      320,
+      390,
+      768,
+      1440
+    ]
+  },
+  "navigation": {
+    "primaryProduction": [
+      "Briefing",
+      "Decisions",
+      "Scout",
+      "League"
+    ],
+    "connect": "separate onboarding and league selector"
+  },
+  "dataIntegrity": {
+    "projectionSource": "Powers-Newlon Model",
+    "leagueRosterAndActuals": "Sleeper",
+    "noUnvalidatedWinProbability": true,
+    "immutablePregameSnapshots": true
+  }
+}
