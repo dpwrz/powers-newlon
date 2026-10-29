@@ -4,6 +4,12 @@
 
 source("pipeline/30_train_weekly_live_3_1.R")
 
+# Model 3.2 keeps its architecture locked and only refits promoted positions
+# after the append-only live ledger has absorbed the newly finalized week.
+if (file.exists("pipeline/32_refresh_promoted_3_2.R")) {
+  source("pipeline/32_refresh_promoted_3_2.R")
+}
+
 # Apply any newly promoted weekly learner only to unplayed rows. Completed rows
 # remain frozen, and a failed weekly challenger leaves the incumbent untouched.
 Sys.setenv(
