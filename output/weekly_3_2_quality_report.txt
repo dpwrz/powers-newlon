@@ -1,15 +1,15 @@
 FANTASY MODEL 3.2 - SIGNAL OPTIMIZATION TOURNAMENT
-Generated: 2026-10-29 00:09:14 +0000
+Generated: 2026-10-29 00:14:43 +0000
 Independent live evaluation through Week: 7
 
 ARCHITECTURE SELECTION (2024-2025 only)
-QB | full | factors=none | historical score gain 0.017% | mean features 117.0
-RB | full | factors=pass_script_role_32+redzone_role_env_32+recent_vs_season_32 | historical score gain 0.019% | mean features 117.0
-WR | full | factors=questionable_role_pressure_32 | historical score gain 0.260% | mean features 117.0
-TE | compact | factors=none | historical score gain 0.444% | mean features 54.5
+QB | full | factors=none | historical score gain 0.000% | mean features 117.0
+RB | full | factors=pass_script_role_32+redzone_role_env_32+recent_vs_season_32 | historical score gain 0.398% | mean features 120.0
+WR | full | factors=questionable_role_pressure_32 | historical score gain 0.161% | mean features 118.0
+TE | compact | factors=none | historical score gain 0.553% | mean features 54.5
 
 LIVE 2026 PROMOTION
 QB | KEEP 3.1 | all MAE gain 0.027% | starter gain -0.338% | week win 50.0% | bootstrap 0.001 | failed: selected_new_architecture;historical_gain;live_gate;live_all_gain;live_starter_gain;live_confidence
-RB | KEEP 3.1 | all MAE gain 0.729% | starter gain 0.249% | week win 83.3% | bootstrap 0.828 | failed: historical_gain
-WR | PROMOTE 3.2 | all MAE gain 0.816% | starter gain 0.234% | week win 83.3% | bootstrap 0.716 | all gates passed
+RB | PROMOTE 3.2 | all MAE gain 0.729% | starter gain 0.249% | week win 83.3% | bootstrap 0.828 | all gates passed
+WR | KEEP 3.1 | all MAE gain 0.816% | starter gain 0.234% | week win 83.3% | bootstrap 0.716 | failed: factor_attribution
 TE | PROMOTE 3.2 | all MAE gain 0.983% | starter gain 0.617% | week win 100.0% | bootstrap 0.803 | all gates passed

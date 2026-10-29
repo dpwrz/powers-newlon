@@ -1,5 +1,5 @@
-position,selected_variant,historical_mean_score,historical_full_score,historical_improvement_pct,mean_features,selection_basis,selected_factors,factor_mean_score,factor_gain_vs_base_pct
-QB,full,6.4904411172878405,6.491533547121561,0.01682853251532354,117,2024-2025 chronological OOF only,,6.4904411172878405,0
-RB,full,5.505005287100813,5.506071695630517,0.019367864943537743,117,2024-2025 chronological OOF only,pass_script_role_32+redzone_role_env_32+recent_vs_season_32,5.505005287100813,0.39843354488153837
-WR,full,5.232283222194932,5.245943073427727,0.26038885747705204,117,2024-2025 chronological OOF only,questionable_role_pressure_32,5.232283222194932,0.16086546700017085
-TE,compact,4.179088560576725,4.197737169240116,0.44425384228539677,54.5,2024-2025 chronological OOF only,,4.179088560576725,0
+position,selected_variant,historical_mean_score,historical_full_score,architecture_improvement_pct,mean_features,selection_basis,selected_factors,factor_mean_score,factor_gain_vs_base_pct,historical_improvement_pct,factor_attribution_ok,factor_attribution_failed
+QB,full,6.4904411172878405,6.491533547121561,0,117,2024-2025 chronological OOF only,,6.4904411172878405,0,0,TRUE,
+RB,full,5.505005287100813,5.506071695630517,0,120,2024-2025 chronological OOF only,pass_script_role_32+redzone_role_env_32+recent_vs_season_32,5.505005287100813,0.39843354488153837,0.3984335448815379,TRUE,
+WR,full,5.232283222194932,5.245943073427727,0,118,2024-2025 chronological OOF only,questionable_role_pressure_32,5.232283222194932,0.16086546700017085,0.1608654670001708,FALSE,questionable_role_pressure_32
+TE,compact,4.179088560576725,4.197737169240116,0.5525985436370806,54.5,2024-2025 chronological OOF only,,4.179088560576725,0,0.5525985436370839,TRUE,

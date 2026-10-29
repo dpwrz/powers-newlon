@@ -1,5 +1,5 @@
-position,selected_variant,historical_improvement_pct,live_n,live_weeks,live_starter_n,live_all_mae_gain_pct,live_starter_mae_gain_pct,live_week_win_rate,live_bootstrap_p_improves,promoted_32,failed_checks,evaluated_through_week
-QB,full,0.01682853251532354,204,6,84,0.02682997652691365,-0.337533313665701,0.5,0.001,FALSE,selected_new_architecture;historical_gain;live_gate;live_all_gain;live_starter_gain;live_confidence,7
-RB,full,0.019367864943537743,457,6,127,0.729324660194099,0.24935793110018828,0.8333333333333334,0.828,FALSE,historical_gain,7
-WR,full,0.26038885747705204,774,6,76,0.8164936191126259,0.23385328326970667,0.8333333333333334,0.716,TRUE,,7
-TE,compact,0.44425384228539677,443,6,72,0.9830481964809101,0.6172566188614022,1,0.803,TRUE,,7
+position,selected_variant,historical_improvement_pct,factor_attribution_ok,factor_attribution_failed,live_n,live_weeks,live_starter_n,live_all_mae_gain_pct,live_starter_mae_gain_pct,live_week_win_rate,live_bootstrap_p_improves,promoted_32,failed_checks,evaluated_through_week
+QB,full,0,TRUE,,204,6,84,0.02682997652691365,-0.337533313665701,0.5,0.001,FALSE,selected_new_architecture;historical_gain;live_gate;live_all_gain;live_starter_gain;live_confidence,7
+RB,full,0.3984335448815379,TRUE,,457,6,127,0.729324660194099,0.24935793110018828,0.8333333333333334,0.828,TRUE,,7
+WR,full,0.1608654670001708,FALSE,questionable_role_pressure_32,774,6,76,0.8164936191126259,0.23385328326970667,0.8333333333333334,0.716,FALSE,factor_attribution,7
+TE,compact,0.5525985436370839,TRUE,,443,6,72,0.9830481964809101,0.6172566188614022,1,0.803,TRUE,,7
