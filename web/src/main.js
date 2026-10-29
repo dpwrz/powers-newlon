@@ -1,6 +1,6 @@
 import './styles.css';
 
-const ADMIN_HASH='#/_fm/control-room-30', WEB_VERSION='1.8.1';
+const ADMIN_HASH='#/_fm/control-room-30', WEB_VERSION='1.8.2';
 
 const S='https://api.sleeper.app/v1', ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
 const st={route:localStorage.fm_route||'dashboard',tab:localStorage.fm_league_tab||'home',nav:false,username:localStorage.fm_username||'',season:+(localStorage.fm_season||new Date().getFullYear()),user:null,leagues:[],league:null,users:[],rosters:[],matchups:[],picks:[],drafts:[],players:null,week:null,nflWeek:null,team:null,snapshot:{},rows:[],modelById:new Map,modelByName:new Map,pickValues:new Map,dstProjections:new Map,seasonStats:new Map,seasonStatsSeason:null,seasonStatsAt:0,profile:null,profileRoster:null,playerNews:new Map,games:[],gameDetails:new Map,gameMarkets:new Map,gameOpen:new Set,adminTab:'overview',adminInspect:null,adminManifest:{},adminLoadedAt:0,tradeA:null,tradeB:null,assetsA:new Set,assetsB:new Set,compare:[],loading:false,error:''};
