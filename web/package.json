@@ -1,7 +1,7 @@
 {
-  "name": "fantasy-model-web",
+  "name": "powers-newlon-fantasy-manager",
   "private": true,
-  "version": "1.8.2",
+  "version": "2.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
