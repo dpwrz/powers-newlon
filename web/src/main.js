@@ -210,29 +210,7 @@ function dashboard(){
   ${cards?`<section class="nx-available"><div class="nx-section-head"><div><span class="nx-eyebrow">CONNECTED LEAGUES</span><h2>Choose your league</h2></div><span>${st.leagues.length} available</span></div><div class="nx-league-list">${cards}</div></section>`:''}
   </div>`);
 }
-function matchup(r){
-  const o=rby(oppId(r.roster_id)),la=n(mi(r.roster_id)?.points,0),lb=n(mi(o?.roster_id)?.points,0),live=la>0||lb>0;
-  if(!o)return`<section class="matchup-hero"><div class="matchup-hero-head"><span>Week ${st.week}</span><span>No opponent scheduled</span></div><div class="empty empty-plain">No opponent scheduled this week.</div></section>`;
-  const ap=live?la:rproj(r),bp=live?lb:rproj(o),diff=(ap!=null&&bp!=null)?ap-bp:null,edge=diff==null?50:Math.max(8,Math.min(92,50+diff*2.4)),aImg=rosterAvatar(r),bImg=rosterAvatar(o);
-  return`<section class="matchup-hero">
-    <div class="matchup-hero-head"><span>Week ${st.week}</span><span>${live?'Live matchup':'Pregame outlook'}</span></div>
-    <div class="matchup-team-block home">
-      <div class="matchup-avatar">${aImg?`<img src="${aImg}" alt="">`:`<span>${esc(tname(r.roster_id).slice(0,1))}</span>`}</div>
-      <div class="matchup-team-copy"><strong>${esc(tname(r.roster_id))}</strong><small>${live?`Projected ${f(rproj(r))}`:'Your team'}</small></div>
-      <div class="matchup-number"><strong>${f(ap)}</strong><small>${live?'live':'proj'}</small></div>
-    </div>
-    <div class="matchup-team-block away">
-      <div class="matchup-avatar">${bImg?`<img src="${bImg}" alt="">`:`<span>${esc(tname(o.roster_id).slice(0,1))}</span>`}</div>
-      <div class="matchup-team-copy"><strong>${esc(tname(o.roster_id))}</strong><small>${live?`Projected ${f(rproj(o))}`:'Opponent'}</small></div>
-      <div class="matchup-number"><strong>${f(bp)}</strong><small>${live?'live':'proj'}</small></div>
-    </div>
-    <div class="matchup-edge">
-      <div class="matchup-edge-label"><span>${diff==null?'Projection edge':diff>=0?'You lead the projection':'Opponent leads the projection'}</span><strong>${diff==null?'—':`${diff>=0?'+':''}${f(diff)}`}</strong></div>
-      <div class="matchup-edge-track"><span style="width:${edge}%"></span></div>
-      <div class="matchup-edge-scale"><span>You</span><span>Opponent</span></div>
-    </div>
-  </section>`;
-}
+function matchup(r){return home2Match(r)}
 function rosterTable(r,ids,opt){
   if(!ids.length)return'<div class="empty empty-plain">No players found.</div>';
   const rows=ids.map(id=>{const p=st.players?.[id]||{},dst=isDstId(id,p),m=model(id,p),live=n(mi(r.roster_id)?.players_points?.[id],0),slot=opt.get(id),opp=m.opp||'Matchup unavailable',jersey=p.number||p.jersey_number,avgNote=m.avgSource==='actual'?(m.avgGames?`${m.avgGames} GP`:'Actual'):(m.avgSource==='projected'?'Projected':'');return{id,p,dst,m,live,slot,opp,jersey,avgNote,avChip:availabilityChip(m.availability)}});
@@ -316,12 +294,19 @@ function home2Match(r){
  const a=nxStarterProjection(r),b=nxStarterProjection(o),aa=n(ma?.points,0),ab=n(mb?.points,0),scored=aa>0||ab>0;
  const diff=scored?aa-ab:a.value!=null&&b.value!=null?a.value-b.value:null;
  const share=a.value!=null&&b.value!=null&&a.value+b.value>0?Math.round(100*a.value/(a.value+b.value)):50;
+ const optimumA=rproj(r),optimumB=rproj(o);
+ const differs=(a.value!=null&&optimumA!=null&&Math.abs(a.value-optimumA)>.05)||(b.value!=null&&optimumB!=null&&Math.abs(b.value-optimumB)>.05);
  const team=(roster,side,score)=>`<div class="nx-match-team"><div class="nx-match-avatar">${rosterAvatar(roster)?`<img src="${rosterAvatar(roster)}" alt="">`:'<span>PN</span>'}</div><div class="nx-match-team-name"><small>${side}</small><strong>${esc(tname(roster.roster_id))}</strong></div><div class="nx-match-score"><strong>${nxScore(score)}</strong><small>${scored?'ACTUAL':'PROJ.'}</small></div></div>`;
  return `<section class="nx-match"><header class="nx-match-head"><span class="nx-eyebrow">WEEK ${st.week} · MATCHUP</span><span class="nx-chip">${scored?(st.week<st.nflWeek?'FINAL / REVIEW':'SCORING REPORTED'):'PREGAME'}</span></header>
  ${team(r,'YOUR TEAM',scored?aa:a.value)}<div class="nx-match-versus">VS</div>${team(o,'OPPONENT',scored?ab:b.value)}
  <div class="nx-match-base"><div class="nx-match-margin"><span>${scored?'Actual difference':'Projected difference'}</span><strong>${diff==null?'—':(diff>0?'+':'')+f(diff)+' pts'}</strong></div>
  <div class="nx-match-track"><span style="width:${share}%"></span></div>
- <p>${scored?`Model estimate: ${nxScore(a.value)} vs ${nxScore(b.value)} PPR. `:''}Share of combined model points, not win probability.</p>
+ <p>${scored?("Current-starter model estimate: "+nxScore(a.value)+" vs "+nxScore(b.value)+" PPR. "):""}Projected totals use the current starting lineups. Bar is not win probability.</p>
+<details class="nx-match-detail"><summary>Why might optimized totals differ? <span aria-hidden="true">⌄</span></summary>
+<div class="nx-match-detail-rows"><div><span>Current starters</span><strong>${nxScore(a.value)} vs ${nxScore(b.value)}</strong></div>
+<div><span>Model-selected lineup${differs?" · alternative":""}</span><strong>${nxScore(optimumA)} vs ${nxScore(optimumB)}</strong></div></div>
+<p>Both screens use current-starter totals. Model-selected lineup figures represent hypothetical selections, not actual changes in Sleeper. PPR scoring applies.</p>
+</details>
  ${a.missing||b.missing?'<p class="nx-warning">Some starter projections are unavailable.</p>':''}
  </div></section>`;
 }
