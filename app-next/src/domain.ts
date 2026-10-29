@@ -113,9 +113,10 @@ export class ModelIndex{
     week:num(field(w,['week','game_week','target_week']))??0,
     projection:num(field(w,currentKeys)),
     actual:num(field(w,['actual','actual_points','fantasy_points','actual_fpts','actual_ppr_points','fantasy_points_ppr','fpts_actual'])),
-    played:field(w,['game_played','played'])!=null
-      ?(num(field(w,['game_played','played']))??0)>0
-      :field(w,['actual','actual_points','fantasy_points','actual_fpts','actual_ppr_points','fantasy_points_ppr','fpts_actual'])!=null,
+    // Some exported historical weeks (notably Week 1) contain real PPR
+    // actuals even when game_played=0. The numeric score takes precedence.
+    played:num(field(w,['actual','actual_points','fantasy_points','actual_fpts','actual_ppr_points','fantasy_points_ppr','fpts_actual']))!==null
+      ||(num(field(w,['game_played','played']))??0)>0,
   })).filter(w=>w.week>0).sort((a,b)=>a.week-b.week);
   const forecast:Forecast={
    id,name:nameOf(id,{[id]:p||{full_name:String(row?.player_name||row?.full_name||id)}}),

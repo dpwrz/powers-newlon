@@ -20,8 +20,16 @@ const modelRows=[
  ['bench1','Bench Upgrade','WR','NYG',19.8,12,27,800]
 ].map(([sleeper_id,player_name,position,team,projection,floor,ceiling,dynasty_value])=>({
  sleeper_id,player_name,position,team,dynasty_value,
- weekly_projections:[{week:7,projection:Math.max(0,projection-2),actual:projection-3,game_played:1},
- {week:8,projection,floor,ceiling,pregame_projection:projection,confidence:.77,opponent:'MIN'}]
+ weekly_projections:[
+  ...Array.from({length:6},(_,i)=>({
+   week:i+1,projection:Math.max(0,projection-(7-i)*.6),
+   actual:i===2?{}:Math.max(0,projection-(6-i)),
+   // The live snapshot has numeric Week 1 actuals with game_played=0.
+   game_played:i===0?0:1
+  })),
+  {week:7,projection:Math.max(0,projection-2),actual:projection-3,game_played:1},
+  {week:8,projection,floor,ceiling,pregame_projection:projection,confidence:.77,opponent:'MIN'}
+ ]
 }));
 const model={projection_week:8,version:'fixture-next-1',players:modelRows,
  pick_values:[{season:2027,round:1,dynasty_value:4250},{season:2027,round:2,dynasty_value:1720}]};
@@ -79,12 +87,42 @@ async function test(engine,label,width){
   assert((await page.locator('.team-player-line').count())>=5,'Full team starters and bench visible');
   assert((await page.locator('.team-player-line .player-portrait').count())>=5,'Player portrait surfaces restored');
   assert((await page.locator('.startsit-spotlight').innerText()).includes('START'),'Direct Start / Sit decision visible on My Team');
-  await page.locator('.team-player-line').first().click();
-  await page.locator('[role="dialog"]').waitFor();
-  await page.locator('.history-row').nth(1).waitFor();
-  assert((await page.locator('.history-table').innerText()).includes('ACTUAL POINTS'),'Actual scoring column present');
-  assert((await page.locator('.history-table').innerText()).includes('14.1'),'Saved model PPR actual is shown');
-  await page.keyboard.press('Escape');
+  // Open a card after scrolling a long team roster. This catches transformed
+  // ancestors that shift fixed mobile sheets below the visible viewport.
+  const bottomCard=page.locator('.team-player-line').last();
+  await bottomCard.scrollIntoViewIfNeeded();
+  if(width<=390)await bottomCard.tap();else await bottomCard.click();
+  await page.locator('[role="dialog"]').waitFor({state:'visible'});
+  const modal=await page.evaluate(()=>{
+   const overlay=document.querySelector('.dossier-backdrop');
+   const drawer=document.querySelector('.dossier');
+   const close=document.querySelector('.dossier-close');
+   const rect=drawer.getBoundingClientRect();
+   const button=close.getBoundingClientRect();
+   const hit=document.elementFromPoint(button.x+button.width/2,button.y+button.height/2);
+   return {portalled:overlay?.parentElement===document.body,top:rect.top,bottom:rect.bottom,
+    height:innerHeight,closeTop:button.top,closeHit:!!hit?.closest('.dossier-close')};
+  });
+  assert(modal.portalled,'Player detail must mount at document.body, not within the animated content');
+  assert(modal.top>=-3&&modal.bottom<=modal.height+3,
+   'Player sheet must fit within mobile viewport: '+JSON.stringify(modal));
+  assert(modal.closeTop>=0&&modal.closeHit,'Player detail close control must remain tappable');
+  const rows=await page.locator('.history-row').count();
+  assert.equal(rows,9,'Show all historical Weeks 1–8, not only Week 7 onward');
+  const history=await page.locator('.history-table').innerText();
+  assert(history.includes('ACTUAL POINTS')&&history.includes('W1')&&history.includes('W7'),
+   'Full projection and actual history is visible');
+  assert(history.includes('13.8'),'Numeric Week 1 actual must show even when the played flag is zero');
+  assert(!history.includes('W9'),'Future weeks should not crowd the season-to-date chart');
+  await page.locator('.dossier-close').click();
+  assert.equal(await page.locator('[role="dialog"]').count(),0,'Player detail should close reliably');
+  // The Start/Sit athlete cards use the same dossier presentation on touch.
+  const recommendationCard=page.locator('.startsit-athlete').first();
+  await recommendationCard.scrollIntoViewIfNeeded();
+  if(width<=390)await recommendationCard.tap();else await recommendationCard.click();
+  await page.locator('[role="dialog"]').waitFor({state:'visible'});
+  assert.equal(await page.locator('.dossier-backdrop').evaluate(el=>el.parentElement===document.body),true);
+  await page.locator('.dossier-close').click();
   await overflow('Briefing');await page.screenshot({path:new URL(label+'-'+width+'-briefing.png',screens).pathname});
   await page.locator(width<=900?'.mobile-dock':'.rail-nav').getByRole('button',{name:'Start / Sit'}).first().click();
   await page.locator('.opportunity').first().waitFor();
@@ -99,14 +137,26 @@ async function test(engine,label,width){
   assert((await page.locator('.scout-row').innerText()).includes('Waiver Candidate'),'Free agent displayed');
   assert(!(await page.locator('.scout-table').innerText()).includes('Test Quarterback'),'Rostered player excluded from Scout');
   await page.getByLabel('Search available players').fill('Waiver');
-  await page.locator('.scout-row').first().click();
-  await page.locator('[role="dialog"]').waitFor();
+  const scoutCard=page.locator('.scout-row').first();
+  if(width<=390)await scoutCard.tap();else await scoutCard.click();
+  await page.locator('[role="dialog"]').waitFor({state:'visible'});
+  const viewportPosition=await page.locator('.dossier').evaluate(el=>{
+   const r=el.getBoundingClientRect();return{top:r.top,bottom:r.bottom,visibleHeight:innerHeight};
+  });
+  assert(viewportPosition.top>=-3&&viewportPosition.bottom<=viewportPosition.visibleHeight+3,
+   'Available-player detail should be inside the viewport');
   await page.screenshot({path:new URL(label+'-'+width+'-dossier.png',screens).pathname});
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('[role="dialog"]').count(),0);
   await overflow('Scout');
   await page.locator(width<=900?'.mobile-dock':'.rail-nav').getByRole('button',{name:'League'}).first().click();
   await page.locator('.roster-row').first().waitFor();
+  // Confirm roster cards also open a usable viewport-level player sheet.
+  const rosterCard=page.locator('.roster-row').first();
+  if(width<=390)await rosterCard.tap();else await rosterCard.click();
+  await page.locator('[role="dialog"]').waitFor({state:'visible'});
+  assert.equal(await page.locator('.dossier-backdrop').evaluate(el=>el.parentElement===document.body),true);
+  await page.locator('.dossier-close').click();
   await page.locator('.league-subnav').getByRole('button',{name:'Standings'}).click();
   await page.locator('.standings-row').first().waitFor();
   assert.equal(await page.locator('.standings-row').count(),2);

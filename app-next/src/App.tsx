@@ -263,9 +263,11 @@ function Scout({data,onPlayer}:{data:AppData;onPlayer:(id:string)=>void}){
 function Trend({f,leagueActuals}:{f:Forecast;leagueActuals?:Record<number,number>}){
  const weeks=new Set<number>(f.weekly.map(w=>w.week));
  for(const raw of Object.keys(leagueActuals||{}))weeks.add(Number(raw));
- const rows=[...weeks].filter(n=>Number.isFinite(n)&&n>0).sort((a,b)=>a-b).slice(-12).map(week=>{
+ const rows=[...weeks].filter(n=>Number.isInteger(n)&&n>=1&&n<=Math.min(18,f.week)).sort((a,b)=>a-b).map(week=>{
   const model=f.weekly.find(w=>w.week===week);
-  const modelActual=model?.played?model.actual:null;
+  // A numeric recorded PPR actual is authoritative even if the source's
+  // game_played flag is unreliable (Week 1 in the production export is 0).
+  const modelActual=model?.actual??null;
   const actual=modelActual??leagueActuals?.[week]??null;
   return {week,projection:model?.projection??null,actual,origin:modelActual!==null?'model':leagueActuals?.[week]!=null?'sleeper':null};
  });
@@ -317,7 +319,9 @@ function Dossier({f,onClose,onCompare,leagueId,season,lastCompletedWeek}:{f:Fore
   const original=document.body.style.overflow;document.body.style.overflow='hidden';
   return()=>{document.removeEventListener('keydown',handler);document.body.style.overflow=original;focused?.focus({preventScroll:true})};
  },[onClose]);
- return <div className="dossier-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}>
+ // Portal to the body: the animated screen container has a transform, which
+ // otherwise makes a position:fixed drawer relative to the scrolled page on iOS.
+ return createPortal(<div className="dossier-backdrop" onClick={e=>{if(e.target===e.currentTarget)onClose()}}> 
    <div className="dossier" ref={ref} role="dialog" aria-modal="true" aria-label={'Player dossier: '+f.name}>
     <div className="dossier-bar"><Caption>PN / SCOUT REPORT</Caption><button className="dossier-close" onClick={onClose} aria-label="Close player dossier"><X size={21}/></button></div>
     <div className="dossier-title"><PlayerPortrait id={f.id} name={f.name} position={f.position} team={f.team} size="large"/><div><span>{f.position} / {f.team} / WEEK {f.week}</span><h2>{f.name}</h2><p>{f.opponent?'Opponent: '+f.opponent+' · ':''}Status: {f.status||'Not provided'}</p></div></div>
@@ -332,7 +336,7 @@ function Dossier({f,onClose,onCompare,leagueId,season,lastCompletedWeek}:{f:Fore
     </div></div>
     <div className="dossier-bottom"><button className="primary-action" onClick={onCompare}>Compare in Decision Lab <ArrowRight size={17}/></button><span>Advisory only · No transaction will occur</span></div>
    </div>
-  </div>;
+  </div>,document.body);
 }
 
 type TradeAsset={key:string;name:string;position:string;value:number|null;type:'player'|'pick';source?:'model'|'estimated-baseline'|'unavailable'};

@@ -649,3 +649,42 @@ h1,h2,h3,h4{line-height:1.12}
  .opportunity-title .player-portrait{width:42px;height:46px}
  .asset-line{grid-template-columns:18px 32px minmax(0,1fr) 53px;gap:6px}
 }
+
+/* 2026-10-29 iPhone dossier: the dialog is portalled directly under body, not
+   inside a transformed page container. Keep the close affordance visible. */
+.dossier-backdrop{
+ z-index:120;
+ position:fixed;
+ inset:0;
+ inset-block:0;
+ -webkit-backdrop-filter:blur(4px);
+}
+.dossier{
+ min-height:0;
+ max-height:100dvh;
+ -webkit-overflow-scrolling:touch;
+ overscroll-behavior:contain;
+}
+.dossier-bar{
+ position:sticky;
+ top:-4px;
+ z-index:2;
+ background:var(--canvas);
+ padding-top:4px;
+}
+@media(max-width:700px){
+ .dossier-backdrop{align-items:flex-end;justify-content:center}
+ .dossier{
+   width:100%;
+   min-width:0;
+   height:min(94dvh,930px);
+   max-height:calc(100dvh - env(safe-area-inset-top,0px));
+   overflow-y:auto;
+   border-radius:16px 16px 0 0;
+   padding-bottom:calc(28px + env(safe-area-inset-bottom,0px));
+ }
+ .dossier-close{min-width:44px;min-height:44px}
+}
+@media(max-height:610px) and (max-width:700px){
+ .dossier{height:100dvh;max-height:100dvh;border-radius:0}
+}
