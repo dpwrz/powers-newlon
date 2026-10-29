@@ -848,3 +848,34 @@ html[data-theme="dark"] .profile-metric{background:#384d5d!important}
  html[data-theme="dark"] .sidebar{background:rgba(38,54,68,.95)!important}
  html[data-theme="dark"] .topbar{background:rgba(36,51,64,.95)!important}
 }
+
+@media(prefers-color-scheme:dark){
+ html[data-theme="auto"]{
+  color-scheme:dark;--nx-canvas:#222d38;--nx-surface:#344454;--nx-elevated:#2b3b4a;
+  --nx-edge:rgba(205,225,233,.13);--nx-ink:#f1f6f8;--nx-sub:#b2c3d0;--nx-brand:#86e0d6;
+  --nx-brand-soft:rgba(134,224,214,.12);--nx-hero:#1d3544;--nx-hero-2:#2d4a5a
+ }
+ html[data-theme="auto"] .nx-segments{background:#263846}
+ html[data-theme="auto"] .nx-segment.is-selected{background:#3b5161!important;color:#f5fafb!important}
+ html[data-theme="auto"] .nx-standing-list,
+ html[data-theme="auto"] .nx-standing-row,
+ html[data-theme="auto"] .nx-option,
+ html[data-theme="auto"] .nx-action,
+ html[data-theme="auto"] .nx-lineup-list,
+ html[data-theme="auto"] .nx-lineup-row,
+ html[data-theme="auto"] .nx-explore-rows,
+ html[data-theme="auto"] .nx-explore-row,
+ html[data-theme="auto"] .nx-explore-actions button,
+ html[data-theme="auto"] .nx-connect-form,
+ html[data-theme="auto"] .nx-league-list,
+ html[data-theme="auto"] .nx-league-card,
+ html[data-theme="auto"] .nx-search-wrap{background:var(--nx-surface);color:var(--nx-ink)}
+ html[data-theme="auto"] .nx-action-cta{background:rgba(134,224,214,.15);color:#adede4}
+ html[data-theme="auto"] .nx-filter-row button{background:#3a4b5c;color:#c0d0dc}
+ html[data-theme="auto"] .nx-filter-row button.is-active{background:#a1e8df;color:#1d3440}
+ html[data-theme="auto"] .nx-search-wrap input{color:#eff5f8}
+ html[data-theme="auto"] .nx-primary{background:#86e0d6;color:#1d3840}
+ html[data-theme="auto"] .nx-theme-options{background:#293a48}
+ html[data-theme="auto"] .nx-theme-options button{color:#b7c6d2}
+ html[data-theme="auto"] .nx-theme-options button.is-active{background:#435767;color:#fff}
+}
