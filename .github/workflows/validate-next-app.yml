@@ -1,5 +1,11 @@
 name: Atlas Monograph Next — build and interaction QA
 on:
+  push:
+    branches: [main]
+    paths:
+      - "app-next/**"
+      - "web/scripts/smoke-next.mjs"
+      - ".github/workflows/validate-next-app.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:

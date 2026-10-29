@@ -4,14 +4,14 @@ import {createPortal} from 'react-dom';
 import {ArrowDownRight,ArrowLeft,ArrowRight,ArrowUpRight,BarChart3,BookOpen,Check,ChevronDown,
  ChevronRight,Clock3,Compass,GitCompareArrows,Info,Layers,Menu,RefreshCw,Search,ShieldCheck,
  SlidersHorizontal,Sparkles,Target,TrendingUp,X} from 'lucide-react';
-import {getLeagueBundle,getLeagues,getNflState,getPlayers,getSleeperUser,getSnapshot,remember,safeStored,
+import {getLeagueBundle,getLeagues,getNflState,getPlayers,getSleeperUser,getSnapshot,getLeagueActualHistory,getNflScores,remember,safeStored,
  type LeagueBundle} from './client';
 import {ModelIndex,canonicalTeam,eligible,fmt,lineup,matchupView,num,optimal,pf,recordOf,rosterName,
  type Decision,type Forecast,type League,type MatchupView,type Member,type PlayerMap,type Roster,type SleeperUser} from './domain';
 import {compare,lineupDecisions,rosterAssets,standings,tradeSummary,waiverIdeas} from './decisions';
 
-type Screen='briefing'|'decisions'|'scout'|'league';
-type LeagueScreen='standings'|'roster'|'trade'|'draft'|'health';
+type Screen='briefing'|'decisions'|'scout'|'league'|'scores';
+type LeagueScreen='standings'|'roster'|'leaders'|'trade'|'draft';
 type DecisionScreen='opportunities'|'compare'|'waivers';
 type AppData={league:League;users:Member[];rosters:Roster[];players:PlayerMap;bundle:LeagueBundle;
  index:ModelIndex;week:number;nflWeek:number;myRoster:Roster|null;matchup:MatchupView};
@@ -19,15 +19,16 @@ const iconSize=18;
 function Caption({children}: {children:ReactNode}){return <span className="caption">{children}</span>}
 function Empty({title,detail,action}:{title:string;detail:string;action?:ReactNode}){return <div className="empty-state"><Info size={22}/><h3>{title}</h3><p>{detail}</p>{action}</div>}
 function ErrorLine({error,onRetry}:{error:unknown;onRetry?:()=>void}){const message=error instanceof Error?error.message:'This information could not be loaded.';return <div className="error-line" role="alert"><Info size={17}/><span>{message}</span>{onRetry&&<button className="text-action" onClick={onRetry}>Retry</button>}</div>}
-function Symbol({kind}:{kind:Screen}){return kind==='briefing'?<Layers size={iconSize}/>:kind==='decisions'?<SlidersHorizontal size={iconSize}/>:kind==='scout'?<Search size={iconSize}/>:<BarChart3 size={iconSize}/>}
+function Symbol({kind}:{kind:Screen}){return kind==='briefing'?<Layers size={iconSize}/>:kind==='decisions'?<Target size={iconSize}/>:kind==='scout'?<Search size={iconSize}/>:kind==='scores'?<Clock3 size={iconSize}/>:<BarChart3 size={iconSize}/>}
 function AppShell({screen,setScreen,league,week,setWeek,onSwitch,children,updatedAt}:
  {screen:Screen;setScreen:(s:Screen)=>void;league:League;week:number;setWeek:(w:number)=>void;onSwitch:()=>void;
  children:ReactNode;updatedAt:number|null}){
  const sections:{key:Screen;label:string;sub:string}[]=[
-  {key:'briefing',label:'Briefing',sub:'Your week'},
-  {key:'decisions',label:'Decisions',sub:'Your next move'},
-  {key:'scout',label:'Scout',sub:'Player intelligence'},
-  {key:'league',label:'League',sub:'Competitive context'}];
+  {key:'briefing',label:'My Team',sub:'Team dashboard'},
+  {key:'league',label:'League',sub:'Standings, trades and draft'},
+  {key:'decisions',label:'Start / Sit',sub:'Recommendations'},
+  {key:'scout',label:'Available',sub:'Unrostered players'},
+  {key:'scores',label:'Scores',sub:'NFL matchups'}];
  const [menu,setMenu]=useState(false);
  const change=(next:Screen)=>{if(next===screen)return;setScreen(next);window.scrollTo({top:0,behavior:'instant'});setMenu(false)};
  return <div className="app-frame">
@@ -35,7 +36,7 @@ function AppShell({screen,setScreen,league,week,setWeek,onSwitch,children,update
   <aside className="rail" aria-label="Primary navigation">
    <div className="brand"><div className="brand-symbol">PN</div><div><strong>POWERS–NEWLON</strong><span>FANTASY MANAGER</span></div></div>
    <div className="rail-description">A sharper way to see the game.</div>
-   <div className="rail-section">WORKSPACE <span>/ 04</span></div>
+   <div className="rail-section">WORKSPACE <span>/ 05</span></div>
    <nav className="rail-nav" aria-label="Main sections">{sections.map((s,i)=><button key={s.key} type="button" className={'rail-item '+(s.key===screen?'selected':'')} aria-current={s.key===screen?'page':undefined} onClick={()=>change(s.key)}><span className="rail-numeral">{String(i+1).padStart(2,'0')}</span><Symbol kind={s.key}/><span>{s.label}</span><ChevronRight size={14} className="rail-arrow"/></button>)}</nav>
    <div className="rail-bottom"><div className="rail-bottom-label">MODEL / SOURCE</div><strong>Powers–Newlon Model</strong><span>Sleeper provides league data and actual scoring only.</span><span className="rail-rule"/></div>
   </aside>
@@ -96,22 +97,99 @@ function MatchupInstrument({matchup,week,league,onNavigate,updated}:{matchup:Mat
   <div className="instrument-bottom"><span>{league.name} · {new Date(updated).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})} sync</span><button onClick={onNavigate} type="button">Inspect matchup <ArrowUpRight size={15}/></button></div>
  </section>;
 }
+function PlayerPortrait({id,name,position,team,size='regular'}:{id:string;name:string;position?:string;team?:string;size?:'regular'|'large'}){
+ const [failed,setFailed]=useState(false);
+ const defense=position==='DEF'||position==='D/ST';
+ const code=(team||id).toLowerCase();
+ const url=defense?'https://sleepercdn.com/images/team_logos/nfl/'+encodeURIComponent(code)+'.png':
+  'https://sleepercdn.com/content/nfl/players/thumb/'+encodeURIComponent(id)+'.jpg';
+ return <span className={'player-portrait '+(size==='large'?'portrait-large':'')} aria-hidden="true">
+  {!failed&&id!=='0'?<img src={url} alt="" loading="lazy" decoding="async" onError={()=>setFailed(true)}/>:
+   <span className="portrait-fallback">{name.split(/\s+/).filter(Boolean).slice(0,2).map(v=>v[0]).join('').toUpperCase()||'PN'}</span>}
+ </span>;
+}
+function PlayerLine({id,slot,forecast,actual,onPlayer}:{id:string;slot:string;forecast:Forecast|null;actual:number|null;onPlayer:(id:string)=>void}){
+ return <button className="team-player-line" disabled={!forecast} onClick={()=>forecast&&onPlayer(id)} type="button">
+  <span className="team-slot">{slot}</span>
+  <PlayerPortrait id={id} name={forecast?.name||'Empty'} position={forecast?.position} team={forecast?.team}/>
+  <span className="team-player-identity"><strong>{forecast?.name||'Empty roster slot'}</strong>
+   <small>{forecast?forecast.position+' · '+forecast.team+' · '+(forecast.status||'Status not provided'):'No assigned player'}</small></span>
+  <span className="team-player-proj"><strong>{fmt(forecast?.projection)}</strong><small>MODEL</small></span>
+  {actual!==null&&<span className="team-player-actual" title="Sleeper league-scored actual points">{fmt(actual)}<small>ACTUAL</small></span>}
+  <ChevronRight size={15} className="team-row-arrow"/>
+ </button>;
+}
+function StartSitSpotlight({data,ideas,onScreen,onPlayer}:{data:AppData;ideas:Decision[];onScreen:(s:Screen)=>void;onPlayer:(id:string)=>void}){
+ const recommendation=ideas.find(d=>d.kind==='lineup'&&d.playerId&&d.sitPlayerId);
+ if(!recommendation){
+  return <section className="startsit-spotlight startsit-none">
+   <div className="startsit-header"><Caption>YOUR START / SIT OUTLOOK</Caption><span>MODEL-REVIEWED</span></div>
+   <h2>No clear lineup upgrade</h2><p>{ideas[0]?.detail||'A confirmed model advantage is not available for your current starters.'}</p>
+   <button className="outline-action" onClick={()=>onScreen('decisions')}>Compare your players <ArrowRight size={16}/></button>
+  </section>;
+ }
+ const starter=data.index.get(recommendation.playerId!,data.players[recommendation.playerId!],data.week);
+ const sitter=data.index.get(recommendation.sitPlayerId!,data.players[recommendation.sitPlayerId!],data.week);
+ return <section className="startsit-spotlight" aria-label="Start Sit recommendation">
+  <div className="startsit-header"><Caption>START / SIT RECOMMENDATION</Caption><span>MODEL OPPORTUNITY</span></div>
+  <div className="startsit-duel">
+   <button className="startsit-athlete" type="button" onClick={()=>onPlayer(starter.id)}>
+    <span className="startsit-label start">START</span>
+    <PlayerPortrait id={starter.id} name={starter.name} position={starter.position} team={starter.team} size="large"/>
+    <span className="startsit-athlete-copy"><strong>{starter.name}</strong><small>{starter.position} · {starter.team}</small></span>
+    <span className="startsit-athlete-score">{fmt(starter.projection)}<small>MODEL PPR</small></span>
+   </button>
+   <span className="startsit-versus">OVER</span>
+   <button className="startsit-athlete" type="button" onClick={()=>onPlayer(sitter.id)}>
+    <span className="startsit-label sit">SIT</span>
+    <PlayerPortrait id={sitter.id} name={sitter.name} position={sitter.position} team={sitter.team} size="large"/>
+    <span className="startsit-athlete-copy"><strong>{sitter.name}</strong><small>{sitter.position} · {sitter.team}</small></span>
+    <span className="startsit-athlete-score">{fmt(sitter.projection)}<small>MODEL PPR</small></span>
+   </button>
+  </div>
+  <div className="startsit-foot"><div><strong>+{fmt(recommendation.gain)} <span>PPR</span></strong><small>PROJECTED PLAYER DIFFERENCE</small></div>
+    <button className="primary-action" onClick={()=>onScreen('decisions')}>Open Start / Sit <ArrowRight size={16}/></button></div>
+  <p className="startsit-note">Model recommendation only. Sleeper lineup locks, availability and injury status must be checked.</p>
+ </section>;
+}
 function Briefing({data,onScreen,onPlayer,ideas}:{data:AppData;onScreen:(s:Screen)=>void;onPlayer:(id:string)=>void;ideas:Decision[]}){
  const {week,matchup,myRoster,index,players,league,bundle}=data;
- const ids=(myRoster?.starters||[]).filter(id=>id&&id!=='0').slice(0,6);
+ const starters=lineup(myRoster,league,index,players,week);
+ const bench=(myRoster?.players||[]).filter(id=>!(myRoster?.starters||[]).includes(id));
+ const rank=standings(data.rosters,data.users).findIndex(x=>x.id===myRoster?.roster_id);
+ const record=myRoster?recordOf(myRoster):null;
+ const optimized=myRoster?optimal(myRoster,league,index,players,week):null;
+ const scoreReported=matchup.scoringReported;
+ const playerActuals=(bundle.matchups.find(m=>m.roster_id===myRoster?.roster_id) as Record<string,unknown>|undefined)?.players_points;
+ const reported:Record<string,unknown>=scoreReported&&playerActuals&&typeof playerActuals==='object'&&!Array.isArray(playerActuals)?playerActuals as Record<string,unknown>:{};
+ const actualFor=(id:string)=>num(reported[id]);
  return <div className="screen briefing-screen">
-  <div className="hero-heading"><div><Caption>PN / STRATEGY SYSTEM / WEEK {String(week).padStart(2,'0')}</Caption>
-   <h1>Matchup<br/><span>signal.</span></h1><p>{league.name} · Model forecast and upcoming decisions</p></div>
-   <div className="hero-aside"><span>W{String(week).padStart(2,'0')}</span><small>{bundle.rosters.length} LEAGUE TEAMS</small></div></div>
+  <div className="team-page-heading">
+   <div><Caption>01 / YOUR TEAM / WEEK {String(week).padStart(2,'0')}</Caption>
+    <h1>{matchup.myTeam}<span>.</span></h1><p>{league.name} · Your lineup, matchup and next decisions</p></div>
+   <div className="team-rank"><small>LEAGUE POSITION</small><strong>{rank<0?'—':String(rank+1).padStart(2,'0')}</strong><span>{record?record[0]+'–'+record[1]:'Record unavailable'}</span></div>
+  </div>
+  <div className="team-metrics">
+    <div><Caption>CURRENT STARTERS</Caption><strong>{fmt(starters.total)}</strong><small>Model PPR · {starters.known}/{starters.slots} slots projected</small></div>
+    <div><Caption>OPTIMIZED LINEUP</Caption><strong>{fmt(optimized?.total)}</strong><small>Hypothetical model lineup</small></div>
+    <div><Caption>ACTUAL POINTS FOR</Caption><strong>{myRoster?fmt(pf(myRoster)):'—'}</strong><small>Sleeper season scoring</small></div>
+  </div>
+  <SectionTitle index="02" title="THIS WEEK'S MATCHUP" action={<button className="plain-link" onClick={()=>onScreen('league')}>League context <ArrowRight size={15}/></button>}/>
   <MatchupInstrument matchup={matchup} week={week} league={league} updated={bundle.fetchedAt} onNavigate={()=>onScreen('league')}/>
-  <SectionTitle index="02" title="DECISION QUEUE" action={<button className="plain-link" onClick={()=>onScreen('decisions')}>View lab <ArrowRight size={15}/></button>}/>
-  <div className="decision-queue">{ideas.slice(0,3).map((d,i)=><button className="queue-row" key={d.id} onClick={()=>onScreen('decisions')}><span className="queue-index">{String(i+1).padStart(2,'0')}</span><span className="queue-main"><strong>{d.title}</strong><small>{d.detail}</small></span><span className="queue-value">{d.gain!==null?'+'+fmt(d.gain)+' PPR':'REVIEW'}</span><ArrowUpRight size={17}/></button>)}</div>
-  <SectionTitle index="03" title="STARTING EXPOSURE" action={<button className="plain-link" onClick={()=>onScreen('league')}>Full roster <ArrowRight size={15}/></button>}/>
-  <div className="exposure-table"><div className="exposure-head"><span>PLAYER</span><span>MODEL PPR</span></div>{ids.map(id=>{
-    const player=players[id],f=index.get(id,player,week);
-    return <button type="button" key={id} className="exposure-row" onClick={()=>onPlayer(id)}><span><b>{f.name}</b><small>{f.position} / {f.team}{f.opponent?' / '+f.opponent:''}</small></span><strong><Score value={f.projection}/></strong><ChevronRight size={15}/></button>;
-   })}{!ids.length&&<Empty title="No starters found" detail="The selected league does not currently expose an active lineup."/>}</div>
-  <div className="editorial-note"><div><Caption>THE MODEL / DATA DISCIPLINE</Caption><h3>Precision starts with context.</h3></div><p>Model projections are independent of Sleeper. Missing players remain unprojected, and actual scores are kept separate from forecasts. Your starting lineup and an optimized scenario are never presented as the same thing.</p></div>
+  <SectionTitle index="03" title="YOUR BEST LINEUP DECISION" action={<button className="plain-link" onClick={()=>onScreen('decisions')}>All Start / Sit <ArrowRight size={15}/></button>}/>
+  <StartSitSpotlight data={data} ideas={ideas} onScreen={onScreen} onPlayer={onPlayer}/>
+  <SectionTitle index="04" title="YOUR STARTING LINEUP" action={<span className="section-meta">{starters.known}/{starters.slots} MODEL PROJECTIONS</span>}/>
+  <div className="team-roster-list">
+   {starters.members.map((m,i)=><PlayerLine key={m.slot+'-'+i} id={m.id} slot={m.slot}
+     forecast={m.id==='0'?null:index.get(m.id,players[m.id],week)} actual={actualFor(m.id)} onPlayer={onPlayer}/>)}
+   {!starters.members.length&&<Empty title="No starters available" detail="Your selected league has not supplied a current starting lineup."/>}
+  </div>
+  <SectionTitle index="05" title="BENCH & RESERVES" action={<span className="section-meta">{bench.length} PLAYERS</span>}/>
+  <div className="team-roster-list">
+   {bench.map(id=><PlayerLine key={id} id={id} slot="BN" forecast={index.get(id,players[id],week)} actual={actualFor(id)} onPlayer={onPlayer}/>)}
+   {!bench.length&&<Empty title="No bench players" detail="Your roster currently has no reserve players listed in Sleeper."/>}
+  </div>
+  <p className="team-footer-note">Your lineup and seasonal actuals come from Sleeper. Every projected value comes from the Powers–Newlon Model. Player actuals are shown separately when reported.</p>
  </div>;
 }
 function QuickForecast({forecast}:{forecast:Forecast}){return <div className="forecast-stats">
@@ -129,10 +207,12 @@ function DecisionLab({data,ideas,onPlayer}:{data:AppData;ideas:Decision[];onPlay
  const waived=useMemo(()=>myRoster?waiverIdeas(myRoster,rosters,league,index,players,week):[],[myRoster,rosters,league,index,players,week]);
  const toggle=(id:string)=>setReviewed(current=>current.includes(id)?current.filter(x=>x!==id):[...current,id]);
  return <div className="screen">
-  <header className="page-heading"><Caption>02 / DECISION INTELLIGENCE</Caption><h1>Decision lab<span>.</span></h1><p>Explore realistic alternatives and the evidence behind them. Nothing is submitted to Sleeper.</p></header>
+  <header className="page-heading"><Caption>02 / LINEUP ADVISOR</Caption><h1>Start / Sit<span>.</span></h1><p>Specific, model-derived starting lineup recommendations and player comparisons. Nothing is submitted to Sleeper.</p></header>
+  <StartSitSpotlight data={data} ideas={ideas} onScreen={()=>setSection('compare')} onPlayer={onPlayer}/>
   <div className="segmented" role="group" aria-label="Decision lab mode">{([['opportunities','Opportunities'],['compare','Start / Sit'],['waivers','Waiver radar']] as const).map(([key,label])=><button type="button" key={key} className={section===key?'selected':''} aria-pressed={section===key} onClick={()=>setSection(key)}>{label}</button>)}</div>
   {section==='opportunities'&&<><SectionTitle index="01" title="PRIORITIZED ACTIONS"/><div className="opportunity-list">{ideas.map((idea,i)=><article className="opportunity" key={idea.id}>
-    <div className="opportunity-number">{String(i+1).padStart(2,'0')}</div><div className="opportunity-text"><Caption>{idea.kind.toUpperCase()} / ADVISORY</Caption><h2>{idea.title}</h2><p>{idea.detail}</p><span className="small-note">{idea.note}</span>
+    <div className="opportunity-number">{String(i+1).padStart(2,'0')}</div><div className="opportunity-text"><Caption>{idea.kind.toUpperCase()} / ADVISORY</Caption><div className="opportunity-title">{idea.playerId&&<PlayerPortrait id={idea.playerId} name={data.index.get(idea.playerId,data.players[idea.playerId],data.week).name}
+ position={data.players[idea.playerId]?.position} team={data.players[idea.playerId]?.team}/>}<h2>{idea.title}</h2></div><p>{idea.detail}</p><span className="small-note">{idea.note}</span>
     <div className="opportunity-cta">{idea.playerId&&<button className="outline-action" onClick={()=>onPlayer(idea.playerId!)}>Inspect player <ArrowUpRight size={15}/></button>}
       <button className={reviewed.includes(idea.id)?'review-button reviewed':'review-button'} onClick={()=>toggle(idea.id)}>{reviewed.includes(idea.id)?<><Check size={15}/> Reviewed</>:<>Mark reviewed <ArrowRight size={15}/></>}</button></div></div>
     <div className="opportunity-impact"><span>EST. WEEKLY GAIN</span><strong>{idea.gain!==null?'+'+fmt(idea.gain):'—'}</strong><small>PPR / MODEL</small></div></article>)}</div>
@@ -140,56 +220,87 @@ function DecisionLab({data,ideas,onPlayer}:{data:AppData;ideas:Decision[];onPlay
   {section==='compare'&&<><SectionTitle index="01" title="PLAYER COMPARISON"/><div className="compare-controls">
     <label>PLAYER A<select aria-label="First player" value={leftId||''} onChange={e=>setLeft(e.target.value)}>{owned.map(id=><option value={id} key={id}>{index.get(id,players[id],week).name}</option>)}</select></label>
     <label>PLAYER B<select aria-label="Second player" value={rightId||''} onChange={e=>setRight(e.target.value)}>{owned.map(id=><option value={id} key={id}>{index.get(id,players[id],week).name}</option>)}</select></label></div>
-    {a&&b?<><div className="comparison"><div className="comparison-player"><Caption>{a.position} / {a.team}</Caption><h2>{a.name}</h2><QuickForecast forecast={a}/><button className="plain-link" onClick={()=>onPlayer(a.id)}>Player evidence <ArrowUpRight size={15}/></button></div>
-      <div className="comparison-player"><Caption>{b.position} / {b.team}</Caption><h2>{b.name}</h2><QuickForecast forecast={b}/><button className="plain-link" onClick={()=>onPlayer(b.id)}>Player evidence <ArrowUpRight size={15}/></button></div></div>
+    {a&&b?<><div className="comparison"><div className="comparison-player"><div className="comparison-player-heading"><PlayerPortrait id={a.id} name={a.name} position={a.position} team={a.team} size="large"/><div><Caption>{a.position} / {a.team}</Caption><h2>{a.name}</h2></div></div><QuickForecast forecast={a}/><button className="plain-link" onClick={()=>onPlayer(a.id)}>Player evidence <ArrowUpRight size={15}/></button></div>
+      <div className="comparison-player"><div className="comparison-player-heading"><PlayerPortrait id={b.id} name={b.name} position={b.position} team={b.team} size="large"/><div><Caption>{b.position} / {b.team}</Caption><h2>{b.name}</h2></div></div><QuickForecast forecast={b}/><button className="plain-link" onClick={()=>onPlayer(b.id)}>Player evidence <ArrowUpRight size={15}/></button></div></div>
       <div className="comparison-summary"><span>MODEL DIFFERENCE / PLAYER A MINUS B</span><strong>{compare(a,b).delta===null?'—':(compare(a,b).delta!>0?'+':'')+fmt(compare(a,b).delta)}</strong><p>{compare(a,b).delta===null?'The model is missing at least one weekly projection.':'This is a forecast difference, not an assurance of future points.'} Check eligibility and lineup locks before starting either player.</p></div></>
      :<Empty title="No comparable players" detail="Connect a league with offensive skill-position players."/>}</>}
-  {section==='waivers'&&<><SectionTitle index="01" title="AVAILABLE PLAYER SCENARIOS"/>{waived.length?<div className="opportunity-list">{waived.map((w,i)=><article className="opportunity" key={w.id}><div className="opportunity-number">{String(i+1).padStart(2,'0')}</div><div className="opportunity-text"><Caption>UNROSTERED IN LEAGUE / REVIEW REQUIRED</Caption><h2>{w.title}</h2><p>{w.detail}</p><span className="small-note">{w.note}</span>
+  {section==='waivers'&&<><SectionTitle index="01" title="AVAILABLE PLAYER SCENARIOS"/>{waived.length?<div className="opportunity-list">{waived.map((w,i)=><article className="opportunity" key={w.id}><div className="opportunity-number">{String(i+1).padStart(2,'0')}</div><div className="opportunity-text"><Caption>UNROSTERED IN LEAGUE / REVIEW REQUIRED</Caption><div className="opportunity-title">{w.playerId&&<PlayerPortrait id={w.playerId} name={data.index.get(w.playerId,data.players[w.playerId],data.week).name}
+ position={data.players[w.playerId]?.position} team={data.players[w.playerId]?.team}/>}<h2>{w.title}</h2></div><p>{w.detail}</p><span className="small-note">{w.note}</span>
      <div className="opportunity-cta"><button className="outline-action" onClick={()=>w.playerId&&onPlayer(w.playerId)}>Inspect player <ArrowUpRight size={15}/></button></div></div>
      <div className="opportunity-impact"><span>PROJECTED IMPACT</span><strong>+{fmt(w.gain)}</strong><small>PPR / MODEL</small></div></article>)}</div>:<Empty title="No actionable waiver upgrades" detail="The model did not identify an unrostered player that improved the optimal lineup above the threshold. Missing projections or a full roster may limit recommendations."/>}
     <div className="context-strip"><ShieldCheck size={17}/>Availability means the player is not on a currently loaded roster. It does not guarantee the player is claimable, eligible, or unlocked.</div></>}
  </div>;
 }
 function Scout({data,onPlayer}:{data:AppData;onPlayer:(id:string)=>void}){
- const {players,index,week,myRoster}=data;
+ const {players,index,week,rosters}=data;
  const [search,setSearch]=useState(''),[position,setPosition]=useState('ALL'),[showAll,setShowAll]=useState(false);
+ const owned=useMemo(()=>new Set(rosters.flatMap(r=>r.players||[]).map(String)),[rosters]);
+ const available=useMemo(()=>Object.entries(players).filter(([id,p])=>{
+  const pos=String(p.position||'').toUpperCase();
+  return !owned.has(id)&&['QB','RB','WR','TE'].includes(pos)&&Boolean(p.team)&&
+   !/retired|inactive/i.test(String(p.status||''));
+ }),[players,owned]);
  const results=useMemo(()=>{
   const q=search.trim().toLowerCase();
-  const rosterIds=new Set(myRoster?.players||[]);
-  const all=Object.entries(players).filter(([id,p])=>['QB','RB','WR','TE'].includes(String(p.position||''))&&(position==='ALL'||p.position===position)&&
-   (!q||String(p.full_name||[p.first_name,p.last_name].join(' ')).toLowerCase().includes(q)));
-  const sorted=all.sort(([a],[b])=>{
-   if(!q&&!showAll){const ownA=rosterIds.has(a)?1:0,ownB=rosterIds.has(b)?1:0;if(ownA!==ownB)return ownB-ownA}
-   return (index.get(b,players[b],week).projection??-1)-(index.get(a,players[a],week).projection??-1);
-  });
-  return sorted.slice(0,showAll||q?80:30);
- },[players,index,week,search,position,showAll,myRoster]);
- return <div className="screen"><header className="page-heading"><Caption>03 / MODEL INTELLIGENCE</Caption><h1>Scout<span>.</span></h1><p>Search the NFL player universe and inspect the actual Powers–Newlon forecast.</p></header>
-  <div className="scout-search"><Search size={20}/><input type="search" placeholder="Search a player by name…" aria-label="Search players" autoCapitalize="off" autoCorrect="off" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button type="button" aria-label="Clear search" onClick={()=>setSearch('')}><X size={17}/></button>}</div>
-  <div className="scout-filter"><span>POSITION</span><div>{['ALL','QB','RB','WR','TE'].map(p=><button key={p} className={position===p?'active':''} aria-pressed={position===p} onClick={()=>setPosition(p)}>{p==='ALL'?'ALL':p}</button>)}</div></div>
-  <div className="scout-table"><div className="scout-head"><span>PLAYER / TEAM</span><span>FORECAST</span><span>RANGE</span><span></span></div>
+  const filtered=available.filter(([,p])=>(position==='ALL'||p.position===position)&&
+   (!q||String(p.full_name||[p.first_name,p.last_name].filter(Boolean).join(' ')).toLowerCase().includes(q)));
+  filtered.sort(([a],[b])=>(index.get(b,players[b],week).projection??-1)-(index.get(a,players[a],week).projection??-1));
+  return filtered.slice(0,showAll||q?100:35);
+ },[players,index,week,search,position,showAll,available]);
+ return <div className="screen"><header className="page-heading"><Caption>03 / WAIVER WIRE / {available.length} FREE AGENTS</Caption>
+  <h1>Available players<span>.</span></h1><p>Players not currently held by any team in {data.league.name}. Ranked by independent Powers–Newlon Model projections.</p></header>
+  <div className="scout-search"><Search size={20}/><input type="search" placeholder="Search unrostered players…" aria-label="Search available players" autoCapitalize="off" autoCorrect="off" value={search} onChange={e=>setSearch(e.target.value)}/>{search&&<button type="button" aria-label="Clear search" onClick={()=>setSearch('')}><X size={17}/></button>}</div>
+  <div className="scout-filter"><span>POSITION</span><div>{['ALL','QB','RB','WR','TE'].map(p=><button key={p} className={position===p?'active':''} aria-pressed={position===p} onClick={()=>setPosition(p)}>{p}</button>)}</div></div>
+  <div className="scout-table"><div className="scout-head"><span>AVAILABLE PLAYER / TEAM</span><span>MODEL PPR</span><span>RANGE</span><span></span></div>
     {results.map(([id,p])=>{const f=index.get(id,p,week);return <button className="scout-row" key={id} onClick={()=>onPlayer(id)}>
-      <span className="scout-name"><strong>{f.name}</strong><small>{f.position} / {f.team||'FA'} {f.opponent?' / '+f.opponent:''}</small></span>
+      <span className="scout-name"><PlayerPortrait id={id} name={f.name} position={f.position} team={f.team}/><span><strong>{f.name}</strong><small>{f.position} / {f.team||'FA'}{f.opponent?' / '+f.opponent:''}</small></span></span>
       <strong className="scout-proj"><Score value={f.projection}/></strong><span className="scout-range">{fmt(f.floor)} – {fmt(f.ceiling)}</span><ArrowUpRight size={16}/></button>})}
-    {!results.length&&<Empty title="No matching players" detail="Try a shorter name or another position filter."/>}</div>
-    {!search&&!showAll&&<button className="plain-link more-players" onClick={()=>setShowAll(true)}>Explore more players <ArrowRight size={16}/></button>}
-  <p className="fine-print">All projections on this page are sourced from the Powers–Newlon Model. Unmatched player identities are shown without fabricated model values.</p>
+    {!results.length&&<Empty title="No available players match" detail="No unrostered player matches that search and position. Change the filter or search another name."/>}</div>
+    {!search&&!showAll&&results.length===35&&<button className="plain-link more-players" onClick={()=>setShowAll(true)}>Show more available players <ArrowRight size={16}/></button>}
+  <p className="fine-print">Availability means unrostered in the currently loaded Sleeper league. Waiver claims, locked players, FAAB and roster eligibility must still be checked in Sleeper.</p>
  </div>;
 }
-function Trend({f}:{f:Forecast}){
- const rows=f.weekly.filter(r=>r.projection!==null).slice(-12);
- if(rows.length<2)return <Empty title="Trend not available" detail="The current model snapshot has fewer than two historical weekly values for this player."/>;
- const width=500,height=170,pad=20;
- const max=Math.max(5,...rows.flatMap(r=>[r.projection||0,r.actual||0]))*1.1;
- const x=(i:number)=>pad+i*(width-2*pad)/Math.max(1,rows.length-1),y=(val:number)=>height-pad-val*(height-2*pad)/max;
- const projected=rows.map((r,i)=>x(i)+','+y(r.projection||0)).join(' ');
- const actuals=rows.filter(r=>r.actual!==null&&r.played);
- return <div className="trend-wrap"><svg viewBox={'0 0 '+width+' '+height} role="img" aria-label="Weekly model projection trend; historical actual values shown as copper points where available">
-  {[0,.5,1].map(n=><line key={n} x1={pad} x2={width-pad} y1={y(n*max)} y2={y(n*max)} className="chart-grid"/>)}
-  <polyline points={projected} className="chart-line"/>{actuals.map(r=>{const i=rows.indexOf(r);return <circle key={r.week} cx={x(i)} cy={y(r.actual||0)} r={4} className="chart-actual"/ >})}
- </svg><div className="trend-legend"><span><i/> MODEL PROJECTION</span><span><i/> REPORTED ACTUAL</span></div></div>;
+function Trend({f,leagueActuals}:{f:Forecast;leagueActuals?:Record<number,number>}){
+ const weeks=new Set<number>(f.weekly.map(w=>w.week));
+ for(const raw of Object.keys(leagueActuals||{}))weeks.add(Number(raw));
+ const rows=[...weeks].filter(n=>Number.isFinite(n)&&n>0).sort((a,b)=>a-b).slice(-12).map(week=>{
+  const model=f.weekly.find(w=>w.week===week);
+  const modelActual=model?.played?model.actual:null;
+  const actual=modelActual??leagueActuals?.[week]??null;
+  return {week,projection:model?.projection??null,actual,origin:modelActual!==null?'model':leagueActuals?.[week]!=null?'sleeper':null};
+ });
+ if(!rows.length)return <Empty title="Historical values unavailable" detail="No saved weekly projections or reported actual scoring could be located for this player."/>;
+ const width=510,height=182,padX=27,padY=22;
+ const values=rows.flatMap(r=>[r.projection,r.actual]).filter((v):v is number=>v!==null);
+ const max=Math.max(5,...values)*1.1;
+ const x=(i:number)=>padX+i*(width-2*padX)/Math.max(1,rows.length-1);
+ const y=(v:number)=>height-padY-v*(height-2*padY)/max;
+ const path=(key:'projection'|'actual')=>{
+  let d='';
+  rows.forEach((r,i)=>{const v=r[key];if(v===null)return;const previous=i>0?rows[i-1][key]:null;
+   d+=(i===0||previous===null?'M':'L')+x(i).toFixed(1)+' '+y(v).toFixed(1)+' ';});
+  return d.trim();
+ };
+ const actualCount=rows.filter(r=>r.actual!==null).length;
+ return <div className="trend-wrap">
+  <svg viewBox={'0 0 '+width+' '+height} role="img" aria-label="Model projected fantasy points in forest green and reported actual fantasy points in copper, by week">
+   {[0,.5,1].map(n=><line key={n} x1={padX} x2={width-padX} y1={y(n*max)} y2={y(n*max)} className="chart-grid"/>)}
+   <path d={path('projection')} className="chart-line"/><path d={path('actual')} className="chart-actual-line"/>
+   {rows.map((r,i)=>r.actual!==null?<circle key={r.week} cx={x(i)} cy={y(r.actual)} r={4} className="chart-actual"/>:null)}
+   {rows.map((r,i)=><text key={'w'+r.week} x={x(i)} y={height-2} textAnchor="middle" className="chart-week-label">{r.week}</text>)}
+  </svg>
+  <div className="trend-legend"><span><i/> MODEL PROJECTION</span><span><i/> REPORTED ACTUAL</span></div>
+  <div className="history-table" role="table" aria-label="Historical model and reported actual weekly points">
+   <div className="history-row history-header" role="row"><span>WEEK</span><span>MODEL PPR</span><span>ACTUAL POINTS</span></div>
+   {rows.map(r=><div className="history-row" role="row" key={r.week}><strong>W{r.week}</strong><span>{fmt(r.projection)}</span>
+    <span className={r.actual!==null?'reported-actual':''}>{fmt(r.actual)}{r.actual!==null&&<small>{r.origin==='model'?' PPR':' LEAGUE'}</small>}</span></div>)}
+  </div>
+  <p className="history-note">{actualCount?actualCount+' week'+(actualCount===1?'':'s')+' of reported scoring shown.':'No actual points have been reported for this player in the available sources.'} Model actuals use PPR; Sleeper fallback actuals use your league’s scoring settings and may differ from PPR.</p>
+ </div>;
 }
-function Dossier({f,onClose,onCompare}:{f:Forecast;onClose:()=>void;onCompare:()=>void}){
+function Dossier({f,onClose,onCompare,leagueId,season,lastCompletedWeek}:{f:Forecast;onClose:()=>void;onCompare:()=>void;leagueId:string;season:number;lastCompletedWeek:number}){
+ const actualHistory=useQuery({queryKey:['league-actual-history',leagueId,season,lastCompletedWeek],
+  queryFn:({signal})=>getLeagueActualHistory(leagueId,lastCompletedWeek,signal),staleTime:10*60*1000,enabled:lastCompletedWeek>0});
  const ref=useRef<HTMLDivElement>(null);
  useEffect(()=>{
   const focused=document.activeElement instanceof HTMLElement?document.activeElement:null;
@@ -209,10 +320,10 @@ function Dossier({f,onClose,onCompare}:{f:Forecast;onClose:()=>void;onCompare:()
  return <div className="dossier-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}>
    <div className="dossier" ref={ref} role="dialog" aria-modal="true" aria-label={'Player dossier: '+f.name}>
     <div className="dossier-bar"><Caption>PN / SCOUT REPORT</Caption><button className="dossier-close" onClick={onClose} aria-label="Close player dossier"><X size={21}/></button></div>
-    <div className="dossier-title"><span>{f.position} / {f.team} / WEEK {f.week}</span><h2>{f.name}</h2><p>{f.opponent?'Opponent: '+f.opponent+' · ':''}Status: {f.status||'Not provided'}</p></div>
+    <div className="dossier-title"><PlayerPortrait id={f.id} name={f.name} position={f.position} team={f.team} size="large"/><div><span>{f.position} / {f.team} / WEEK {f.week}</span><h2>{f.name}</h2><p>{f.opponent?'Opponent: '+f.opponent+' · ':''}Status: {f.status||'Not provided'}</p></div></div>
     <div className="dossier-main-stat"><Caption>MODEL PPR FORECAST</Caption><strong><Score value={f.projection}/></strong><p>{f.matched?'Powers–Newlon Model snapshot':'No validated model match found'}</p></div>
     <QuickForecast forecast={f}/>
-    <div className="dossier-section"><SectionTitle index="01" title="WEEKLY FORECAST HISTORY"/><Trend f={f}/></div>
+    <div className="dossier-section"><SectionTitle index="01" title="PROJECTION VS REPORTED ACTUAL"/><Trend f={f} leagueActuals={actualHistory.data?.[f.id]}/>{actualHistory.isLoading&&<p className="history-note">Checking historical Sleeper matchup scoring…</p>}{actualHistory.isError&&<p className="history-note">Historical Sleeper actuals could not be loaded. Model records are still shown.</p>}</div>
     <div className="dossier-section"><SectionTitle index="02" title="MODEL EVIDENCE"/><div className="dossier-facts">
       <div><span>PROJECTION ORIGIN</span><strong>{f.source==='powers-newlon-model'?'Powers–Newlon':'Unavailable'}</strong></div>
       <div><span>PREGAME PROJECTION</span><strong>{fmt(f.pregame)}</strong></div>
@@ -224,18 +335,21 @@ function Dossier({f,onClose,onCompare}:{f:Forecast;onClose:()=>void;onCompare:()
   </div>;
 }
 
-type TradeAsset={key:string;name:string;position:string;value:number|null;type:'player'|'pick'};
+type TradeAsset={key:string;name:string;position:string;value:number|null;type:'player'|'pick';source?:'model'|'estimated-baseline'|'unavailable'};
 function availableTradeAssets(r:Roster,data:AppData):TradeAsset[]{
  const assets:TradeAsset[]=rosterAssets(r,data.index,data.players,data.week)
   .filter(p=>p.position!=='DEF').map(p=>({key:p.id,name:p.name,position:p.position,value:p.dynasty,type:'player'}));
  const roundCount=Math.min(8,num(data.league.settings?.draft_rounds)??4);
- for(let season=Number(data.league.season)+1;season<=Number(data.league.season)+2;season++){
-  for(let round=1;round<=roundCount;round++){
-   const transfer=data.bundle.picks.find(p=>Number(p.season)===season&&Number(p.round)===round&&Number(p.roster_id)===r.roster_id);
-   const currentOwner=transfer?Number(transfer.owner_id):r.roster_id;
+ const today=Number(data.league.season)||new Date().getFullYear();
+ for(let season=today+1;season<=today+3;season++)for(let round=1;round<=roundCount;round++){
+  for(const original of data.rosters){
+   const transfer=data.bundle.picks.find(p=>Number(p.season)===season&&Number(p.round)===round&&Number(p.roster_id)===original.roster_id);
+   const currentOwner=transfer?Number(transfer.owner_id):original.roster_id;
    if(currentOwner!==r.roster_id)continue;
-   assets.push({key:'pick:'+season+':'+round+':'+r.roster_id,name:season+' Round '+round,
-    position:'FUTURE PICK',value:data.index.pickValue(season,round),type:'pick'});
+   const valuation=data.index.pickValuation(season,round);
+   assets.push({key:'pick:'+season+':'+round+':'+original.roster_id,
+    name:season+' R'+round+(original.roster_id!==r.roster_id?' · From '+rosterName(original,data.users):' · Own pick'),
+    position:'FUTURE PICK',value:valuation.value,type:'pick',source:valuation.source});
   }
  }
  return assets;
@@ -257,7 +371,7 @@ function TradeWorkbench({data}:{data:AppData}){
   <SectionTitle index="01" title="BUILD A PROPOSED TRADE"/>
   <div className="trade-control"><label htmlFor="trade-opponent">TRADE PARTNER</label><select id="trade-opponent" value={other.roster_id} onChange={e=>setOtherId(e.target.value)}>{rosters.filter(x=>x.roster_id!==r.roster_id).map(x=><option key={x.roster_id} value={x.roster_id}>{rosterName(x,users)}</option>)}</select></div>
   <div className="trade-overview">
-   <div><Caption>MODEL DYNASTY VALUE / NET RECEIVED</Caption><strong>{diff===null?'—':(diff>0?'+':'')+fmt(diff,0)}</strong></div>
+   <div><Caption>DYNASTY VALUE / NET RECEIVED</Caption><strong>{diff===null?'—':(diff>0?'+':'')+fmt(diff,0)}</strong></div>
    <div><Caption>SELECTED ASSETS</Caption><strong>{send.length} <span>⇄</span> {receive.length}</strong></div>
    <p>{missing?'A selected asset has no model valuation. Totals are not comparable.':!send.length||!receive.length?'Choose at least one asset from each side.':'Positive means the package you receive has higher summed model dynasty value.'}</p>
   </div>
@@ -265,7 +379,7 @@ function TradeWorkbench({data}:{data:AppData}){
    <AssetList label="01 / ASSETS YOU SEND" team={rosterName(r,users)} assets={a} selected={send} onSelect={id=>toggle(id,send,setSend)}/>
    <AssetList label="02 / ASSETS YOU RECEIVE" team={rosterName(other,users)} assets={b} selected={receive} onSelect={id=>toggle(id,receive,setReceive)}/>
   </div>
-  <div className="context-strip"><Info size={17}/>This is a valuation comparison, not an acceptance or win-probability forecast. Pick values are round-level model baselines, not predictions of exact draft position. Nothing is sent to Sleeper.</div>
+  <div className="context-strip"><Info size={17}/>This is a valuation comparison, not an acceptance or win-probability forecast. Pick values are model valuations when present; otherwise clearly labeled round-level estimates, never exact draft-slot predictions. Nothing is sent to Sleeper.</div>
  </div>;
 }
 function AssetList({label,team,assets,selected,onSelect}:{label:string;team:string;assets:TradeAsset[];selected:string[];onSelect:(key:string)=>void}){
@@ -273,20 +387,67 @@ function AssetList({label,team,assets,selected,onSelect}:{label:string;team:stri
  return <section className="asset-column"><div className="asset-column-top"><Caption>{label}</Caption><h3>{team}</h3></div>
   <div className="asset-filters">{['ALL','QB','RB','WR','TE','PICKS'].map(x=><button key={x} className={filter===x?'active':''} onClick={()=>setFilter(x)}>{x}</button>)}</div>
   <div className="asset-scroller">{assets.filter(a=>filter==='ALL'||(filter==='PICKS'?a.type==='pick':a.position===filter)).map(asset=><button className={'asset-line '+(selected.includes(asset.key)?'picked':'')} type="button" key={asset.key} onClick={()=>onSelect(asset.key)} aria-pressed={selected.includes(asset.key)}>
-   <span className="asset-check">{selected.includes(asset.key)&&<Check size={14}/>}</span><span className="asset-name"><strong>{asset.name}</strong><small>{asset.position}</small></span><b>{fmt(asset.value,0)}</b></button>)}
+   <span className="asset-check">{selected.includes(asset.key)&&<Check size={14}/>}</span>
+    <span className="asset-thumb">{asset.type==='player'?<PlayerPortrait id={asset.key} name={asset.name} position={asset.position}/>:<Layers size={17}/>}</span><span className="asset-name"><strong>{asset.name}</strong><small>{asset.type==='pick'?(asset.source==='model'?'MODEL PICK VALUE':asset.source==='estimated-baseline'?'ESTIMATED PICK VALUE':'PICK VALUE UNAVAILABLE'):asset.position}</small></span><b>{fmt(asset.value,0)}</b></button>)}
    {assets.length===0&&<p className="small-note">No eligible assets loaded.</p>}</div>
    <div className="asset-total"><span>SELECTED / {selected.length}</span><strong>{fmt(assets.filter(a=>selected.includes(a.key)).reduce((v,a)=>v+(a.value??0),0),0)}</strong></div>
  </section>;
 }
+function ModelLeaders({data,onPlayer}:{data:AppData;onPlayer:(id:string)=>void}){
+ const [position,setPosition]=useState('ALL');
+ const {players,index,week,rosters}=data;
+ const owned=new Set(rosters.flatMap(r=>r.players||[]));
+ const rows=useMemo(()=>Object.entries(players).filter(([,p])=>['QB','RB','WR','TE'].includes(String(p.position||''))&&
+  (position==='ALL'||p.position===position)).map(([id,p])=>index.get(id,p,week)).filter(f=>f.projection!==null)
+  .sort((a,b)=>(b.projection??0)-(a.projection??0)).slice(0,40),[players,index,week,position]);
+ return <div className="leaders-view"><SectionTitle index="01" title="MODEL PROJECTION LEADERS"/>
+  <p className="section-description">Weekly Powers–Newlon Model projected PPR leaders across the NFL. Not reported league or season statistics.</p>
+  <div className="scout-filter"><span>POSITION</span><div>{['ALL','QB','RB','WR','TE'].map(p=><button key={p} className={position===p?'active':''} onClick={()=>setPosition(p)}>{p}</button>)}</div></div>
+  <div className="scout-table">{rows.map((f,i)=><button className="scout-row" key={f.id} onClick={()=>onPlayer(f.id)}>
+   <span className="scout-name"><PlayerPortrait id={f.id} name={f.name} position={f.position} team={f.team}/><span><strong>{String(i+1).padStart(2,'0')} · {f.name}</strong><small>{f.position} / {f.team} / {owned.has(f.id)?'ROSTERED':'AVAILABLE'}</small></span></span>
+   <strong className="scout-proj">{fmt(f.projection)}</strong><span className="scout-range">MODEL PPR</span><ArrowUpRight size={16}/></button>)}</div>
+ </div>;
+}
+function ScoresView({data}:{data:AppData}){
+ const season=Number(data.league.season)||new Date().getFullYear();
+ const scores=useQuery({queryKey:['nfl-scores',season,data.week],
+  queryFn:({signal})=>getNflScores(season,data.week,signal),staleTime:60_000,refetchInterval:90_000});
+ type ScoreCompetitor={homeAway?:string;score?:string;team?:{abbreviation?:string;displayName?:string;logo?:string}};
+ type ScoreEvent={id?:string;name?:string;date?:string;status?:{type?:{description?:string;state?:string}};
+  competitions?:{competitors?:ScoreCompetitor[]}[]};
+ const raw=scores.data as {events?:ScoreEvent[]}|undefined;
+ const events=raw?.events||[];
+ return <div className="screen scores-screen"><header className="page-heading"><Caption>05 / NFL LIVE SCORES / WEEK {data.week}</Caption>
+  <h1>Scores<span>.</span></h1><p>Reported NFL game scores and schedules. This screen is separate from the Powers–Newlon projections.</p></header>
+  {scores.isLoading&&<div className="context-strip"><Clock3 size={17}/>Fetching the NFL scoreboard…</div>}
+  {scores.isError&&<ErrorLine error={scores.error} onRetry={()=>void scores.refetch()}/>}
+  <div className="scores-grid">{events.map(event=>{
+   const teams=event.competitions?.[0]?.competitors||[];
+   const home=teams.find(t=>t.homeAway==='home'),away=teams.find(t=>t.homeAway==='away');
+   const isLive=event.status?.type?.state==='in';
+   return <article key={event.id||event.name} className="nfl-score-card">
+    <div className="score-card-top"><span>{event.status?.type?.description||'Game status not reported'}</span>{isLive&&<span className="score-live-dot">LIVE</span>}</div>
+    {[away,home].map((t,i)=><div key={i} className="nfl-score-team">
+      {t?.team?.logo?<img src={t.team.logo} alt="" loading="lazy"/>:<span className="score-team-fallback">NFL</span>}
+      <span><strong>{t?.team?.displayName||'Team'}</strong><small>{t?.homeAway?.toUpperCase()||''}</small></span>
+      <b>{t?.score??'—'}</b>
+    </div>)}
+    <div className="score-card-bottom">{event.date?new Date(event.date).toLocaleString([],{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'Date unavailable'}</div>
+   </article>;
+  })}</div>
+  {!scores.isLoading&&!scores.isError&&!events.length&&<Empty title="No NFL games returned" detail="There are no listed scoreboard events for the chosen week. Try another week."/>}
+  <p className="fine-print">NFL scoreboard data provided by ESPN. These are reported game results, not league fantasy points or model forecasts.</p>
+ </div>;
+}
 function LeagueView({data,onPlayer,onRefresh,refreshing}:{data:AppData;onPlayer:(id:string)=>void;onRefresh:()=>void;refreshing:boolean}){
- const [section,setSection]=useState<LeagueScreen>('standings');
+ const [section,setSection]=useState<LeagueScreen>('roster');
  const [teamId,setTeamId]=useState<string>('');
  const {rosters,users,myRoster,players,index,league,week,matchup,bundle}=data;
  const chosen=rosters.find(x=>String(x.roster_id)===(teamId||String(myRoster?.roster_id)))||rosters[0];
  const ranked=useMemo(()=>standings(rosters,users),[rosters,users]);
  const ownIds=new Set(myRoster?.players||[]);
  return <div className="screen league-screen"><header className="page-heading"><Caption>04 / LEAGUE INTELLIGENCE</Caption><h1>League<span>.</span></h1><p>{league.name} · A competitive view of the season, roster composition, and long-term assets.</p></header>
-  <div className="league-subnav" role="group" aria-label="League sections">{([['standings','Standings'],['roster','Roster'],['trade','Trade'],['draft','Draft'],['health','Data health']] as const).map(([key,label])=><button className={section===key?'active':''} aria-pressed={section===key} key={key} onClick={()=>setSection(key)}>{label}</button>)}</div>
+  <div className="league-subnav" role="group" aria-label="League sections">{([['roster','Roster'],['standings','Standings'],['leaders','Leaders'],['trade','Trade'],['draft','Draft']] as const).map(([key,label])=><button className={section===key?'active':''} aria-pressed={section===key} key={key} onClick={()=>setSection(key)}>{label}</button>)}</div>
   {section==='standings'&&<><SectionTitle index="01" title="LEAGUE STANDINGS"/><div className="standings-table">
    <div className="standings-head"><span>RANK / TEAM</span><span>RECORD</span><span>POINTS FOR</span></div>
    {ranked.map((r,i)=><button key={r.id} className={'standings-row '+(r.id===myRoster?.roster_id?'yours':'')} onClick={()=>{setTeamId(String(r.id));setSection('roster')}}><span className="standings-index">{String(i+1).padStart(2,'0')}</span><span className="standings-name"><strong>{r.name}</strong><small>{r.id===myRoster?.roster_id?'YOUR TEAM':'VIEW ROSTER'}</small></span><span className="standings-record">{r.wins}–{r.losses}{r.ties?'-'+r.ties:''}</span><span className="standings-points">{fmt(r.pts)}</span><ChevronRight size={15}/></button>)}</div>
@@ -297,22 +458,27 @@ function LeagueView({data,onPlayer,onRefresh,refreshing}:{data:AppData;onPlayer:
     <div><Caption>MODELED OPTIMAL PPR</Caption><strong>{chosen?fmt(optimal(chosen,league,index,players,week).total):'—'}</strong></div></div>
    {chosen&&<><SectionTitle index="02" title="STARTERS"/><div className="roster-list">{lineup(chosen,league,index,players,week).members.map((m,i)=>{
      const f=m.id==='0'?null:index.get(m.id,players[m.id],week);
-     return <button key={i} className="roster-row" disabled={!f} onClick={()=>f&&onPlayer(f.id)}><span className="roster-position">{m.slot}</span><span><strong>{f?.name||'Unfilled'}</strong><small>{f?f.team+' · '+f.position:'No starter assigned'}</small></span><b>{fmt(m.projection)}</b><ChevronRight size={15}/></button>})}</div>
+     return <button key={i} className="roster-row" disabled={!f} onClick={()=>f&&onPlayer(f.id)}><span className="roster-position">{m.slot}</span><PlayerPortrait id={m.id} name={f?.name||'Empty'} position={f?.position} team={f?.team}/><span><strong>{f?.name||'Unfilled'}</strong><small>{f?f.team+' · '+f.position:'No starter assigned'}</small></span><b>{fmt(m.projection)}</b><ChevronRight size={15}/></button>})}</div>
      <SectionTitle index="03" title="BENCH & RESERVES"/><div className="roster-list">{(chosen.players||[]).filter(id=>!chosen.starters.includes(id)).map(id=>{
-      const f=index.get(id,players[id],week);return <button key={id} className="roster-row" onClick={()=>onPlayer(id)}><span className="roster-position">{f.position}</span><span><strong>{f.name}</strong><small>{f.team} · {f.status||'Status unavailable'}</small></span><b>{fmt(f.projection)}</b><ChevronRight size={15}/></button>})}</div></>}
+      const f=index.get(id,players[id],week);return <button key={id} className="roster-row" onClick={()=>onPlayer(id)}><span className="roster-position">{f.position}</span><PlayerPortrait id={id} name={f.name} position={f.position} team={f.team}/><span><strong>{f.name}</strong><small>{f.team} · {f.status||'Status unavailable'}</small></span><b>{fmt(f.projection)}</b><ChevronRight size={15}/></button>})}</div></>}
    </>}
   {section==='trade'&&<TradeWorkbench data={data}/>}
-  {section==='draft'&&<><SectionTitle index="01" title="FUTURE PICK OUTLOOK"/><p className="section-description">Model dynasty values by draft year and round. Exact pick slots are not forecast by this screen.</p>
-    <div className="draft-table">{Array.from({length:3},(_,offset)=>Number(league.season)+offset).flatMap(y=>Array.from({length:Math.min(6,num(league.settings?.draft_rounds)??4)},(_,i)=>({year:y,round:i+1}))).map(x=><div className="draft-row" key={x.year+'-'+x.round}><strong>{x.year} · Round {x.round}</strong><span>Model baseline</span><b>{fmt(index.pickValue(x.year,x.round),0)}</b></div>)}</div>
-    <p className="fine-print">Pick ownership and exact selection position vary with trades, season results, and league rules. This table is a valuation reference, not your confirmed pick inventory.</p></>}
-  {section==='health'&&<><SectionTitle index="01" title="DATA & PROVENANCE"/><div className="health-list">
-    <div><span>MODEL SOURCE</span><strong>Powers–Newlon Model</strong><small>{index.rows.length.toLocaleString()} player rows in snapshot</small></div>
-    <div><span>LEAGUE SOURCE</span><strong>Sleeper · Read-only</strong><small>{rosters.length} connected rosters, {bundle.matchups.length} matchup entries</small></div>
-    <div><span>PROJECTION WEEK</span><strong>{String(index.snapshot.projection_week??'Unspecified')}</strong><small>Model production week, not necessarily the chosen league week</small></div>
-    <div><span>LEAGUE LAST REFRESH</span><strong>{new Date(bundle.fetchedAt).toLocaleString()}</strong><small>Actual points and roster changes may update independently.</small></div>
-    <div><span>STARTER COVERAGE</span><strong>{matchup.my.known}/{matchup.my.slots}</strong><small>{matchup.my.missing.length?matchup.my.missing.length+' starter slots have no model forecast.':'All current starter slots have model forecasts.'}</small></div>
-   </div><button className="outline-action" onClick={onRefresh} disabled={refreshing}><RefreshCw size={16}/>{refreshing?' Refreshing…':' Refresh league data'}</button>
-   <div className="context-strip"><ShieldCheck size={17}/>No Sleeper projections are used to fill missing model values. A missing forecast remains missing. Historical forecasts should be retained as locked benchmarks by the model pipeline.</div></>}
+  {section==='leaders'&&<ModelLeaders data={data} onPlayer={onPlayer}/>}
+  {section==='draft'&&<><SectionTitle index="01" title="YOUR FUTURE DRAFT PICKS"/>
+    <p className="section-description">Projected dynasty values of the picks currently attributed to your roster, with source labels. Exact draft positions are not assumed.</p>
+    <div className="pick-ownership">
+     {(myRoster?availableTradeAssets(myRoster,data).filter(a=>a.type==='pick'):[]).map(p=><div className="pick-owned-row" key={p.key}>
+       <div><strong>{p.name}</strong><small>{p.source==='model'?'Powers–Newlon modeled value':p.source==='estimated-baseline'?'Estimated round-level baseline':'Value unavailable'}</small></div>
+       <b>{fmt(p.value,0)}</b></div>)}
+     {!myRoster&&<Empty title="Your roster was not identified" detail="Connect the correct Sleeper account to see your draft picks."/>}
+    </div>
+    <SectionTitle index="02" title="PICK VALUATION REFERENCE"/>
+    <div className="draft-table">{Array.from({length:3},(_,offset)=>Number(league.season)+1+offset)
+      .flatMap(y=>Array.from({length:Math.min(8,num(league.settings?.draft_rounds)??4)},(_,i)=>({year:y,round:i+1})))
+      .map(x=>{const v=index.pickValuation(x.year,x.round);return <div className="draft-row" key={x.year+'-'+x.round}>
+       <strong>{x.year} · Round {x.round}</strong><span>{v.source==='model'?'Model value':v.source==='estimated-baseline'?'Estimated baseline':'Unavailable'}</span><b>{fmt(v.value,0)}</b></div>})}</div>
+    <p className="fine-print">Baseline valuations are labeled estimates when the current model snapshot omits a pick value. Pick inventories are derived from Sleeper’s traded-picks records; confirm all transferred pick ownership with your league commissioner.</p></>}
+
  </div>;
 }
 function LoadingWorkspace({error,onRetry}:{error:unknown;onRetry:()=>void}){
@@ -388,6 +554,9 @@ export function App(){
    {screen==='decisions'&&<DecisionLab data={data} ideas={ideas} onPlayer={openPlayer}/>}
    {screen==='scout'&&<Scout data={data} onPlayer={openPlayer}/>}
    {screen==='league'&&<LeagueView data={data} onPlayer={openPlayer} onRefresh={refresh} refreshing={bundleQuery.isFetching}/>}
-   {dossier&&<Dossier f={dossier} onClose={closeDossier} onCompare={goCompare}/>}
+   {screen==='scores'&&<ScoresView data={data}/>}
+   {dossier&&<Dossier f={dossier} onClose={closeDossier} onCompare={goCompare}
+     leagueId={data.league.league_id} season={Number(data.league.season)}
+     lastCompletedWeek={Number(data.league.season)<(nfl.data?.season??new Date().getFullYear())?18:Math.max(0,Math.min(data.week,data.nflWeek-1))}/>}
   </AppShell>;
 }

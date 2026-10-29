@@ -17,7 +17,7 @@ const modelRows=[
  ['wr2','Opponent Receiver','WR','LAR',15.5,8.4,23.4,4200],
  ['te2','Opponent Tight End','TE','MIN',10.1,5.2,17.2,1900],
  ['fa1','Waiver Candidate','WR','DAL',18.1,12,25.1,3300],
- ['bench1','Bench Player','WR','NYG',5.8,2,10,800]
+ ['bench1','Bench Upgrade','WR','NYG',19.8,12,27,800]
 ].map(([sleeper_id,player_name,position,team,projection,floor,ceiling,dynasty_value])=>({
  sleeper_id,player_name,position,team,dynasty_value,
  weekly_projections:[{week:7,projection:Math.max(0,projection-2),actual:projection-3,game_played:1},
@@ -38,6 +38,8 @@ function mock(path){
   {roster_id:1,owner_id:'qa-user',players:['qb1','rb1','wr1','te1','bench1'],starters:['qb1','rb1','wr1','te1'],settings:{wins:4,losses:3,fpts:960,fpts_decimal:23}},
   {roster_id:2,owner_id:'other',players:['qb2','rb2','wr2','te2'],starters:['qb2','rb2','wr2','te2'],settings:{wins:5,losses:2,fpts:1000,fpts_decimal:11}}];
  if(path==='/v1/league/next-qa/matchups/8')return [{roster_id:1,matchup_id:1,points:0},{roster_id:2,matchup_id:1,points:0}];
+ if(path==='/v1/league/next-qa/matchups/7')return [{roster_id:1,matchup_id:1,points:73.5,players_points:{qb1:22.3,rb1:11.2,wr1:10.3}},{roster_id:2,matchup_id:1,points:81,players_points:{qb2:23.5}}];
+ if(path.startsWith('/v1/league/next-qa/matchups/'))return [];
  if(path==='/v1/league/next-qa/traded_picks'||path==='/v1/league/next-qa/drafts')return [];
  if(path==='/v1/players/nfl')return players;
  return {};
@@ -51,6 +53,7 @@ async function test(engine,label,width){
  await page.route('**/data/model_snapshot.json',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(model)}));
  await page.route('**/data/snapshot_version.json',r=>r.fulfill({status:200,contentType:'application/json',body:'{"version":"fixture-next-1"}'}));
  await page.route('https://api.sleeper.app/**',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(mock(new URL(r.request().url()).pathname))}));
+ await page.route('https://site.api.espn.com/**',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({events:[{id:'nfl-fixture-1',date:'2026-10-29T20:00:00Z',status:{type:{description:'Scheduled',state:'pre'}},competitions:[{competitors:[{homeAway:'away',score:'0',team:{displayName:'Detroit Lions'}},{homeAway:'home',score:'0',team:{displayName:'Minnesota Vikings'}}]}]}]})}));
  try{
   const [rootResponse,legacyResponse]=await Promise.all([page.request.get(url),page.request.get(url+'legacy/')]);
   assert.equal(rootResponse.status(),200,'Root homepage must be accessible');
@@ -73,17 +76,29 @@ async function test(engine,label,width){
   const scoreText=await page.locator('.instrument-team b').allTextContents();assert.equal(scoreText.length,2);
   const overflow=async where=>{const v=await page.evaluate(()=>({screen:innerWidth,page:document.documentElement.scrollWidth,visual:visualViewport?.width}));assert(v.screen<=width+2,where+' expanded mobile layout viewport '+JSON.stringify(v));assert(v.page<=v.screen+3,where+' has horizontal overflow '+JSON.stringify(v))};
   if(width<=900){const navState=await page.locator('.mobile-dock').evaluate(el=>{const r=el.getBoundingClientRect();const button=el.querySelectorAll('button')[1],b=button.getBoundingClientRect();const hit=document.elementFromPoint(b.x+b.width/2,b.y+b.height/2);return{display:getComputedStyle(el).display,position:getComputedStyle(el).position,z:getComputedStyle(el).zIndex,rect:{x:r.x,y:r.y,width:r.width,height:r.height},button:{x:b.x,y:b.y,width:b.width,height:b.height},innerHeight,visualHeight:visualViewport?.height,scrollY,hit:hit?.closest('.mobile-dock')===el,hitClass:hit?.className,hitTag:hit?.tagName}});console.log('MOBILE NAV GEOMETRY',JSON.stringify(navState));assert(navState.display!=='none'&&navState.hit,'Mobile navigation must be tappable: '+JSON.stringify(navState));}
+  assert((await page.locator('.team-player-line').count())>=5,'Full team starters and bench visible');
+  assert((await page.locator('.team-player-line .player-portrait').count())>=5,'Player portrait surfaces restored');
+  assert((await page.locator('.startsit-spotlight').innerText()).includes('START'),'Direct Start / Sit decision visible on My Team');
+  await page.locator('.team-player-line').first().click();
+  await page.locator('[role="dialog"]').waitFor();
+  await page.locator('.history-row').nth(1).waitFor();
+  assert((await page.locator('.history-table').innerText()).includes('ACTUAL POINTS'),'Actual scoring column present');
+  assert((await page.locator('.history-table').innerText()).includes('14.1'),'Saved model PPR actual is shown');
+  await page.keyboard.press('Escape');
   await overflow('Briefing');await page.screenshot({path:new URL(label+'-'+width+'-briefing.png',screens).pathname});
-  await page.locator(width<=900?'.mobile-dock':'.rail-nav').getByRole('button',{name:'Decisions'}).first().click();
+  await page.locator(width<=900?'.mobile-dock':'.rail-nav').getByRole('button',{name:'Start / Sit'}).first().click();
   await page.locator('.opportunity').first().waitFor();
-  await page.getByRole('button',{name:'Start / Sit'}).click();
+  await page.locator('.segmented').getByRole('button',{name:'Start / Sit'}).click();
   await page.getByLabel('First player').selectOption('qb1');
   await page.getByLabel('Second player').selectOption('rb1');
   assert((await page.locator('.comparison-summary').innerText()).includes('1.7'));
   await overflow('Decisions');
   await page.screenshot({path:new URL(label+'-'+width+'-decisions.png',screens).pathname});
-  await page.locator(width<=900?'.mobile-dock':'.rail-nav').getByRole('button',{name:'Scout'}).first().click();
-  await page.getByLabel('Search players').fill('Quarterback');
+  await page.locator(width<=900?'.mobile-dock':'.rail-nav').getByRole('button',{name:'Available'}).first().click();
+  assert.equal(await page.locator('.scout-row').count(),1,'Only unrostered active players are listed by default');
+  assert((await page.locator('.scout-row').innerText()).includes('Waiver Candidate'),'Free agent displayed');
+  assert(!(await page.locator('.scout-table').innerText()).includes('Test Quarterback'),'Rostered player excluded from Scout');
+  await page.getByLabel('Search available players').fill('Waiver');
   await page.locator('.scout-row').first().click();
   await page.locator('[role="dialog"]').waitFor();
   await page.screenshot({path:new URL(label+'-'+width+'-dossier.png',screens).pathname});
@@ -91,6 +106,8 @@ async function test(engine,label,width){
   assert.equal(await page.locator('[role="dialog"]').count(),0);
   await overflow('Scout');
   await page.locator(width<=900?'.mobile-dock':'.rail-nav').getByRole('button',{name:'League'}).first().click();
+  await page.locator('.roster-row').first().waitFor();
+  await page.locator('.league-subnav').getByRole('button',{name:'Standings'}).click();
   await page.locator('.standings-row').first().waitFor();
   assert.equal(await page.locator('.standings-row').count(),2);
   await page.getByRole('button',{name:'Trade',exact:true}).click();
@@ -98,8 +115,14 @@ async function test(engine,label,width){
   await page.locator('.asset-line').first().click();
   assert.equal(await page.locator('.asset-line.picked').count(),1);
   await overflow('Trade');await page.screenshot({path:new URL(label+'-'+width+'-trade.png',screens).pathname});
-  await page.getByRole('button',{name:'Data health'}).click();
-  assert((await page.locator('.health-list').innerText()).includes('Powers–Newlon Model'));
+  await page.locator('.league-subnav').getByRole('button',{name:'Draft'}).click();
+  await page.locator('.pick-owned-row').first().waitFor();
+  assert((await page.locator('.pick-ownership').innerText()).includes('4250'),'First round pick modeled value is displayed');
+  assert(!(await page.locator('.league-subnav').innerText()).includes('Data health'),'Admin details removed from consumer navigation');
+  await page.locator(width<=900?'.mobile-dock':'.rail-nav').getByRole('button',{name:'Scores'}).click();
+  await page.locator('.nfl-score-card').first().waitFor();
+  assert((await page.locator('.nfl-score-card').innerText()).includes('Detroit Lions'),'Scores restored as a main destination');
+  await overflow('Scores');
   assert.deepEqual(errors,[],'No uncaught browser errors');
   console.log('PASS '+label+' '+width);
  }finally{await context.close();await browser.close()}

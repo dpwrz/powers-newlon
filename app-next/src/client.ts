@@ -90,8 +90,33 @@ export async function getNflState(signal?:AbortSignal):Promise<NflState>{
  const x=await fetchJson(API+'/state/nfl',signal) as Record<string,unknown>;
  return {week:typeof x.week==='number'?x.week:1,season:typeof x.season==='number'?x.season:new Date().getFullYear(),season_type:String(x.season_type||'regular')};
 }
-export async function getNflScores(signal?:AbortSignal):Promise<unknown>{
- return fetchJson('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard',signal);
+export type ReportedActualHistory=Record<string,Record<number,number>>;
+export async function getLeagueActualHistory(leagueId:string,lastCompletedWeek:number,signal?:AbortSignal):Promise<ReportedActualHistory>{
+ const end=Math.min(18,Math.max(0,lastCompletedWeek));
+ const weeks=Array.from({length:end},(_,i)=>i+1);
+ const results=await Promise.all(weeks.map(async week=>{
+  try{
+   const raw=await fetchJson(API+'/league/'+encodeURIComponent(leagueId)+'/matchups/'+week,signal);
+   return {week,matchups:Array.isArray(raw)?raw:[]};
+  }catch(e){if(signal?.aborted)throw e;return {week,matchups:[]};}
+ }));
+ const history:ReportedActualHistory={};
+ for(const {week,matchups} of results)for(const matchup of matchups){
+  if(!matchup||typeof matchup!=='object')continue;
+  const actuals=(matchup as Record<string,unknown>).players_points;
+  if(!actuals||typeof actuals!=='object'||Array.isArray(actuals))continue;
+  for(const [id,value] of Object.entries(actuals as Record<string,unknown>)){
+   const points=typeof value==='number'&&Number.isFinite(value)?value:null;
+   if(points===null)continue;
+   (history[id]??={})[week]=points;
+  }
+ }
+ return history;
+}
+export async function getNflScores(season:number,week:number,signal?:AbortSignal):Promise<unknown>{
+ const url='https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates='+
+  encodeURIComponent(String(season))+'&seasontype=2&week='+encodeURIComponent(String(week));
+ return fetchJson(url,signal);
 }
 export const safeStored=(name:string)=>{try{return localStorage.getItem(name)}catch{return null}};
 export const remember=(name:string,value:string|null)=>{try{if(value===null)localStorage.removeItem(name);else localStorage.setItem(name,value)}catch{/* Private browsing must not break input or navigation. */}};

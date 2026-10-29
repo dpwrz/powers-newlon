@@ -2,21 +2,44 @@ import {eligible,fmt,lineup,num,optimal,rosterName,type Decision,type Forecast,t
  type ModelIndex,type PlayerMap,type Roster} from './domain';
 
 export function lineupDecisions(roster:Roster,league:League,index:ModelIndex,players:PlayerMap,week:number):Decision[]{
- const actual=lineup(roster,league,index,players,week),proposed=optimal(roster,league,index,players,week);
- const output:Decision[]=[];
- if(actual.total!==null&&proposed.total!==null&&proposed.total-actual.total>=0.6){
-  const starting=new Set(roster.starters||[]);
-  const add=proposed.members.find(p=>!starting.has(p.id));
-  if(add)output.push({
-   id:'lineup:'+add.id,kind:'lineup',title:'Review '+index.get(add.id,players[add.id],week).name+' for '+add.slot,
-   detail:'The Powers–Newlon lineup model prefers a different eligible starter combination.',
-   gain:proposed.total-actual.total,playerId:add.id,actionable:true,
-   note:'Projected gain is model-derived, not guaranteed. Verify kickoff lock and status in Sleeper.'
-  });
+ const current=lineup(roster,league,index,players,week);
+ const started=new Set(roster.starters||[]);
+ const bench=(roster.players||[]).filter(id=>!started.has(id)&&players[id]);
+ const proposals:{start:string;sit:string;slot:string;gain:number;startPoints:number;sitPoints:number}[]=[];
+ // Evaluate real, eligible one-for-one swaps. Missing DEF/K forecasts cannot
+ // suppress an otherwise valid QB/RB/WR/TE decision.
+ for(const member of current.members){
+  if(member.id==='0'||member.projection===null)continue;
+  for(const candidateId of bench){
+   const player=players[candidateId];
+   if(!eligible(member.slot,String(player?.position||'')))continue;
+   const start=index.get(candidateId,player,week),sit=index.get(member.id,players[member.id],week);
+   if(start.projection===null||sit.projection===null||/\b(out|inactive|suspended)\b/i.test(start.status))continue;
+   const gain=start.projection-sit.projection;
+   if(gain>=0.6)proposals.push({start:candidateId,sit:member.id,slot:member.slot,
+    gain,startPoints:start.projection,sitPoints:sit.projection});
+  }
  }
- if(!output.length)output.push({id:'lineup:review',kind:'check',title:'Check your starting lineup',
-  detail:'No confirmed model upgrade clears the current threshold, or some projections are unavailable.',
-  gain:null,actionable:true,note:'Confirm injuries, kickoff locks, and roster eligibility before games.'});
+ proposals.sort((a,b)=>b.gain-a.gain);
+ const usedStart=new Set<string>(),usedSit=new Set<string>();
+ const output:Decision[]=[];
+ for(const p of proposals){
+  if(usedStart.has(p.start)||usedSit.has(p.sit))continue;
+  usedStart.add(p.start);usedSit.add(p.sit);
+  const nameStart=index.get(p.start,players[p.start],week).name;
+  const nameSit=index.get(p.sit,players[p.sit],week).name;
+  output.push({id:'lineup:'+p.start+':'+p.sit,kind:'lineup',
+   title:'START '+nameStart+' · SIT '+nameSit,
+   detail:nameStart+' '+p.startPoints.toFixed(1)+' vs '+nameSit+' '+p.sitPoints.toFixed(1)+
+    ' projected PPR for an eligible '+p.slot+' lineup spot.',
+   gain:p.gain,playerId:p.start,sitPlayerId:p.sit,actionable:true,
+   note:'Projected gain is advisory. Verify injuries, player statuses and lineup lock times in Sleeper.'
+  });
+  if(output.length>=3)break;
+ }
+ if(!output.length)output.push({id:'lineup:review',kind:'check',title:'No clear Start / Sit upgrade',
+  detail:'No eligible bench player has a modeled advantage above 0.6 PPR against a projected starter in this lineup.',
+  gain:null,actionable:true,note:'Unprojected or locked players cannot be evaluated reliably. Check news and kickoff locks.'});
  return output;
 }
 

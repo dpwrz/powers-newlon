@@ -28,7 +28,7 @@ export type MatchupView={
   margin:number|null;state:'pregame'|'reported'|'complete'|'no-opponent';
 };
 export type Decision={id:string;kind:'lineup'|'waiver'|'check';title:string;detail:string;
-  gain:number|null;playerId?:string;dropId?:string;actionable:boolean;note:string;};
+  gain:number|null;playerId?:string;sitPlayerId?:string;dropId?:string;actionable:boolean;note:string;};
 const objectSchema=z.record(z.string(),z.unknown());
 export const userSchema=z.object({user_id:z.string(),display_name:z.string().optional()}).passthrough();
 export const leagueSchema=z.object({league_id:z.string(),name:z.string(),season:z.string().or(z.number()),roster_positions:z.array(z.string()).optional()}).passthrough();
@@ -112,8 +112,10 @@ export class ModelIndex{
   const weekly=(row?.weekly_projections||[]).map(w=>({
     week:num(field(w,['week','game_week','target_week']))??0,
     projection:num(field(w,currentKeys)),
-    actual:num(field(w,['actual','actual_points','fantasy_points'])),
-    played:(num(field(w,['game_played']))??0)>0,
+    actual:num(field(w,['actual','actual_points','fantasy_points','actual_fpts','actual_ppr_points','fantasy_points_ppr','fpts_actual'])),
+    played:field(w,['game_played','played'])!=null
+      ?(num(field(w,['game_played','played']))??0)>0
+      :field(w,['actual','actual_points','fantasy_points','actual_fpts','actual_ppr_points','fantasy_points_ppr','fpts_actual'])!=null,
   })).filter(w=>w.week>0).sort((a,b)=>a.week-b.week);
   const forecast:Forecast={
    id,name:nameOf(id,{[id]:p||{full_name:String(row?.player_name||row?.full_name||id)}}),
@@ -128,10 +130,19 @@ export class ModelIndex{
   };
   this.forecastCache.set(key,forecast);return forecast;
  }
- pickValue(season:number,round:number):number|null{
+ pickValuation(season:number,round:number):{value:number|null;source:'model'|'estimated-baseline'|'unavailable'}{
   const row=(this.snapshot.pick_values||[]).find(p=>num(field(p,['season','year','pick_year']))===season&&num(field(p,['round','pick_round']))===round);
-  return num(field(row,valueKeys.concat(['pick_value'])));
+  const modelValue=num(field(row,valueKeys.concat(['pick_value'])));
+  if(modelValue!==null)return {value:modelValue,source:'model'};
+  // Mirror the established legacy future-pick curve, explicitly labeled an
+  // estimate; never pass it off as an individual modeled draft selection.
+  const baseSeason=num(field(this.snapshot,['season','projection_season']))??new Date().getFullYear();
+  if(round<1||round>8||season<baseSeason||season>baseSeason+6)return {value:null,source:'unavailable'};
+  const baseline:Record<number,number>={1:4200,2:1800,3:800,4:350};
+  const raw=baseline[round]??100;
+  return {value:Math.round(raw*Math.pow(.92,Math.max(0,season-baseSeason-1))),source:'estimated-baseline'};
  }
+ pickValue(season:number,round:number):number|null{return this.pickValuation(season,round).value}
 }
 export const isSlot=(slot:string)=>!['BN','IR','TAXI'].includes(slot.toUpperCase());
 export const eligible=(slot:string,position:string)=>{
