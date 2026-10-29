@@ -8,6 +8,7 @@ source("config.R")
 source("pipeline/23_project_weekly_2026_2_5.R")
 ensure_packages(c("dplyr", "readr", "xgboost"))
 source("R/weekly_engine_31.R")
+if (file.exists("R/weekly_engine_32.R")) source("R/weekly_engine_32.R")
 
 req31 <- c(
   "output/weekly_3_1_promotion.csv",
@@ -263,6 +264,95 @@ for (pos in POSITIONS) {
   live_rows31[[length(live_rows31) + 1L]] <- d
 }
 future_pred <- dplyr::bind_rows(live_rows31)
+
+# -------------------------------------------------------------------------
+# Model 3.2 signal/noise optimizer.
+# Applies only to positions that passed BOTH historical architecture/factor
+# validation and independent live OOF gates. 3.1 remains the fallback.
+# -------------------------------------------------------------------------
+promotion32_path <- "output/weekly_3_2_promotion.csv"
+residual32_path <- "output/weekly_3_2_residual_pool.csv"
+promotion32 <- if (file.exists(promotion32_path)) {
+  tryCatch(readr::read_csv(promotion32_path, show_col_types = FALSE, progress = FALSE),
+           error = function(e) data.frame())
+} else data.frame()
+residual32 <- if (file.exists(residual32_path)) {
+  tryCatch(readr::read_csv(residual32_path, show_col_types = FALSE, progress = FALSE),
+           error = function(e) data.frame())
+} else data.frame()
+
+if (exists("wk32_add_factors", mode = "function") && nrow(promotion32)) {
+  rows32 <- list()
+  for (pos in POSITIONS) {
+    d <- future_pred |> dplyr::filter(position == pos)
+    if (!nrow(d)) next
+
+    d$weekly_live_direct_fppg_32 <- NA_real_
+    d$weekly_live_alpha_32 <- 0
+    d$weekly_live_model_used_32 <- FALSE
+    d$weekly_live_variant_32 <- ""
+
+    pr32 <- promotion32[promotion32$position == pos, , drop = FALSE]
+    promote32 <- nrow(pr32) &&
+      "promoted_32" %in% names(pr32) &&
+      isTRUE(wk25_bool(pr32$promoted_32[1]))
+
+    model32_path <- paste0("models/weekly_3_2_live_", pos, ".json")
+    meta32_path <- paste0("models/weekly_3_2_live_", pos, "_meta.rds")
+    unplayed <- wk31_num(d$is_actual, 0) == 0
+
+    if (promote32 && any(unplayed) &&
+        file.exists(model32_path) && file.exists(meta32_path)) {
+      meta32 <- readRDS(meta32_path)
+      alpha32 <- suppressWarnings(as.numeric(meta32$blend_alpha))
+      if (!is.finite(alpha32)) alpha32 <- as.numeric(MODEL31_WEEKLY_ALPHA[[pos]])
+      obj32 <- list(
+        model = xgboost::xgb.load(model32_path),
+        features = meta32$features
+      )
+
+      du32 <- wk32_add_factors(d[unplayed, , drop = FALSE])
+      direct32 <- wk31_predict(obj32, du32)
+      base32 <- wk31_num(du32$projected_weekly_fppg)
+      avail32 <- if ("availability_factor" %in% names(du32)) {
+        wk31_num(du32$availability_factor, 1)
+      } else rep(1, nrow(du32))
+      candidate32 <- pmax(0, base32 + alpha32 * (direct32 - base32))
+      candidate32[avail32 <= 0] <- 0
+
+      d$weekly_live_direct_fppg_32[unplayed] <- direct32
+      d$weekly_live_alpha_32[unplayed] <- alpha32
+      d$weekly_live_model_used_32[unplayed] <- TRUE
+      d$weekly_live_variant_32[unplayed] <- as.character(meta32$selected_variant)
+      d$projected_weekly_fppg[unplayed] <- candidate32
+
+      if ("projected_weekly_fppg_pre_availability" %in% names(d)) {
+        pre32 <- candidate32 / pmax(avail32, 1e-6)
+        pre32[avail32 <= 0] <- 0
+        d$projected_weekly_fppg_pre_availability[unplayed] <- pre32
+      }
+
+      rr32 <- if (nrow(residual32) && all(c("position","residual") %in% names(residual32))) {
+        wk31_num(residual32$residual[as.character(residual32$position) == pos], NA_real_)
+      } else numeric()
+      rr32 <- rr32[is.finite(rr32)]
+      if (length(rr32) >= 30 && exists("empirical_distribution22", mode = "function")) {
+        dist32 <- empirical_distribution22(d$projected_weekly_fppg[unplayed], rr32, pos)
+        for (nm in names(dist32)) {
+          if (!nm %in% names(d)) d[[nm]] <- NA_real_
+          d[[nm]][unplayed] <- dist32[[nm]]
+        }
+      }
+
+      cat("[3.2 LIVE] ", pos, " signal optimizer applied to ",
+          sum(unplayed), " unplayed rows; alpha=", alpha32,
+          " | variant=", as.character(meta32$selected_variant), ".\n", sep = "")
+    }
+
+    rows32[[length(rows32) + 1L]] <- d
+  }
+  future_pred <- dplyr::bind_rows(rows32)
+}
 
 rerank_live31 <- function(d) {
   if (!"weekly_position_rank" %in% names(d)) d$weekly_position_rank <- NA_real_
