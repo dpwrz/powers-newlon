@@ -1,13 +1,13 @@
 {
   "name": "Powers-Newlon Fantasy Manager",
   "short_name": "Powers-Newlon",
-  "description": "Your fantasy football command center powered by the Powers-Newlon Model.",
+  "description": "Independent fantasy football intelligence powered by the Powers-Newlon Model.",
   "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#eef2f5",
-  "theme_color": "#eef2f5",
+  "background_color": "#F5F3EE",
+  "theme_color": "#23463E",
   "icons": [
     {
       "src": "/pn-mark.svg",
