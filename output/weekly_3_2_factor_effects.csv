@@ -1,0 +1,5 @@
+position,factor,mean_delta_MAE_if_permuted,min_delta_MAE_if_permuted,years_positive,years_tested
+RB,redzone_role_env_32,0.003304959373563454,0.002329307200416686,2,2
+RB,recent_vs_season_32,0.002916528447819422,-2.252996194931356e-4,1,2
+RB,pass_script_role_32,3.2353319998623675e-4,1.4258560869429004e-4,2,2
+WR,questionable_role_pressure_32,-1.8216852084962376e-4,-3.643370416992475e-4,0,2
