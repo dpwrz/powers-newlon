@@ -582,7 +582,7 @@ function render(){
  }
  root.innerHTML=html;bind();
 }
-function bind(){bindAdmin();$('[data-theme]').forEach(x=>x.onclick=()=>{localStorage.setItem('pn_theme',x.dataset.theme);applyPnTheme(x.dataset.theme);render()});
+function bind(){bindAdmin();$$('[data-theme]').forEach(x=>x.onclick=()=>{localStorage.setItem('pn_theme',x.dataset.theme);applyPnTheme(x.dataset.theme);render()});
  const connectForm=$('#nxConnectForm');
  if(connectForm){
   const input=connectForm.querySelector('#username'),season=connectForm.querySelector('#season');
