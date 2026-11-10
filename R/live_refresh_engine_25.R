@@ -68,10 +68,13 @@ live25_compact_schedule <- function(x) {
 live25_completed_mask <- function(schedule) {
   if (is.null(schedule) || !nrow(schedule)) return(logical())
   result <- live25_num(live25_first_col(schedule, c("result")))
+  # A live score is NOT proof a game is final. nflverse schedules may
+  # publish home_score/away_score while a game is still in progress.
+  # Only a populated final result establishes completion.
   if (any(is.finite(result))) return(is.finite(result))
-  hs <- live25_num(live25_first_col(schedule, c("home_score")))
-  as <- live25_num(live25_first_col(schedule, c("away_score")))
-  is.finite(hs) & is.finite(as)
+  # When result is absent, fail closed rather than treating live scores
+  # as final. Callers should retry once finalized schedule data arrives.
+  rep(FALSE, nrow(schedule))
 }
 
 live25_completed_games <- function(schedule) {
