@@ -1,0 +1,31 @@
+name: Benchmark archive integrity
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 15 * * 2,3'
+  push:
+    paths:
+      - 'output/benchmark_pregame_archive_2026.csv'
+      - 'output/benchmark_snapshot_manifest_2026.csv'
+      - 'output/pregame_projection_archive_2026.csv'
+      - 'output/live_accuracy_player_weeks_2026.csv'
+      - 'scripts/audit_benchmark_archive.py'
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate persisted benchmark evidence
+        run: python scripts/audit_benchmark_archive.py --json benchmark_audit.json
+      - name: Preserve diagnostics even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-archive-audit
+          path: benchmark_audit.json
+          if-no-files-found: warn
