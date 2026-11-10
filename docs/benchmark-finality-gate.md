@@ -1,11 +1,17 @@
-# Benchmark finality gate
+# Weekly benchmark finality fix
 
-The frozen archive is **not empty**. The large-file `fetch_file` response can be empty; Git blob retrieval confirms 7,441 archived rows, including 555 Fantasy Model and 528 Sleeper rows for Week 9.
+The frozen competitor archive contains 7,441 rows; the earlier empty result was a large-file fetch limitation.
 
-The actual-results table is a separate problem. For Week 9, 297 player rows include Buffalo/Minnesota players whose `captured_at` is **before Monday night's kickoff**. Such records cannot substantiate a finalized Week 9 benchmark, even if they contain numeric `actual_fppg`.
+## Root cause
 
-Run `python scripts/check_benchmark_finality.py --week 9 --last-kickoff-utc <verified UTC kickoff>` before computing or delivering. The gate checks all actual rows were captured at least four hours after the final kickoff and every frozen snapshot predates its player's kickoff. The four-hour delay is a *minimum safety check*, not proof the provider finalized the box score; an authoritative final-game status and actual-score reconciliation are still required.
+`live25_completed_mask()` in `R/live_refresh_engine_25.R` previously treated finite home/away **scores** as proof that a game was complete when `result` was unavailable. Live games can have scores. This prematurely admits partial player-week statistics into `pipeline/24_score_live_accuracy_2_5.R`, which already uses the completion mask.
 
-Do not use `live_accuracy_player_weeks_2026.csv` as completed-week ground truth until this gate passes. Regenerate actuals after the final game, validate player/team IDs and PPR scoring, then join frozen providers by season/week/player ID on identical cohorts. Treat missing competitor data as unavailable rather than inferred. Only then calculate and deliver the report.
+The patch **fails closed**: games are complete only when the nflverse schedule has a numeric final `result`. When no final result exists, the game is not scored. This avoids rebuilding completed weeks and protects pregame forecasts.
 
-This check does not change existing jobs or claim to repair the producer; it makes the observed finality defect reproducible and prevents silent publication of pre-final actuals.
+The accuracy table's `captured_at` is the **pregame projection capture time**, not the actuals ingestion time. Earlier assertions that this timestamp proved premature actuals were mistaken. The validation script now checks schedule final results instead.
+
+## Verification
+
+Run the refresh after nflverse has published all final results. Use `python scripts/check_benchmark_finality.py --week N --last-kickoff-utc YYYY-MM-DDTHH:MM:SSZ` to validate archive timestamps, schedule completion, and scored-team membership before reporting. This script needs the checked-out `data/raw/schedules_live_2026.csv`.
+
+This is a code fix awaiting integration/production validation; no historical leaderboard is asserted. If a provider has no frozen rows, report it as unavailable. Historical actuals generated under the old score-based completion rule should be regenerated from final weekly stats.
