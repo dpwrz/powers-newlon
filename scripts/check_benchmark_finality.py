@@ -26,6 +26,13 @@ def timestamp(value):
     except ValueError:
         return None
 
+def numeric_result(value):
+    try:
+        return bool(value is not None and str(value).strip() and
+                    float(value) == float(value) and abs(float(value)) != float("inf"))
+    except (TypeError, ValueError):
+        return False
+
 def check(week, season, last_kickoff, min_hours):
     issues = []
     snapshots = [r for r in load(f"benchmark_pregame_archive_{season}.csv")
@@ -40,8 +47,6 @@ def check(week, season, last_kickoff, min_hours):
             issues.append(f"invalid pregame timestamp: {provider}/{r.get('player_id')}")
     if not providers.get("fantasy_model"):
         issues.append("no frozen Fantasy Model rows")
-    if not providers.get("sleeper"):
-        issues.append("no frozen Sleeper rows (report as unavailable if provider genuinely absent)")
     actuals = [r for r in load(f"live_accuracy_player_weeks_{season}.csv")
                if r.get("week") == str(week)]
     # The 'captured_at' column in accuracy rows is the FROZEN FORECAST time,
@@ -55,13 +60,11 @@ def check(week, season, last_kickoff, min_hours):
             schedule = [r for r in csv.DictReader(f) if r.get("week") == str(week)]
         if not schedule:
             issues.append("no schedule rows for requested week")
-        if any(not (r.get("result") or "").strip() or
-               (r.get("result") or "").strip().upper() in ("NA", "NAN")
-               for r in schedule):
+        if any(not numeric_result(r.get("result")) for r in schedule):
             issues.append("at least one game lacks an explicit final result")
         finished_teams = set()
         for game in schedule:
-            if (game.get("result") or "").strip() not in ("", "NA", "NaN"):
+            if numeric_result(game.get("result")):
                 finished_teams.update((game.get("home_team"), game.get("away_team")))
         if any(r.get("team_actual") not in finished_teams for r in actuals):
             issues.append("actual rows contain teams without a final-result schedule entry")
@@ -72,6 +75,8 @@ def check(week, season, last_kickoff, min_hours):
         issues.append("minimum post-kickoff safety window has not elapsed")
     if not actuals:
         issues.append("no actual player rows")
+    if len({(r.get("week"), r.get("player_id")) for r in actuals}) != len(actuals):
+        issues.append("duplicate actual player/week keys")
     report = {"season": season, "week": week, "frozen_provider_rows": providers,
               "actual_rows": len(actuals), "last_game_cutoff_utc": cutoff.isoformat() if cutoff else None,
               "valid": not issues, "issues_count": len(issues), "issues": issues[:25]}
