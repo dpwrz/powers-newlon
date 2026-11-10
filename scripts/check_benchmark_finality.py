@@ -44,15 +44,32 @@ def check(week, season, last_kickoff, min_hours):
         issues.append("no frozen Sleeper rows (report as unavailable if provider genuinely absent)")
     actuals = [r for r in load(f"live_accuracy_player_weeks_{season}.csv")
                if r.get("week") == str(week)]
+    # The 'captured_at' column in accuracy rows is the FROZEN FORECAST time,
+    # not the timestamp at which actual points were scored. Do not compare it
+    # against the final game kickoff.
+    schedule_path = ROOT / "data" / "raw" / f"schedules_live_{season}.csv"
+    if not schedule_path.exists():
+        issues.append("finalized schedule data missing")
+    else:
+        with schedule_path.open(encoding="utf-8-sig", newline="") as f:
+            schedule = [r for r in csv.DictReader(f) if r.get("week") == str(week)]
+        if not schedule:
+            issues.append("no schedule rows for requested week")
+        if any(not (r.get("result") or "").strip() or
+               (r.get("result") or "").strip().upper() in ("NA", "NAN")
+               for r in schedule):
+            issues.append("at least one game lacks an explicit final result")
+        finished_teams = set()
+        for game in schedule:
+            if (game.get("result") or "").strip() not in ("", "NA", "NaN"):
+                finished_teams.update((game.get("home_team"), game.get("away_team")))
+        if any(r.get("team_actual") not in finished_teams for r in actuals):
+            issues.append("actual rows contain teams without a final-result schedule entry")
     cutoff = timestamp(last_kickoff)
     if cutoff is None:
         issues.append("last kickoff timestamp missing or invalid")
-    else:
-        cutoff += dt.timedelta(hours=min_hours)
-        for r in actuals:
-            capture = timestamp(r.get("captured_at"))
-            if not capture or capture < cutoff:
-                issues.append(f"actual row predates final-game safety cutoff: {r.get('player_display_name')} ({r.get('player_id')})")
+    elif dt.datetime.now(dt.timezone.utc) < cutoff + dt.timedelta(hours=min_hours):
+        issues.append("minimum post-kickoff safety window has not elapsed")
     if not actuals:
         issues.append("no actual player rows")
     report = {"season": season, "week": week, "frozen_provider_rows": providers,
