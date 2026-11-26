@@ -115,6 +115,11 @@ def main():
         if g:report['weeks'][w]=summarize(g)
     report['cumulative']=summarize(rows)
     report['largest_errors']=sorted([r for r in rows if r['week']==latest],key=lambda r:abs(r['fantasy_model']-r['actual']),reverse=True)[:15]
+    # Persist matched outcomes for chronological research, not for retroactive forecasts.
+    research=OUT/f'benchmark_matched_{SEASON}.csv'
+    with research.open('w',newline='') as f:
+        writer=csv.DictWriter(f,fieldnames=['week','id','name','position','actual','fantasy_model','sleeper'])
+        writer.writeheader();writer.writerows(rows)
     dest=OUT/f'benchmark_verified_{SEASON}.json'; tmp=dest.with_suffix('.tmp');tmp.write_text(json.dumps(report,indent=2,allow_nan=False));tmp.replace(dest)
     print(json.dumps(report['coverage'],indent=2))
 def summarize(rows):
