@@ -52,9 +52,10 @@ def decisions(rows,p):
     return dict(top_n=hits/slots if slots else None,start_sit=correct/pairs if pairs else None,starter=metrics(starters,p),relevant=metrics(relevant,p))
 def main():
     base='https://github.com/nflverse/nflverse-data/releases/download/'
-    import gzip
+    import gzip, urllib.error
     sb=download(base+'schedules/games.csv')
-    pb=download(base+f'stats_player/stats_player_week_{SEASON}.csv.gz')
+    try: pb=download(base+f'stats_player/stats_player_week_{SEASON}.csv.gz')
+    except urllib.error.HTTPError: pb=download(base+f'stats_player/stats_player_week_{SEASON}.csv')
     if pb[:2]==b'\x1f\x8b': pb=gzip.decompress(pb)
     games=[g for g in parse(sb) if g['season']==str(SEASON) and g['game_type']=='REG']
     stats=[r for r in parse(pb) if r['season']==str(SEASON) and r['season_type']=='REG']
@@ -69,7 +70,10 @@ def main():
         if missing: issues[w]={'missing_games':sorted(missing)};continue
         final.add(w)
     # Refuse to silently downgrade the latest final schedule week.
-    latest=max(int(g['week']) for g in games if num(g['result']) is not None)
+    from zoneinfo import ZoneInfo
+    now=dt.datetime.now(dt.timezone.utc)
+    elapsed=[w for w in {int(g['week']) for g in games} if all(dt.datetime.fromisoformat(g['gameday']+'T'+g['gametime']).replace(tzinfo=ZoneInfo('America/New_York'))+dt.timedelta(hours=5)<now for g in games if int(g['week'])==w)]
+    latest=max(elapsed)
     if latest not in final: raise RuntimeError(f'Latest week {latest} is incomplete in schedule or player stats: {issues}')
     actual={}; schedule={}
     for g in games:
@@ -80,7 +84,7 @@ def main():
                 schedule[(int(g['week']),team(t))]=(g['game_id'],team(o),kickoff)
     for r in stats:
         w=int(r['week']); pos=r['position']; pid=r['player_id']
-        if w not in final or pos not in POS or not pid:continue
+        if w not in final or pos not in POS or not pid or pid=='NA':continue
         s=schedule.get((w,team(r['team'])))
         if not s or s[0]!=r['game_id'] or s[1]!=team(r['opponent_team']):raise RuntimeError('Actual identity mismatch')
         ppr=num(r['fantasy_points_ppr']); rec=num(r['receptions'])
